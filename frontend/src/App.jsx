@@ -3,6 +3,7 @@ import useAuthStore from './store/authStore.js'
 import PrivateRoute from './components/auth/PrivateRoute.jsx'
 import LoginPage from './features/auth/LoginPage.jsx'
 import RegisterPage from './features/auth/RegisterPage.jsx'
+import SessionRunner from './features/training/components/SessionRunner.jsx'
 
 function PlaceholderPage({ title }) {
   return (
@@ -40,7 +41,7 @@ export default function App() {
       <Route element={<PrivateRoute />}>
         <Route path="/onboarding" element={<PlaceholderPage title="Онбординг" />} />
         <Route path="/dashboard" element={<PlaceholderPage title="Dashboard" />} />
-        <Route path="/train" element={<PlaceholderPage title="Тренировка" />} />
+        <Route path="/train" element={<SessionRunner />} />
         <Route path="/topics" element={<PlaceholderPage title="Темы" />} />
         <Route path="/settings" element={<PlaceholderPage title="Настройки" />} />
       </Route>
