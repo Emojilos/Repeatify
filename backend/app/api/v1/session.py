@@ -6,14 +6,26 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from supabase import Client
 
 from app.api.deps import CurrentUser
 from app.core.session.generator import SessionGenerator
 from app.db.supabase import get_supabase_client
+from app.services.review_service import process_review
 
 router = APIRouter()
+
+
+class ReviewRequest(BaseModel):
+    card_id: str = Field(..., description="UUID of the card being reviewed")
+    session_id: str = Field(..., description="UUID of the active study session")
+    rating: int = Field(..., ge=1, le=4, description="1=Again, 2=Hard, 3=Good, 4=Easy")
+    hints_used: int = Field(default=0, ge=0, description="Number of hints revealed")
+    response_time_ms: int | None = Field(
+        default=None, ge=0, description="Response time in milliseconds"
+    )
 
 
 @router.post("/session/generate")
@@ -68,3 +80,38 @@ def generate_session(
         "total_cards": len(cards),
         "daily_goal_minutes": daily_goal,
     }
+
+
+@router.post("/session/review")
+def review_card(
+    body: ReviewRequest,
+    current_user: CurrentUser,
+    sb: Client = Depends(get_supabase_client),
+) -> dict[str, Any]:
+    """Record a user's answer rating for a card and update FSRS scheduling.
+
+    Accepts card_id, session_id, rating (1–4), hints_used, response_time_ms.
+    Updates user_card_progress, inserts a review_logs record, and increments
+    study_sessions counters.
+
+    Returns updated scheduling info: next_due, stability, difficulty, etc.
+    """
+    user_id: str = current_user["user_id"]
+
+    try:
+        result = process_review(
+            sb=sb,
+            user_id=user_id,
+            card_id=body.card_id,
+            session_id=body.session_id,
+            rating=body.rating,
+            hints_used=body.hints_used,
+            response_time_ms=body.response_time_ms,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+    return result

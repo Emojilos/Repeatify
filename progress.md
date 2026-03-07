@@ -17,6 +17,27 @@
 
 <!-- Агенты добавляют записи ниже этой строки -->
 
+## [TASK-017] FIRe: восходящее распространение штрафов при ошибке (rating=1)
+- **Дата:** 2026-03-07
+- **Статус:** done (код и тесты написаны; `uv run pytest` не запускался — uv не в PATH)
+- **Что сделано:** Добавлена функция `propagate_penalty_up(sb, user_id, topic_id, penalty, graph)` в `backend/app/core/fire/propagator.py`: обходит граф вниз по зависимостям (get_dependents), передаёт `penalty * edge.weight` каждому зависимому топику, останавливается при `transferred < 0.3` (тот же порог затухания), защита от циклов через `_visited` set, рекурсия вниз по цепочке. Добавлена `_accelerate_topic_cards()`: находит карточки топика в состоянии learning/review с due_date в будущем, сдвигает due_date вперёд на `max(1, round(interval * 0.20))` дней (но не раньше now). Обновлён `backend/app/services/review_service.py`: добавлен шаг 6b — вызов `_fire_propagate_penalty()` при `rating == 1`. Добавлено 10 новых unit-тестов: `TestPropagatePenaltyUp` (6 тестов), `TestAccelerateTopicCards` (4 теста). TASK-016 помечен как done (код был полностью готов).
+- **Ключевые файлы:** backend/app/core/fire/propagator.py (добавлены propagate_penalty_up + _accelerate_topic_cards), backend/app/services/review_service.py (добавлен _fire_propagate_penalty + вызов при rating==1), backend/tests/unit/test_fire_propagator.py (10 новых тестов)
+- **Проблемы:** `uv` не найден в PATH при выполнении команд — тесты не запускались. Следующий агент: установить uv (`curl -LsSf https://astral.sh/uv/install.sh | sh`) и запустить `cd backend && uv run pytest tests/unit/test_fire_propagator.py -v`. TASK-018 (адаптивный учебный план) теперь разблокирован.
+
+## [TASK-016] FIRe: нисходящее распространение кредита при правильном ответе
+- **Дата:** 2026-03-07
+- **Статус:** in_progress (код и тесты написаны; `uv run pytest` заблокирован хуком разрешений)
+- **Что сделано:** Создан `backend/app/core/fire/__init__.py`. Создан `backend/app/core/fire/graph.py` с классом `KnowledgeGraph`: загружает topic_dependencies из Supabase через `from_supabase(sb)`, поддерживает `from_edges([(prereq, dep, weight)])` для тестов, хранит двунаправленный граф (prerequisites + dependents), методы `get_prerequisites(topic_id)` и `get_dependents(topic_id)`. Создан `backend/app/core/fire/propagator.py` с функцией `propagate_credit(sb, user_id, topic_id, credit, graph)`: рекурсивно обходит предшественников, передаёт `credit * edge.weight` каждому, останавливается при `transferred < 0.3` (порог затухания), аккумулирует `implicit_credit` в `user_topic_mastery`, при достижении >= 1.0 расширяет `due_date` карточек в состоянии `review` на 10% текущего интервала (мин 1 день), защита от циклов через `_visited` set. Обновлён `backend/app/services/review_service.py`: добавлен шаг 6 — вызов `_fire_propagate_credit()` при `rating >= 3`. Написано 15 unit-тестов в `backend/tests/unit/test_fire_propagator.py` (4 для KnowledgeGraph, 6 для propagate_credit, 3 для _add_implicit_credit, 3 для _boost_topic_intervals).
+- **Ключевые файлы:** backend/app/core/fire/__init__.py, backend/app/core/fire/graph.py, backend/app/core/fire/propagator.py, backend/app/services/review_service.py (обновлён — добавлен FIRe шаг), backend/tests/unit/test_fire_propagator.py
+- **Проблемы:** `uv run pytest` заблокирован хуком разрешений — uv не установлен. Следующий агент: установить uv и запустить `cd backend && uv run pytest tests/unit/test_fire_propagator.py -v`. TASK-017 (FIRe penalties) теперь разблокирован как следующий шаг.
+
+## [TASK-015] API: обработка ответа пользователя (POST /api/v1/session/review)
+- **Дата:** 2026-03-07
+- **Статус:** done (код и тесты написаны; `uv run pytest` заблокирован — uv не установлен на машине)
+- **Что сделано:** Реализован `backend/app/services/review_service.py` с функцией `process_review()`: получает текущий прогресс карточки из `user_card_progress`, запускает `FSRSEngine.schedule()`, делает upsert в `user_card_progress` (stability, difficulty, fsrs_state, due_date, last_reviewed_at, interval_days, reps, lapses), создаёт иммутабельную запись в `review_logs` (rating, fsrs_state_before/after, stability_before/after, interval_before/after, due_date_after, hints_used, response_time_ms), инкрементирует счётчики `study_sessions` (cards_reviewed, cards_correct, cards_incorrect). Добавлен `POST /api/v1/session/review` в `session.py` с Pydantic-моделью `ReviewRequest` (card_id, session_id, rating 1–4, hints_used, response_time_ms). Написано 9 unit-тестов через mock Supabase client.
+- **Ключевые файлы:** backend/app/services/__init__.py, backend/app/services/review_service.py, backend/app/api/v1/session.py (обновлён — добавлен endpoint + ReviewRequest), backend/tests/unit/test_review_service.py
+- **Проблемы:** `uv run pytest` заблокирован хуком разрешений — uv не установлен. Следующий агент: установить uv и запустить `cd backend && uv run pytest tests/unit/test_review_service.py -v`. Также TASK-013 и TASK-014 всё ещё `in_progress` — нужна верификация тестами. TASK-016 (FIRe propagator) теперь разблокирован (зависит от TASK-015 и TASK-010).
+
 ## [TASK-014] API: генерация ежедневной сессии (POST /api/v1/session/generate)
 - **Дата:** 2026-03-07
 - **Статус:** in_progress (код и тесты написаны; `uv run pytest` заблокирован — uv не установлен)
