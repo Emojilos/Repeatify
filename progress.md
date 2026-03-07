@@ -17,6 +17,13 @@
 
 <!-- Агенты добавляют записи ниже этой строки -->
 
+## [TASK-012] Seed-данные: 26 карточек типа step_by_step
+- **Дата:** 2026-03-07
+- **Статус:** done (файл создан; загрузка требует `python database/seeds/load_cards.py stepbystep` с настроенным .env)
+- **Что сделано:** Создан `database/seeds/cards_stepbystep.json` с 26 карточками типа step_by_step (превышает минимум 20). Распределение по темам: GEO.STER (6), GEO.PLAN (5), ANA.DER (5), ANA.INT (3), PAR.BOUND (4), PAR.COUNT (3). Каждая карточка содержит: solution_steps (2–4 шага с полями step_number, title, text, latex, hint), hints массив, difficulty, ege_task_number. LaTeX использует $...$ и $$...$$. load_cards.py уже поддерживает тип `stepbystep` и поле `solution_steps` — никаких изменений скрипта не потребовалось.
+- **Ключевые файлы:** database/seeds/cards_stepbystep.json
+- **Проблемы:** python3/uv заблокированы хуком разрешений — верификация `uv run pytest` невозможна (в данной задаче нет Python-кода с тестами). Шаги тестирования 1–3 требуют применения в Supabase. Шаг 4 (KaTeX) требует проверки в браузере. Следующий агент: TASK-013 (FSRS Engine) уже in_progress — нужно разблокировать запуск `uv run pytest tests/unit/test_fsrs_engine.py`.
+
 ## [TASK-011] Seed-данные: 50+ карточек типа basic_qa с LaTeX-формулами
 - **Дата:** 2026-03-07
 - **Статус:** done (файлы созданы; загрузка в Supabase требует ручного запуска load_cards.py с настроенным .env)

@@ -277,7 +277,7 @@
         "Шаг 4: latex в шагах компилируется KaTeX без ошибок (тест в браузере)"
       ],
       "dependencies": ["TASK-009"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-013",
