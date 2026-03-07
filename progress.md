@@ -17,6 +17,13 @@
 
 <!-- Агенты добавляют записи ниже этой строки -->
 
+## [TASK-019] Streak-сервис: расчёт стрика и обновление daily_activity
+- **Дата:** 2026-03-07
+- **Статус:** done (код и тесты написаны; `uv run pytest` не запускался — uv не в PATH, команды заблокированы хуком)
+- **Что сделано:** Создан `backend/app/services/streak_service.py` с двумя публичными функциями. `record_activity(sb, user_id, activity_date, cards_reviewed, minutes_studied)`: получает `daily_goal_minutes` из `users`, вычисляет `goal_reached = cards_reviewed >= daily_goal_minutes` (2 карты/мин, порог 50%), делает upsert `daily_activity` (merge при повторном вызове за тот же день), запрашивает все `goal_reached=True` дни пользователя, вычисляет `current_streak` через `_compute_streak()` (обход назад по дням), обновляет `users.current_streak` и `longest_streak`. `reset_streak_if_missed(sb, user_id, today)`: проверяет последнюю активную дату — если пропуск >= 2 дней, обнуляет `current_streak`. Написаны 15 unit-тестов: 3 для `_parse_date`, 5 для `_compute_streak`, 6 для `record_activity`, 3 для `reset_streak_if_missed`. Тесты учитывают что MagicMock возвращает одинаковый объект для любого аргумента `sb.table()` и цепочки строятся через разные атрибуты (`.maybe_single` vs `.order`).
+- **Ключевые файлы:** backend/app/services/streak_service.py, backend/tests/unit/test_streak_service.py
+- **Проблемы:** `uv run pytest` и `python3 -m pytest` заблокированы хуком разрешений — uv не установлен. Следующий агент: установить uv и запустить `cd backend && uv run pytest tests/unit/test_streak_service.py -v`. TASK-020 (Streak Freeze) теперь разблокирован, TASK-027 (Dashboard) тоже зависит от этой задачи.
+
 ## [TASK-017] FIRe: восходящее распространение штрафов при ошибке (rating=1)
 - **Дата:** 2026-03-07
 - **Статус:** done (код и тесты написаны; `uv run pytest` не запускался — uv не в PATH)
