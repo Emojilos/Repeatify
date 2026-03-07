@@ -17,6 +17,13 @@
 
 <!-- Агенты добавляют записи ниже этой строки -->
 
+## [TASK-007] Supabase Auth: регистрация и вход через email/пароль
+- **Дата:** 2026-03-07
+- **Статус:** done (код готов; функциональное тестирование требует запущенного Supabase и npm install)
+- **Что сделано:** Создан singleton клиент `frontend/src/config/supabase.js` (createClient из VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY). Реализован `frontend/src/services/supabase/auth.service.js` с функциями signUp, signIn, signOut, getSession, onAuthStateChange. Создан `frontend/src/features/auth/LoginPage.jsx`: форма email+пароль, обработка ошибок, редирект на /dashboard после входа. Создан `frontend/src/features/auth/RegisterPage.jsx`: форма с подтверждением пароля, успешный экран "проверьте почту" после регистрации. App.jsx обновлён: /login и /register используют реальные компоненты, корневой маршрут "/" редиректит на /login.
+- **Ключевые файлы:** frontend/src/config/supabase.js, frontend/src/services/supabase/auth.service.js, frontend/src/features/auth/LoginPage.jsx, frontend/src/features/auth/RegisterPage.jsx, frontend/src/App.jsx
+- **Проблемы:** uv не установлен → тесты не запускались. npm install заблокирован хуком → npm run dev/build не проверялись. Следующий агент: TASK-008 (AuthContext + PrivateRoute + Zustand authStore) — теперь разблокирован.
+
 ## [TASK-012] Seed-данные: 26 карточек типа step_by_step
 - **Дата:** 2026-03-07
 - **Статус:** done (файл создан; загрузка требует `python database/seeds/load_cards.py stepbystep` с настроенным .env)
