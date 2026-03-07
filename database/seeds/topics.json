@@ -1,0 +1,599 @@
+{
+  "description": "Граф знаний профильного ЕГЭ по математике. Уровни: 0=раздел, 1=тема, 2=подтема. parent_code ссылается на code родительской темы.",
+  "topics": [
+    {
+      "code": "ALG",
+      "title": "Алгебра",
+      "description": "Алгебраические выражения, уравнения и неравенства",
+      "difficulty": 0.3,
+      "level": 0,
+      "parent_code": null,
+      "ege_task_numbers": [1, 2, 4, 8, 9, 10, 11, 12, 14, 15, 17]
+    },
+    {
+      "code": "GEO",
+      "title": "Геометрия",
+      "description": "Планиметрия и стереометрия",
+      "difficulty": 0.4,
+      "level": 0,
+      "parent_code": null,
+      "ege_task_numbers": [3, 6, 13, 16]
+    },
+    {
+      "code": "ANA",
+      "title": "Математический анализ",
+      "description": "Производная, интеграл, исследование функций",
+      "difficulty": 0.5,
+      "level": 0,
+      "parent_code": null,
+      "ege_task_numbers": [2, 7, 14]
+    },
+    {
+      "code": "PRB",
+      "title": "Теория вероятностей и статистика",
+      "description": "Вероятность событий, комбинаторика, статистика",
+      "difficulty": 0.4,
+      "level": 0,
+      "parent_code": null,
+      "ege_task_numbers": [5, 12]
+    },
+    {
+      "code": "PAR",
+      "title": "Задачи с параметром",
+      "description": "Уравнения и неравенства, содержащие параметр",
+      "difficulty": 0.95,
+      "level": 0,
+      "parent_code": null,
+      "ege_task_numbers": [19]
+    },
+    {
+      "code": "ALG.LIN",
+      "title": "Линейные уравнения и неравенства",
+      "description": "Линейные функции, уравнения первой степени, системы линейных уравнений",
+      "difficulty": 0.15,
+      "level": 1,
+      "parent_code": "ALG",
+      "ege_task_numbers": [1, 4]
+    },
+    {
+      "code": "ALG.QUAD",
+      "title": "Квадратные уравнения и неравенства",
+      "description": "Квадратный трёхчлен, дискриминант, формула Виета, параболы",
+      "difficulty": 0.3,
+      "level": 1,
+      "parent_code": "ALG",
+      "ege_task_numbers": [2, 14, 17]
+    },
+    {
+      "code": "ALG.EXP",
+      "title": "Показательные функции и уравнения",
+      "description": "Степени и корни, показательная функция, показательные уравнения и неравенства",
+      "difficulty": 0.5,
+      "level": 1,
+      "parent_code": "ALG",
+      "ege_task_numbers": [8, 10, 11]
+    },
+    {
+      "code": "ALG.LOG",
+      "title": "Логарифмы",
+      "description": "Свойства логарифмов, логарифмические уравнения и неравенства",
+      "difficulty": 0.55,
+      "level": 1,
+      "parent_code": "ALG",
+      "ege_task_numbers": [8, 10, 11, 14]
+    },
+    {
+      "code": "ALG.TRIG",
+      "title": "Тригонометрия",
+      "description": "Тригонометрические функции, тождества, уравнения и неравенства",
+      "difficulty": 0.6,
+      "level": 1,
+      "parent_code": "ALG",
+      "ege_task_numbers": [1, 8, 18]
+    },
+    {
+      "code": "ALG.SEQ",
+      "title": "Прогрессии и последовательности",
+      "description": "Арифметическая и геометрическая прогрессии, финансовые расчёты",
+      "difficulty": 0.4,
+      "level": 1,
+      "parent_code": "ALG",
+      "ege_task_numbers": [4, 9, 15, 17]
+    },
+    {
+      "code": "ALG.COMB",
+      "title": "Комбинаторика",
+      "description": "Перестановки, размещения, сочетания, бином Ньютона",
+      "difficulty": 0.5,
+      "level": 1,
+      "parent_code": "ALG",
+      "ege_task_numbers": [12, 17]
+    },
+    {
+      "code": "GEO.PLAN",
+      "title": "Планиметрия",
+      "description": "Геометрия на плоскости: треугольники, четырёхугольники, окружности",
+      "difficulty": 0.55,
+      "level": 1,
+      "parent_code": "GEO",
+      "ege_task_numbers": [6, 16]
+    },
+    {
+      "code": "GEO.STER",
+      "title": "Стереометрия",
+      "description": "Геометрия в пространстве: многогранники, тела вращения",
+      "difficulty": 0.65,
+      "level": 1,
+      "parent_code": "GEO",
+      "ege_task_numbers": [3, 13]
+    },
+    {
+      "code": "GEO.COORD",
+      "title": "Координаты и векторы",
+      "description": "Декартова система координат, векторная алгебра, скалярное произведение",
+      "difficulty": 0.6,
+      "level": 1,
+      "parent_code": "GEO",
+      "ege_task_numbers": [13]
+    },
+    {
+      "code": "ANA.DER",
+      "title": "Производная и её применение",
+      "description": "Правила дифференцирования, касательная, исследование на экстремум",
+      "difficulty": 0.6,
+      "level": 1,
+      "parent_code": "ANA",
+      "ege_task_numbers": [7, 14]
+    },
+    {
+      "code": "ANA.INT",
+      "title": "Интегралы",
+      "description": "Первообразная, неопределённый и определённый интеграл, вычисление площадей",
+      "difficulty": 0.65,
+      "level": 1,
+      "parent_code": "ANA",
+      "ege_task_numbers": [7]
+    },
+    {
+      "code": "ANA.FUNC",
+      "title": "Исследование функций",
+      "description": "Область определения, чётность, монотонность, построение графиков",
+      "difficulty": 0.45,
+      "level": 1,
+      "parent_code": "ANA",
+      "ege_task_numbers": [2, 7]
+    },
+    {
+      "code": "PRB.BASIC",
+      "title": "Теория вероятностей",
+      "description": "Классическое и геометрическое определение вероятности, независимые события",
+      "difficulty": 0.4,
+      "level": 1,
+      "parent_code": "PRB",
+      "ege_task_numbers": [5, 12]
+    },
+    {
+      "code": "PRB.STAT",
+      "title": "Статистика",
+      "description": "Среднее значение, медиана, мода, дисперсия, гистограммы",
+      "difficulty": 0.3,
+      "level": 1,
+      "parent_code": "PRB",
+      "ege_task_numbers": [5]
+    },
+    {
+      "code": "PAR.BOUND",
+      "title": "Задачи на нахождение параметра",
+      "description": "Нахождение значений параметра при заданных условиях на решения",
+      "difficulty": 0.9,
+      "level": 1,
+      "parent_code": "PAR",
+      "ege_task_numbers": [19]
+    },
+    {
+      "code": "PAR.COUNT",
+      "title": "Задачи на количество решений",
+      "description": "Определение числа решений уравнения в зависимости от параметра",
+      "difficulty": 0.95,
+      "level": 1,
+      "parent_code": "PAR",
+      "ege_task_numbers": [19]
+    },
+    {
+      "code": "ALG.LIN.EQ",
+      "title": "Линейные уравнения",
+      "description": "Уравнения вида ax + b = 0, линейные системы, метод подстановки и сложения",
+      "difficulty": 0.1,
+      "level": 2,
+      "parent_code": "ALG.LIN",
+      "ege_task_numbers": [1, 4]
+    },
+    {
+      "code": "ALG.LIN.INEQ",
+      "title": "Линейные неравенства и системы",
+      "description": "Неравенства первой степени, системы неравенств, числовая прямая",
+      "difficulty": 0.15,
+      "level": 2,
+      "parent_code": "ALG.LIN",
+      "ege_task_numbers": [1]
+    },
+    {
+      "code": "ALG.QUAD.EQ",
+      "title": "Квадратные уравнения",
+      "description": "Формула дискриминанта, формула корней, неполные квадратные уравнения",
+      "difficulty": 0.25,
+      "level": 2,
+      "parent_code": "ALG.QUAD",
+      "ege_task_numbers": [2, 17]
+    },
+    {
+      "code": "ALG.QUAD.INEQ",
+      "title": "Квадратные неравенства",
+      "description": "Метод параболы, знаковая диаграмма, промежутки знакопостоянства",
+      "difficulty": 0.35,
+      "level": 2,
+      "parent_code": "ALG.QUAD",
+      "ege_task_numbers": [14]
+    },
+    {
+      "code": "ALG.QUAD.VIETA",
+      "title": "Теорема Виета и её приложения",
+      "description": "Сумма и произведение корней, целые корни, рациональные корни",
+      "difficulty": 0.3,
+      "level": 2,
+      "parent_code": "ALG.QUAD",
+      "ege_task_numbers": [17]
+    },
+    {
+      "code": "ALG.EXP.FUNC",
+      "title": "Свойства показательной функции",
+      "description": "График y = a^x, область значений, монотонность при a > 1 и 0 < a < 1",
+      "difficulty": 0.35,
+      "level": 2,
+      "parent_code": "ALG.EXP",
+      "ege_task_numbers": [2, 11]
+    },
+    {
+      "code": "ALG.EXP.EQ",
+      "title": "Показательные уравнения",
+      "description": "Сведение к одному основанию, замена переменной, комбинированные уравнения",
+      "difficulty": 0.5,
+      "level": 2,
+      "parent_code": "ALG.EXP",
+      "ege_task_numbers": [10, 11]
+    },
+    {
+      "code": "ALG.EXP.INEQ",
+      "title": "Показательные неравенства",
+      "description": "Решение показательных неравенств с учётом основания, системы неравенств",
+      "difficulty": 0.55,
+      "level": 2,
+      "parent_code": "ALG.EXP",
+      "ege_task_numbers": [8, 14]
+    },
+    {
+      "code": "ALG.LOG.PROP",
+      "title": "Свойства логарифмов",
+      "description": "Основные свойства: log(ab), log(a/b), log(a^n), формула перехода к другому основанию",
+      "difficulty": 0.4,
+      "level": 2,
+      "parent_code": "ALG.LOG",
+      "ege_task_numbers": [1, 10]
+    },
+    {
+      "code": "ALG.LOG.EQ",
+      "title": "Логарифмические уравнения",
+      "description": "Метод потенцирования, замена переменной, ОДЗ логарифмических уравнений",
+      "difficulty": 0.55,
+      "level": 2,
+      "parent_code": "ALG.LOG",
+      "ege_task_numbers": [10, 11]
+    },
+    {
+      "code": "ALG.LOG.INEQ",
+      "title": "Логарифмические неравенства",
+      "description": "Знак неравенства при логарифмировании, ОДЗ, системы неравенств",
+      "difficulty": 0.65,
+      "level": 2,
+      "parent_code": "ALG.LOG",
+      "ege_task_numbers": [8, 14]
+    },
+    {
+      "code": "ALG.TRIG.BASIC",
+      "title": "Основные тригонометрические тождества и формулы",
+      "description": "Формулы двойного угла, суммы, разности, преобразование произведений в суммы",
+      "difficulty": 0.45,
+      "level": 2,
+      "parent_code": "ALG.TRIG",
+      "ege_task_numbers": [1]
+    },
+    {
+      "code": "ALG.TRIG.EQ",
+      "title": "Тригонометрические уравнения",
+      "description": "Простейшие тригонометрические уравнения, методы решения, ОДЗ",
+      "difficulty": 0.65,
+      "level": 2,
+      "parent_code": "ALG.TRIG",
+      "ege_task_numbers": [18]
+    },
+    {
+      "code": "ALG.TRIG.INEQ",
+      "title": "Тригонометрические неравенства",
+      "description": "Неравенства на тригонометрической окружности, методы решения",
+      "difficulty": 0.7,
+      "level": 2,
+      "parent_code": "ALG.TRIG",
+      "ege_task_numbers": [8, 18]
+    },
+    {
+      "code": "ALG.TRIG.TRANSF",
+      "title": "Преобразование тригонометрических выражений",
+      "description": "Упрощение выражений, вспомогательный угол, универсальная подстановка",
+      "difficulty": 0.6,
+      "level": 2,
+      "parent_code": "ALG.TRIG",
+      "ege_task_numbers": [1, 18]
+    },
+    {
+      "code": "ALG.SEQ.ARITH",
+      "title": "Арифметическая прогрессия",
+      "description": "Формула n-го члена, сумма n первых членов, характеристическое свойство",
+      "difficulty": 0.25,
+      "level": 2,
+      "parent_code": "ALG.SEQ",
+      "ege_task_numbers": [4, 9]
+    },
+    {
+      "code": "ALG.SEQ.GEO",
+      "title": "Геометрическая прогрессия",
+      "description": "Формула n-го члена, сумма n первых членов, сумма бесконечной геометрической прогрессии, финансовые расчёты",
+      "difficulty": 0.35,
+      "level": 2,
+      "parent_code": "ALG.SEQ",
+      "ege_task_numbers": [9, 15]
+    },
+    {
+      "code": "ALG.COMB.PERM",
+      "title": "Перестановки и размещения",
+      "description": "Перестановки n элементов, размещения из n по k, правило произведения",
+      "difficulty": 0.45,
+      "level": 2,
+      "parent_code": "ALG.COMB",
+      "ege_task_numbers": [12]
+    },
+    {
+      "code": "ALG.COMB.COMBO",
+      "title": "Сочетания и бином Ньютона",
+      "description": "Формула сочетаний C(n,k), треугольник Паскаля, бином Ньютона",
+      "difficulty": 0.5,
+      "level": 2,
+      "parent_code": "ALG.COMB",
+      "ege_task_numbers": [12, 17]
+    },
+    {
+      "code": "GEO.PLAN.TRI",
+      "title": "Треугольники и их свойства",
+      "description": "Признаки подобия, медиана, биссектриса, высота, формулы площади треугольника",
+      "difficulty": 0.5,
+      "level": 2,
+      "parent_code": "GEO.PLAN",
+      "ege_task_numbers": [6, 16]
+    },
+    {
+      "code": "GEO.PLAN.CIRCLE",
+      "title": "Окружность, вписанные и описанные фигуры",
+      "description": "Радиус вписанной/описанной окружности, хорды, касательные, дуги",
+      "difficulty": 0.6,
+      "level": 2,
+      "parent_code": "GEO.PLAN",
+      "ege_task_numbers": [6, 16]
+    },
+    {
+      "code": "GEO.PLAN.QUAD",
+      "title": "Четырёхугольники",
+      "description": "Параллелограмм, прямоугольник, ромб, квадрат, трапеция — свойства и признаки",
+      "difficulty": 0.5,
+      "level": 2,
+      "parent_code": "GEO.PLAN",
+      "ege_task_numbers": [6, 16]
+    },
+    {
+      "code": "GEO.PLAN.AREA",
+      "title": "Площади плоских фигур",
+      "description": "Формулы площадей через стороны, углы, диагонали; теорема Пика",
+      "difficulty": 0.45,
+      "level": 2,
+      "parent_code": "GEO.PLAN",
+      "ege_task_numbers": [6]
+    },
+    {
+      "code": "GEO.STER.PRIS",
+      "title": "Призмы и параллелепипеды",
+      "description": "Прямая и наклонная призма, прямоугольный параллелепипед, объём и площадь поверхности",
+      "difficulty": 0.55,
+      "level": 2,
+      "parent_code": "GEO.STER",
+      "ege_task_numbers": [3, 13]
+    },
+    {
+      "code": "GEO.STER.PYR",
+      "title": "Пирамиды и усечённые пирамиды",
+      "description": "Правильная пирамида, апофема, объём и площадь боковой поверхности",
+      "difficulty": 0.6,
+      "level": 2,
+      "parent_code": "GEO.STER",
+      "ege_task_numbers": [3, 13]
+    },
+    {
+      "code": "GEO.STER.CYL",
+      "title": "Цилиндр и конус",
+      "description": "Прямой круговой цилиндр и конус: объём, площадь полной и боковой поверхности",
+      "difficulty": 0.5,
+      "level": 2,
+      "parent_code": "GEO.STER",
+      "ege_task_numbers": [3]
+    },
+    {
+      "code": "GEO.STER.SPHERE",
+      "title": "Шар и сфера",
+      "description": "Объём шара, площадь сферы, вписанные и описанные шары вокруг многогранников",
+      "difficulty": 0.6,
+      "level": 2,
+      "parent_code": "GEO.STER",
+      "ege_task_numbers": [3, 13]
+    },
+    {
+      "code": "GEO.COORD.VEC",
+      "title": "Векторы и операции над ними",
+      "description": "Скалярное произведение, угол между векторами, длина вектора, коллинеарность",
+      "difficulty": 0.5,
+      "level": 2,
+      "parent_code": "GEO.COORD",
+      "ege_task_numbers": [13]
+    },
+    {
+      "code": "GEO.COORD.LINE",
+      "title": "Прямые и плоскости в координатах",
+      "description": "Уравнение плоскости, расстояние от точки до плоскости, угол между плоскостями",
+      "difficulty": 0.65,
+      "level": 2,
+      "parent_code": "GEO.COORD",
+      "ege_task_numbers": [13]
+    },
+    {
+      "code": "ANA.DER.RULES",
+      "title": "Правила дифференцирования",
+      "description": "Производные элементарных функций, правила суммы, произведения, частного и цепочки",
+      "difficulty": 0.45,
+      "level": 2,
+      "parent_code": "ANA.DER",
+      "ege_task_numbers": [7]
+    },
+    {
+      "code": "ANA.DER.TANGENT",
+      "title": "Уравнение касательной к графику",
+      "description": "Геометрический смысл производной, уравнение касательной и нормали в точке",
+      "difficulty": 0.5,
+      "level": 2,
+      "parent_code": "ANA.DER",
+      "ege_task_numbers": [7]
+    },
+    {
+      "code": "ANA.DER.MONO",
+      "title": "Монотонность и экстремумы функции",
+      "description": "Признак монотонности через знак производной, нахождение экстремумов методом производной",
+      "difficulty": 0.55,
+      "level": 2,
+      "parent_code": "ANA.DER",
+      "ege_task_numbers": [7, 14]
+    },
+    {
+      "code": "ANA.DER.MAXMIN",
+      "title": "Наибольшее и наименьшее значение на отрезке",
+      "description": "Алгоритм нахождения глобального максимума/минимума функции на отрезке",
+      "difficulty": 0.55,
+      "level": 2,
+      "parent_code": "ANA.DER",
+      "ege_task_numbers": [7]
+    },
+    {
+      "code": "ANA.INT.BASIC",
+      "title": "Первообразная и неопределённый интеграл",
+      "description": "Таблица первообразных, правило замены переменной, интегрирование по частям",
+      "difficulty": 0.6,
+      "level": 2,
+      "parent_code": "ANA.INT",
+      "ege_task_numbers": [7]
+    },
+    {
+      "code": "ANA.INT.DEF",
+      "title": "Определённый интеграл и площадь",
+      "description": "Формула Ньютона–Лейбница, вычисление площади криволинейной трапеции",
+      "difficulty": 0.65,
+      "level": 2,
+      "parent_code": "ANA.INT",
+      "ege_task_numbers": [7]
+    },
+    {
+      "code": "ANA.FUNC.GRAPH",
+      "title": "Чтение и построение графиков",
+      "description": "Определение свойств функции по графику, смещение и растяжение графика",
+      "difficulty": 0.35,
+      "level": 2,
+      "parent_code": "ANA.FUNC",
+      "ege_task_numbers": [2]
+    },
+    {
+      "code": "ANA.FUNC.ASYMPT",
+      "title": "Асимптоты и поведение функции",
+      "description": "Вертикальные, горизонтальные и наклонные асимптоты, пределы на бесконечности",
+      "difficulty": 0.55,
+      "level": 2,
+      "parent_code": "ANA.FUNC",
+      "ege_task_numbers": [2]
+    },
+    {
+      "code": "PRB.BASIC.CLASSIC",
+      "title": "Классическое определение вероятности",
+      "description": "Равновозможные исходы, пространство элементарных событий, формула вероятности",
+      "difficulty": 0.3,
+      "level": 2,
+      "parent_code": "PRB.BASIC",
+      "ege_task_numbers": [5, 12]
+    },
+    {
+      "code": "PRB.BASIC.COND",
+      "title": "Условная вероятность и независимость",
+      "description": "Формула условной вероятности, независимые события, формула полной вероятности",
+      "difficulty": 0.5,
+      "level": 2,
+      "parent_code": "PRB.BASIC",
+      "ege_task_numbers": [5, 12]
+    },
+    {
+      "code": "PRB.STAT.MEAN",
+      "title": "Среднее значение и характеристики выборки",
+      "description": "Среднее арифметическое, медиана, мода, размах, дисперсия и среднеквадратическое отклонение",
+      "difficulty": 0.25,
+      "level": 2,
+      "parent_code": "PRB.STAT",
+      "ege_task_numbers": [5]
+    },
+    {
+      "code": "PRB.STAT.HIST",
+      "title": "Гистограммы и таблицы частот",
+      "description": "Чтение гистограмм, частота и относительная частота, восстановление данных по гистограмме",
+      "difficulty": 0.25,
+      "level": 2,
+      "parent_code": "PRB.STAT",
+      "ege_task_numbers": [5]
+    },
+    {
+      "code": "PAR.BOUND.GRAPHICAL",
+      "title": "Графический метод задач с параметром",
+      "description": "Метод прямой на плоскости xOa, геометрическая интерпретация условия задачи",
+      "difficulty": 0.9,
+      "level": 2,
+      "parent_code": "PAR.BOUND",
+      "ege_task_numbers": [19]
+    },
+    {
+      "code": "PAR.BOUND.ANALYTICAL",
+      "title": "Аналитический метод задач с параметром",
+      "description": "Выражение параметра через переменную, область допустимых значений, монотонность",
+      "difficulty": 0.95,
+      "level": 2,
+      "parent_code": "PAR.BOUND",
+      "ege_task_numbers": [19]
+    },
+    {
+      "code": "PAR.COUNT.ROOTS",
+      "title": "Количество корней уравнений с параметром",
+      "description": "Метод касательной, анализ числа решений через производную, дискриминант и графики",
+      "difficulty": 0.95,
+      "level": 2,
+      "parent_code": "PAR.COUNT",
+      "ege_task_numbers": [19]
+    }
+  ]
+}

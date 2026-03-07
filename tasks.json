@@ -216,7 +216,7 @@
         "Шаг 4: SELECT * FROM topics WHERE 1 = ANY(ege_task_numbers) — темы для задания №1"
       ],
       "dependencies": ["TASK-003", "TASK-004"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-010",
