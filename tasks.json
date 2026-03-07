@@ -257,7 +257,7 @@
         "Шаг 4: SELECT question_text FROM cards LIMIT 5 — видна LaTeX-нотация"
       ],
       "dependencies": ["TASK-009"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-012",

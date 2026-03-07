@@ -1,0 +1,527 @@
+{
+  "description": "58 базовых карточек типа basic_qa для профильного ЕГЭ по математике. Охватывают темы: ALG.LIN, ALG.QUAD, ALG.LOG, ANA.DER, PRB.BASIC, GEO.PLAN, ALG.TRIG.",
+  "cards": [
+    {
+      "topic_code": "ALG.LIN",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $2x + 5 = 11$",
+      "answer_text": "$2x = 6 \\Rightarrow x = 3$",
+      "hints": ["Перенесите 5 в правую часть", "Разделите обе части на 2"],
+      "difficulty": 0.1,
+      "ege_task_number": 1
+    },
+    {
+      "topic_code": "ALG.LIN",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $3x - 7 = 14$",
+      "answer_text": "$3x = 21 \\Rightarrow x = 7$",
+      "hints": ["Перенесите $-7$ вправо", "Разделите на 3"],
+      "difficulty": 0.1,
+      "ege_task_number": 1
+    },
+    {
+      "topic_code": "ALG.LIN",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $\\dfrac{x}{3} + 2 = 5$",
+      "answer_text": "$\\dfrac{x}{3} = 3 \\Rightarrow x = 9$",
+      "hints": ["Перенесите 2 вправо", "Умножьте на 3"],
+      "difficulty": 0.15,
+      "ege_task_number": 1
+    },
+    {
+      "topic_code": "ALG.LIN",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $4x - 3 = 2x + 9$",
+      "answer_text": "$2x = 12 \\Rightarrow x = 6$",
+      "hints": ["Перенесите $2x$ влево, $-3$ вправо", "Упростите и разделите"],
+      "difficulty": 0.15,
+      "ege_task_number": 1
+    },
+    {
+      "topic_code": "ALG.LIN",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $\\dfrac{2x+1}{3} = \\dfrac{x-1}{2}$",
+      "answer_text": "$2(2x+1) = 3(x-1) \\Rightarrow 4x+2 = 3x-3 \\Rightarrow x = -5$",
+      "hints": ["Перемножьте крест-накрест (НОК = 6)", "Раскройте скобки и перенесите члены"],
+      "difficulty": 0.2,
+      "ege_task_number": 4
+    },
+    {
+      "topic_code": "ALG.LIN",
+      "card_type": "basic_qa",
+      "question_text": "Решите неравенство: $5x + 3 > 18$",
+      "answer_text": "$5x > 15 \\Rightarrow x > 3$",
+      "hints": ["Перенесите 3 вправо", "Разделите на 5 (знак не меняется)"],
+      "difficulty": 0.1,
+      "ege_task_number": 1
+    },
+    {
+      "topic_code": "ALG.LIN",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $|2x - 1| = 7$",
+      "answer_text": "$2x - 1 = 7$ или $2x - 1 = -7$\n$$x = 4 \\quad \\text{или} \\quad x = -3$$",
+      "hints": ["Модуль даёт два случая: выражение равно 7 или −7"],
+      "difficulty": 0.25,
+      "ege_task_number": 4
+    },
+    {
+      "topic_code": "ALG.LIN",
+      "card_type": "basic_qa",
+      "question_text": "Решите систему уравнений:\n$$\\begin{cases} x + y = 5 \\\\ 2x - y = 1 \\end{cases}$$",
+      "answer_text": "Складываем: $3x = 6 \\Rightarrow x = 2$, $y = 3$",
+      "hints": ["Сложите уравнения, чтобы исключить $y$"],
+      "difficulty": 0.2,
+      "ege_task_number": 4
+    },
+    {
+      "topic_code": "ALG.LIN",
+      "card_type": "basic_qa",
+      "question_text": "Решите систему уравнений:\n$$\\begin{cases} 3x + 2y = 12 \\\\ x - y = 1 \\end{cases}$$",
+      "answer_text": "Из второго: $x = y + 1$. Подставляем: $3(y+1)+2y=12 \\Rightarrow y=\\dfrac{9}{5}$, $x=\\dfrac{14}{5}$",
+      "hints": ["Выразите $x$ из второго уравнения и подставьте в первое"],
+      "difficulty": 0.25,
+      "ege_task_number": 4
+    },
+    {
+      "topic_code": "ALG.LIN",
+      "card_type": "basic_qa",
+      "question_text": "Линейная функция $y = 2x + 1$. При каком $x$ значение функции равно 7?",
+      "answer_text": "$2x + 1 = 7 \\Rightarrow x = 3$",
+      "hints": ["Приравняйте $y = 7$ и решите уравнение"],
+      "difficulty": 0.1,
+      "ege_task_number": 1
+    },
+    {
+      "topic_code": "ALG.QUAD",
+      "card_type": "basic_qa",
+      "question_text": "Решите квадратное уравнение: $x^2 - 5x + 6 = 0$",
+      "answer_text": "$D = 25 - 24 = 1$\n$$x_1 = 3, \\quad x_2 = 2$$",
+      "hints": ["Найдите дискриминант $D = b^2 - 4ac$", "Или разложите: $(x-2)(x-3)=0$"],
+      "difficulty": 0.2,
+      "ege_task_number": 2
+    },
+    {
+      "topic_code": "ALG.QUAD",
+      "card_type": "basic_qa",
+      "question_text": "Найдите дискриминант уравнения $x^2 + 4x - 5 = 0$",
+      "answer_text": "$D = b^2 - 4ac = 16 + 20 = 36$",
+      "hints": ["Формула: $D = b^2 - 4ac$, здесь $a=1, b=4, c=-5$"],
+      "difficulty": 0.15,
+      "ege_task_number": 2
+    },
+    {
+      "topic_code": "ALG.QUAD",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $x^2 - 9 = 0$",
+      "answer_text": "$x^2 = 9 \\Rightarrow x = \\pm 3$",
+      "hints": ["Перенесите 9 вправо и возьмите квадратный корень"],
+      "difficulty": 0.1,
+      "ege_task_number": 2
+    },
+    {
+      "topic_code": "ALG.QUAD",
+      "card_type": "basic_qa",
+      "question_text": "По теореме Виета найдите сумму и произведение корней уравнения $x^2 - 7x + 10 = 0$",
+      "answer_text": "$x_1 + x_2 = 7$, $\\quad x_1 \\cdot x_2 = 10$",
+      "hints": ["Теорема Виета: $x_1+x_2 = -b/a$, $x_1 x_2 = c/a$"],
+      "difficulty": 0.2,
+      "ege_task_number": 2
+    },
+    {
+      "topic_code": "ALG.QUAD",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $2x^2 + 3x - 2 = 0$",
+      "answer_text": "$D = 9 + 16 = 25$\n$$x_1 = \\frac{-3+5}{4} = \\frac{1}{2}, \\quad x_2 = \\frac{-3-5}{4} = -2$$",
+      "hints": ["$a=2, b=3, c=-2$; вычислите $D=b^2-4ac$"],
+      "difficulty": 0.25,
+      "ege_task_number": 2
+    },
+    {
+      "topic_code": "ALG.QUAD",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $x^2 + 6x + 9 = 0$",
+      "answer_text": "$(x+3)^2 = 0 \\Rightarrow x = -3$ (двукратный корень)",
+      "hints": ["Заметьте: $x^2+6x+9 = (x+3)^2$"],
+      "difficulty": 0.2,
+      "ege_task_number": 2
+    },
+    {
+      "topic_code": "ALG.QUAD",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $3x^2 - 12 = 0$",
+      "answer_text": "$x^2 = 4 \\Rightarrow x = \\pm 2$",
+      "hints": ["Разделите на 3, перенесите константу вправо"],
+      "difficulty": 0.15,
+      "ege_task_number": 2
+    },
+    {
+      "topic_code": "ALG.QUAD",
+      "card_type": "basic_qa",
+      "question_text": "При каком $k$ уравнение $x^2 + kx + 4 = 0$ имеет два равных корня?",
+      "answer_text": "Условие: $D = k^2 - 16 = 0 \\Rightarrow k = \\pm 4$",
+      "hints": ["Равные корни ↔ $D = 0$", "Вычислите $D = k^2 - 4 \\cdot 4 = 0$"],
+      "difficulty": 0.3,
+      "ege_task_number": 2
+    },
+    {
+      "topic_code": "ALG.QUAD",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $x^2 + x - 6 = 0$",
+      "answer_text": "$(x+3)(x-2)=0 \\Rightarrow x = 2$ или $x = -3$",
+      "hints": ["Подберите два числа с суммой 1 и произведением −6"],
+      "difficulty": 0.2,
+      "ege_task_number": 2
+    },
+    {
+      "topic_code": "ALG.QUAD",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $x^2 - 4x + 1 = 0$",
+      "answer_text": "$D = 16 - 4 = 12$\n$$x = \\frac{4 \\pm 2\\sqrt{3}}{2} = 2 \\pm \\sqrt{3}$$",
+      "hints": ["Корни: $x = \\dfrac{-b \\pm \\sqrt{D}}{2a}$"],
+      "difficulty": 0.3,
+      "ege_task_number": 2
+    },
+    {
+      "topic_code": "ALG.LOG",
+      "card_type": "basic_qa",
+      "question_text": "Вычислите: $\\log_2 32$",
+      "answer_text": "$\\log_2 32 = \\log_2 2^5 = 5$",
+      "hints": ["Представьте 32 как степень 2"],
+      "difficulty": 0.2,
+      "ege_task_number": 8
+    },
+    {
+      "topic_code": "ALG.LOG",
+      "card_type": "basic_qa",
+      "question_text": "Вычислите: $\\log_3 81$",
+      "answer_text": "$\\log_3 81 = \\log_3 3^4 = 4$",
+      "hints": ["$81 = 3^4$"],
+      "difficulty": 0.2,
+      "ege_task_number": 8
+    },
+    {
+      "topic_code": "ALG.LOG",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $\\log_2 x = 5$",
+      "answer_text": "$x = 2^5 = 32$",
+      "hints": ["По определению логарифма: $\\log_a x = b \\Leftrightarrow x = a^b$"],
+      "difficulty": 0.2,
+      "ege_task_number": 10
+    },
+    {
+      "topic_code": "ALG.LOG",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $\\log_2(x + 1) = 3$",
+      "answer_text": "$x + 1 = 2^3 = 8 \\Rightarrow x = 7$. Проверка: $x+1=8>0$ ✓",
+      "hints": ["Перейдите от логарифма к показательной форме", "Не забудьте проверить ОДЗ: $x+1 > 0$"],
+      "difficulty": 0.25,
+      "ege_task_number": 10
+    },
+    {
+      "topic_code": "ALG.LOG",
+      "card_type": "basic_qa",
+      "question_text": "Упростите: $\\log_2 8 + \\log_2 4$",
+      "answer_text": "$\\log_2 8 + \\log_2 4 = \\log_2(8 \\cdot 4) = \\log_2 32 = 5$",
+      "hints": ["Свойство: $\\log_a m + \\log_a n = \\log_a(mn)$"],
+      "difficulty": 0.25,
+      "ege_task_number": 8
+    },
+    {
+      "topic_code": "ALG.LOG",
+      "card_type": "basic_qa",
+      "question_text": "Вычислите: $\\log_{10} 1000$",
+      "answer_text": "$\\log_{10} 1000 = \\log_{10} 10^3 = 3$",
+      "hints": ["$1000 = 10^3$"],
+      "difficulty": 0.15,
+      "ege_task_number": 8
+    },
+    {
+      "topic_code": "ALG.LOG",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $\\log_3(x - 1) = 2$",
+      "answer_text": "$x - 1 = 3^2 = 9 \\Rightarrow x = 10$. ОДЗ: $x > 1$ ✓",
+      "hints": ["Переходите к показательной форме", "ОДЗ: $x - 1 > 0$"],
+      "difficulty": 0.25,
+      "ege_task_number": 10
+    },
+    {
+      "topic_code": "ALG.LOG",
+      "card_type": "basic_qa",
+      "question_text": "Найдите значение: $\\log_a a^5$",
+      "answer_text": "$\\log_a a^5 = 5$",
+      "hints": ["Свойство: $\\log_a a^n = n$"],
+      "difficulty": 0.1,
+      "ege_task_number": 8
+    },
+    {
+      "topic_code": "ANA.DER",
+      "card_type": "basic_qa",
+      "question_text": "Найдите производную функции $f(x) = x^3 - 3x^2 + 2x$",
+      "answer_text": "$f'(x) = 3x^2 - 6x + 2$",
+      "hints": ["Правило: $(x^n)' = nx^{n-1}$, дифференцируйте каждый член"],
+      "difficulty": 0.3,
+      "ege_task_number": 7
+    },
+    {
+      "topic_code": "ANA.DER",
+      "card_type": "basic_qa",
+      "question_text": "Найдите производную $f(x) = \\sin x + \\cos x$",
+      "answer_text": "$f'(x) = \\cos x - \\sin x$",
+      "hints": ["$(\\sin x)' = \\cos x$, $(\\cos x)' = -\\sin x$"],
+      "difficulty": 0.25,
+      "ege_task_number": 7
+    },
+    {
+      "topic_code": "ANA.DER",
+      "card_type": "basic_qa",
+      "question_text": "Найдите минимум функции $f(x) = x^2 - 4x + 3$",
+      "answer_text": "$f'(x) = 2x - 4 = 0 \\Rightarrow x = 2$\n$$f(2) = 4 - 8 + 3 = -1$$\nМинимум равен $-1$ при $x = 2$.",
+      "hints": ["Приравняйте $f'(x) = 0$", "Убедитесь, что $f''(x) > 0$ (минимум)"],
+      "difficulty": 0.35,
+      "ege_task_number": 7
+    },
+    {
+      "topic_code": "ANA.DER",
+      "card_type": "basic_qa",
+      "question_text": "Напишите уравнение касательной к кривой $y = x^2$ в точке $(2, 4)$",
+      "answer_text": "$y'(2) = 2 \\cdot 2 = 4$\n$$y - 4 = 4(x - 2) \\Rightarrow y = 4x - 4$$",
+      "hints": ["Наклон касательной = $f'(x_0)$", "Уравнение: $y - y_0 = k(x - x_0)$"],
+      "difficulty": 0.4,
+      "ege_task_number": 7
+    },
+    {
+      "topic_code": "ANA.DER",
+      "card_type": "basic_qa",
+      "question_text": "Найдите производную $f(x) = e^x$",
+      "answer_text": "$f'(x) = e^x$",
+      "hints": ["Экспонента — единственная функция, равная своей производной"],
+      "difficulty": 0.15,
+      "ege_task_number": 7
+    },
+    {
+      "topic_code": "ANA.DER",
+      "card_type": "basic_qa",
+      "question_text": "Найдите максимум функции $f(x) = -x^2 + 6x - 5$",
+      "answer_text": "$f'(x) = -2x + 6 = 0 \\Rightarrow x = 3$\n$$f(3) = -9 + 18 - 5 = 4$$\nМаксимум равен $4$ при $x = 3$.",
+      "hints": ["Парабола ветвями вниз ($a < 0$) → вершина — максимум", "$f'(x) = 0$ даёт точку максимума"],
+      "difficulty": 0.35,
+      "ege_task_number": 7
+    },
+    {
+      "topic_code": "ANA.DER",
+      "card_type": "basic_qa",
+      "question_text": "Найдите критические точки $f(x) = x^4 - 4x^2$",
+      "answer_text": "$f'(x) = 4x^3 - 8x = 4x(x^2 - 2) = 0$\n$$x = 0, \\quad x = \\sqrt{2}, \\quad x = -\\sqrt{2}$$",
+      "hints": ["Приравняйте $f'(x) = 0$ и разложите на множители"],
+      "difficulty": 0.4,
+      "ege_task_number": 7
+    },
+    {
+      "topic_code": "ANA.DER",
+      "card_type": "basic_qa",
+      "question_text": "На каких промежутках функция $f(x) = x^3 - 3x$ возрастает?",
+      "answer_text": "$f'(x) = 3x^2 - 3 = 3(x^2-1)$\n$f'(x) > 0 \\Leftrightarrow x < -1$ или $x > 1$",
+      "hints": ["Функция возрастает там, где $f'(x) > 0$", "Найдите знак $(x^2-1)$"],
+      "difficulty": 0.4,
+      "ege_task_number": 7
+    },
+    {
+      "topic_code": "PRB.BASIC",
+      "card_type": "basic_qa",
+      "question_text": "Монету бросают два раза. Найдите вероятность того, что оба раза выпадет орёл.",
+      "answer_text": "$P = \\dfrac{1}{2} \\cdot \\dfrac{1}{2} = \\dfrac{1}{4}$",
+      "hints": ["События независимы → перемножьте вероятности"],
+      "difficulty": 0.2,
+      "ege_task_number": 5
+    },
+    {
+      "topic_code": "PRB.BASIC",
+      "card_type": "basic_qa",
+      "question_text": "В корзине 3 красных и 5 синих шаров. Один шар достают случайно. Какова вероятность, что он красный?",
+      "answer_text": "$P = \\dfrac{3}{3+5} = \\dfrac{3}{8} = 0{,}375$",
+      "hints": ["Классическое определение: $P = \\dfrac{m}{n}$, где $m$ — число благоприятных исходов"],
+      "difficulty": 0.15,
+      "ege_task_number": 5
+    },
+    {
+      "topic_code": "PRB.BASIC",
+      "card_type": "basic_qa",
+      "question_text": "Какова вероятность выпадения числа 6 при бросании кубика?",
+      "answer_text": "$P = \\dfrac{1}{6} \\approx 0{,}167$",
+      "hints": ["На кубике 6 равновероятных граней"],
+      "difficulty": 0.1,
+      "ege_task_number": 5
+    },
+    {
+      "topic_code": "PRB.BASIC",
+      "card_type": "basic_qa",
+      "question_text": "$P(A) = 0{,}4$, $P(B) = 0{,}3$, $P(A \\cap B) = 0{,}1$. Найдите $P(A \\cup B)$.",
+      "answer_text": "$P(A \\cup B) = P(A) + P(B) - P(A \\cap B) = 0{,}4 + 0{,}3 - 0{,}1 = 0{,}6$",
+      "hints": ["Формула сложения: $P(A \\cup B) = P(A) + P(B) - P(A \\cap B)$"],
+      "difficulty": 0.25,
+      "ege_task_number": 12
+    },
+    {
+      "topic_code": "PRB.BASIC",
+      "card_type": "basic_qa",
+      "question_text": "$P(A) = 0{,}3$, $P(B) = 0{,}5$, события независимы. Найдите $P(A \\cap B)$.",
+      "answer_text": "$P(A \\cap B) = P(A) \\cdot P(B) = 0{,}3 \\cdot 0{,}5 = 0{,}15$",
+      "hints": ["Для независимых событий: $P(A \\cap B) = P(A) \\cdot P(B)$"],
+      "difficulty": 0.2,
+      "ege_task_number": 5
+    },
+    {
+      "topic_code": "PRB.BASIC",
+      "card_type": "basic_qa",
+      "question_text": "Сколькими способами можно выбрать 3 студентов из 10?",
+      "answer_text": "$C_{10}^3 = \\dfrac{10!}{3! \\cdot 7!} = \\dfrac{10 \\cdot 9 \\cdot 8}{6} = 120$",
+      "hints": ["Порядок не важен → сочетания: $C_n^k = \\dfrac{n!}{k!(n-k)!}$"],
+      "difficulty": 0.3,
+      "ege_task_number": 12
+    },
+    {
+      "topic_code": "PRB.BASIC",
+      "card_type": "basic_qa",
+      "question_text": "Случайным образом выбирается двузначное число. Какова вероятность, что оно чётное?",
+      "answer_text": "Двузначные числа: от 10 до 99, всего 90. Чётные: 45.\n$$P = \\dfrac{45}{90} = \\dfrac{1}{2}$$",
+      "hints": ["Подсчитайте все двузначные числа (90) и чётные из них (45)"],
+      "difficulty": 0.25,
+      "ege_task_number": 5
+    },
+    {
+      "topic_code": "PRB.BASIC",
+      "card_type": "basic_qa",
+      "question_text": "Найдите вероятность противоположного события, если $P(A) = 0{,}7$.",
+      "answer_text": "$P(\\overline{A}) = 1 - P(A) = 1 - 0{,}7 = 0{,}3$",
+      "hints": ["$P(\\overline{A}) = 1 - P(A)$"],
+      "difficulty": 0.1,
+      "ege_task_number": 5
+    },
+    {
+      "topic_code": "GEO.PLAN",
+      "card_type": "basic_qa",
+      "question_text": "В прямоугольном треугольнике катеты равны 3 и 4. Найдите гипотенузу.",
+      "answer_text": "$c = \\sqrt{3^2 + 4^2} = \\sqrt{9 + 16} = \\sqrt{25} = 5$",
+      "hints": ["Теорема Пифагора: $c^2 = a^2 + b^2$"],
+      "difficulty": 0.15,
+      "ege_task_number": 6
+    },
+    {
+      "topic_code": "GEO.PLAN",
+      "card_type": "basic_qa",
+      "question_text": "Найдите площадь треугольника с основанием 8 и высотой 5.",
+      "answer_text": "$S = \\dfrac{1}{2} \\cdot 8 \\cdot 5 = 20$",
+      "hints": ["$S_{\\triangle} = \\dfrac{1}{2} \\cdot a \\cdot h$"],
+      "difficulty": 0.1,
+      "ege_task_number": 6
+    },
+    {
+      "topic_code": "GEO.PLAN",
+      "card_type": "basic_qa",
+      "question_text": "Найдите длину окружности с радиусом 7.",
+      "answer_text": "$C = 2\\pi r = 2\\pi \\cdot 7 = 14\\pi \\approx 43{,}98$",
+      "hints": ["Формула длины окружности: $C = 2\\pi r$"],
+      "difficulty": 0.1,
+      "ege_task_number": 6
+    },
+    {
+      "topic_code": "GEO.PLAN",
+      "card_type": "basic_qa",
+      "question_text": "Найдите площадь трапеции с основаниями 6 и 10 и высотой 4.",
+      "answer_text": "$S = \\dfrac{(a+b)}{2} \\cdot h = \\dfrac{(6+10)}{2} \\cdot 4 = 32$",
+      "hints": ["$S_{\\text{тр}} = \\dfrac{a+b}{2} \\cdot h$"],
+      "difficulty": 0.2,
+      "ege_task_number": 6
+    },
+    {
+      "topic_code": "GEO.PLAN",
+      "card_type": "basic_qa",
+      "question_text": "В прямоугольном треугольнике катет равен 5, гипотенуза равна 13. Найдите $\\sin$ угла, противолежащего этому катету.",
+      "answer_text": "$\\sin \\alpha = \\dfrac{\\text{противолежащий катет}}{\\text{гипотенуза}} = \\dfrac{5}{13}$",
+      "hints": ["$\\sin = \\dfrac{\\text{противолежащий}}{\\text{гипотенуза}}$"],
+      "difficulty": 0.2,
+      "ege_task_number": 6
+    },
+    {
+      "topic_code": "GEO.PLAN",
+      "card_type": "basic_qa",
+      "question_text": "Найдите площадь ромба с диагоналями 8 и 6.",
+      "answer_text": "$S = \\dfrac{d_1 \\cdot d_2}{2} = \\dfrac{8 \\cdot 6}{2} = 24$",
+      "hints": ["Формула площади ромба через диагонали: $S = \\dfrac{d_1 d_2}{2}$"],
+      "difficulty": 0.2,
+      "ege_task_number": 6
+    },
+    {
+      "topic_code": "GEO.PLAN",
+      "card_type": "basic_qa",
+      "question_text": "Найдите площадь круга с радиусом 5.",
+      "answer_text": "$S = \\pi r^2 = 25\\pi \\approx 78{,}54$",
+      "hints": ["Формула: $S = \\pi r^2$"],
+      "difficulty": 0.1,
+      "ege_task_number": 6
+    },
+    {
+      "topic_code": "GEO.PLAN",
+      "card_type": "basic_qa",
+      "question_text": "Чему равна сумма внутренних углов правильного шестиугольника?",
+      "answer_text": "$S = (n-2) \\cdot 180^\\circ = (6-2) \\cdot 180^\\circ = 720^\\circ$",
+      "hints": ["Формула для $n$-угольника: $(n-2) \\cdot 180^\\circ$"],
+      "difficulty": 0.2,
+      "ege_task_number": 6
+    },
+    {
+      "topic_code": "ALG.TRIG",
+      "card_type": "basic_qa",
+      "question_text": "Вычислите $\\sin 30°$",
+      "answer_text": "$\\sin 30° = \\dfrac{1}{2}$",
+      "hints": ["Таблица значений: $\\sin 30° = 0.5$"],
+      "difficulty": 0.1,
+      "ege_task_number": 1
+    },
+    {
+      "topic_code": "ALG.TRIG",
+      "card_type": "basic_qa",
+      "question_text": "Вычислите $\\cos 60°$",
+      "answer_text": "$\\cos 60° = \\dfrac{1}{2}$",
+      "hints": ["$\\cos 60° = \\sin 30°$"],
+      "difficulty": 0.1,
+      "ege_task_number": 1
+    },
+    {
+      "topic_code": "ALG.TRIG",
+      "card_type": "basic_qa",
+      "question_text": "Вычислите $\\tan 45°$",
+      "answer_text": "$\\tan 45° = 1$",
+      "hints": ["$\\tan \\alpha = \\dfrac{\\sin \\alpha}{\\cos \\alpha}$; при $45°$ синус равен косинусу"],
+      "difficulty": 0.1,
+      "ege_task_number": 1
+    },
+    {
+      "topic_code": "ALG.TRIG",
+      "card_type": "basic_qa",
+      "question_text": "Упростите выражение: $\\sin^2 x + \\cos^2 x$",
+      "answer_text": "$\\sin^2 x + \\cos^2 x = 1$ (основное тригонометрическое тождество)",
+      "hints": ["Это основное тригонометрическое тождество"],
+      "difficulty": 0.1,
+      "ege_task_number": 8
+    },
+    {
+      "topic_code": "ALG.TRIG",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $\\sin x = \\dfrac{1}{2}$, $x \\in [0, 2\\pi]$",
+      "answer_text": "$x = \\dfrac{\\pi}{6}$ или $x = \\dfrac{5\\pi}{6}$",
+      "hints": ["$\\sin x = 1/2 > 0$, значит $x$ в I или II четверти", "Опорный угол: $\\pi/6$"],
+      "difficulty": 0.35,
+      "ege_task_number": 8
+    },
+    {
+      "topic_code": "ALG.TRIG",
+      "card_type": "basic_qa",
+      "question_text": "Решите уравнение: $2\\sin x - 1 = 0$",
+      "answer_text": "$\\sin x = \\dfrac{1}{2} \\Rightarrow x = (-1)^n \\dfrac{\\pi}{6} + \\pi n, \\; n \\in \\mathbb{Z}$",
+      "hints": ["Выразите $\\sin x$", "Общая формула: $x = (-1)^n \\arcsin(a) + \\pi n$"],
+      "difficulty": 0.4,
+      "ege_task_number": 8
+    }
+  ]
+}

@@ -17,6 +17,13 @@
 
 <!-- Агенты добавляют записи ниже этой строки -->
 
+## [TASK-011] Seed-данные: 50+ карточек типа basic_qa с LaTeX-формулами
+- **Дата:** 2026-03-07
+- **Статус:** done (файлы созданы; загрузка в Supabase требует ручного запуска load_cards.py с настроенным .env)
+- **Что сделано:** Создан `database/seeds/cards_basic.json` с 58 карточками типа basic_qa, распределёнными по 7 темам: ALG.LIN (10), ALG.QUAD (10), ALG.LOG (8), ANA.DER (8), PRB.BASIC (8), GEO.PLAN (8), ALG.TRIG (6). Все карточки содержат LaTeX-нотацию ($...$ и $$...$$), имеют вопрос, ответ и 1-2 подсказки. Создан универсальный `database/seeds/load_cards.py`: принимает тип (`basic`/`stepbystep`) или `--file path`, резолвит topic_code → topic_id, проверяет дубли по (topic_id, question_text), логирует вставленные/пропущенные/ошибочные, поддерживает повторный запуск без дублей.
+- **Ключевые файлы:** database/seeds/cards_basic.json, database/seeds/load_cards.py
+- **Проблемы:** uv не установлен → `uv run ruff check .` и `uv run pytest` не запускались. Синтаксис проверен визуально. Загрузка в Supabase требует `python database/seeds/load_cards.py basic` с переменными SUPABASE_URL и SUPABASE_SERVICE_ROLE_KEY. Следующий агент: TASK-012 (step_by_step карточки) теперь не зависит от TASK-011, но TASK-014 (генерация сессии) теперь разблокирован вместе с TASK-013 и TASK-011.
+
 ## [TASK-010] Seed-данные: рёбра графа знаний topic_dependencies с весами
 - **Дата:** 2026-03-07
 - **Статус:** done (файлы созданы; загрузка в Supabase требует ручного запуска load_dependencies.py с настроенным .env)
