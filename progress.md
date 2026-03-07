@@ -17,6 +17,13 @@
 
 <!-- Агенты добавляют записи ниже этой строки -->
 
+## [TASK-023] RatingButtons: кнопки оценки ответа Again / Hard / Good / Easy
+- **Дата:** 2026-03-07
+- **Статус:** done
+- **Что сделано:** Создан `frontend/src/features/training/components/RatingButtons.jsx`. Компонент рендерит 4 кнопки рейтинга: Снова (#DC2626), Трудно (#F59E0B), Хорошо (#16A34A), Легко (#2563EB). Props: `onRate(rating)` callback, `disabled` (default true — кнопки задизейблены пока ответ не раскрыт), `maxRating` (для ограничения при использовании подсказок — кнопки с value > maxRating дизейблятся). Grid layout `grid-cols-4` обеспечивает полную ширину на мобильных. Hover-эффекты с затемнением. `opacity-40 + cursor-not-allowed` для disabled состояния.
+- **Ключевые файлы:** frontend/src/features/training/components/RatingButtons.jsx, tasks.json (TASK-023 → done)
+- **Проблемы:** `uv` не установлен — ruff/pytest не запускались (фронтенд-компонент, нет Python-кода). Следующий агент: TASK-024 (StepByStepReveal, critical, deps: TASK-021 ✓ + TASK-023 ✓) — теперь разблокирован.
+
 ## [TASK-022] CardQuestion: отображение вопроса с LaTeX и изображениями
 - **Дата:** 2026-03-07
 - **Статус:** done
