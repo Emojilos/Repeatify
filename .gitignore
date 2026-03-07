@@ -7,3 +7,6 @@ backend/.venv/
 backend/venv/
 *.pyc
 .DS_Store
+ralph.sh
+tasks.json
+progress.md

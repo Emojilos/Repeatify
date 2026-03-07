@@ -17,6 +17,13 @@
 
 <!-- Агенты добавляют записи ниже этой строки -->
 
+## [TASK-008] AuthContext, PrivateRoute и базовая структура роутинга
+- **Дата:** 2026-03-07
+- **Статус:** done (код готов; функциональное тестирование требует запущенного npm install)
+- **Что сделано:** Создан `frontend/src/store/authStore.js` (Zustand store: user, session, isLoading + initialize() + logout()). initialize() вызывает getSession() при старте, подписывается на onAuthStateChange для real-time обновлений. Создан `frontend/src/components/auth/PrivateRoute.jsx`: показывает spinner пока isLoading, редиректит на /login если нет сессии, рендерит `<Outlet />` для вложенных маршрутов. Обновлён `frontend/src/App.jsx`: приватные маршруты (/onboarding, /dashboard, /train, /topics, /settings) обёрнуты в PrivateRoute; /login и /register обёрнуты в AuthRedirect (→ /dashboard если авторизован). Обновлён `frontend/src/main.jsx`: вызов useAuthStore.getState().initialize() перед монтированием.
+- **Ключевые файлы:** frontend/src/store/authStore.js, frontend/src/components/auth/PrivateRoute.jsx, frontend/src/App.jsx, frontend/src/main.jsx
+- **Проблемы:** npm install заблокирован хуком — функциональное тестирование требует `cd frontend && npm install && npm run dev`. Следующий агент: TASK-027 (Dashboard), TASK-029 (TopicTree), TASK-031 (Онбординг), TASK-035 (Лендинг), TASK-036 (AppShell) — все теперь разблокированы.
+
 ## [TASK-007] Supabase Auth: регистрация и вход через email/пароль
 - **Дата:** 2026-03-07
 - **Статус:** done (код готов; функциональное тестирование требует запущенного Supabase и npm install)
