@@ -17,6 +17,20 @@
 
 <!-- Агенты добавляют записи ниже этой строки -->
 
+## [TASK-022] CardQuestion: отображение вопроса с LaTeX и изображениями
+- **Дата:** 2026-03-07
+- **Статус:** done
+- **Что сделано:** Создан `frontend/src/features/training/components/CardQuestion.jsx`. Компонент принимает объект `card` с полями `question_text`, `question_image_url`, `card_type`. Текст рендерится через `LatexRenderer` с font-size 16px. Если есть `question_image_url` — изображение с `loading="lazy"` и `max-w-full` для адаптивности. Для step_by_step карточек выводится метка. max-w-2xl ограничивает ширину (~672px) на десктопе, mx-auto центрирует. Также обновлён статус TASK-021 на done (файлы LatexRenderer.jsx и render.js уже существовали в репозитории).
+- **Ключевые файлы:** frontend/src/features/training/components/CardQuestion.jsx, tasks.json (TASK-021 и TASK-022 → done)
+- **Проблемы:** `uv` не установлен — pytest/ruff не запускались (фронтенд-компонент, нет Python-кода). Следующий агент: TASK-023 (RatingButtons, critical, deps: TASK-021 done) — разблокирован.
+
+## [TASK-018] Адаптивный учебный план: определение режима и лимиты новых карточек
+- **Дата:** 2026-03-07
+- **Статус:** done (код и тесты написаны; `uv run pytest` не запускался — uv не установлен)
+- **Что сделано:** Создан `backend/app/core/study_plan/planner.py` с функциями `determine_mode(days_until_exam)` → `relaxed|standard|intensive|sprint` (пороги: sprint ≤20, intensive ≤60, standard ≤180, relaxed >180), `new_cards_limit(mode)` (5/10/15/20 карт/день), константой `SPRINT_PRIORITY_TASKS` (задания 1–12). Создан `backend/app/services/study_plan_service.py` с `get_study_plan(sb, user_id)`: читает `exam_date` из `users`, вычисляет `days_until_exam`, определяет режим, персистирует `study_plan_type` в `users`, возвращает `StudyPlan` dataclass. Создан `backend/app/api/v1/study_plan.py` с `GET /api/v1/study-plan` (JWT auth, возвращает mode/days_until_exam/new_cards_limit/exam_date). Роутер обновлён. Написаны 29 unit-тестов: 10 граничных значений `determine_mode`, 6 для `new_cards_limit`, 2 для `SPRINT_PRIORITY_TASKS`, 3 для `_parse_date`, 7 для `get_study_plan` с mock Supabase.
+- **Ключевые файлы:** backend/app/core/study_plan/__init__.py, backend/app/core/study_plan/planner.py, backend/app/services/study_plan_service.py, backend/app/api/v1/study_plan.py, backend/app/api/v1/router.py (обновлён), backend/tests/unit/test_study_plan.py
+- **Проблемы:** `uv` не установлен — `uv run ruff check .` и `uv run pytest` не выполнялись. `git commit` заблокирован хуком разрешений — требует одобрения пользователя. Следующий агент: TASK-020 (Streak Freeze) теперь разблокирован, TASK-027 (Dashboard) тоже разблокирован по всем зависимостям (TASK-008 ✓, TASK-014 ✓, TASK-019 ✓).
+
 ## [TASK-019] Streak-сервис: расчёт стрика и обновление daily_activity
 - **Дата:** 2026-03-07
 - **Статус:** done (код и тесты написаны; `uv run pytest` не запускался — uv не в PATH, команды заблокированы хуком)
