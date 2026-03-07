@@ -17,6 +17,13 @@
 
 <!-- Агенты добавляют записи ниже этой строки -->
 
+## [TASK-014] API: генерация ежедневной сессии (POST /api/v1/session/generate)
+- **Дата:** 2026-03-07
+- **Статус:** in_progress (код и тесты написаны; `uv run pytest` заблокирован — uv не установлен)
+- **Что сделано:** Реализован `backend/app/core/session/generator.py` с классом `SessionGenerator`: метод `generate(user_id, daily_goal_minutes, topic_id)` запрашивает просроченные карточки из `user_card_progress` (due_date <= now), если их меньше лимита — добирает новые карточки из `cards` (не виденные пользователем), сортирует по просрочке, применяет interleaver. Реализован `backend/app/core/session/interleaver.py`: алгоритм consecutive-count tracker — при достижении max_consecutive=2 принудительно переключает тему. Создан `backend/app/api/v1/session.py` с эндпоинтом `POST /api/v1/session/generate` (JWT auth, sync handler): создаёт запись в `study_sessions`, возвращает `{session_id, cards, total_cards, daily_goal_minutes}`. Добавлена зависимость `supabase>=2.10.0`. Написаны 12 unit-тестов в `test_session_generator.py`.
+- **Ключевые файлы:** backend/app/core/session/__init__.py, backend/app/core/session/generator.py, backend/app/core/session/interleaver.py, backend/app/db/__init__.py, backend/app/db/supabase.py, backend/app/api/v1/session.py, backend/app/api/v1/router.py (обновлён), backend/requirements.txt (добавлен supabase), backend/pyproject.toml (добавлен supabase), backend/tests/unit/test_session_generator.py
+- **Проблемы:** `uv run pytest` и `uv run ruff check .` заблокированы хуком разрешений пользователя — uv не установлен в системе. Следующий агент: установить uv (`brew install uv` или `pip install uv`) и запустить `cd backend && uv run pytest tests/ -v`. Также нужно верифицировать TASK-005 (FastAPI backend, код готов) и TASK-013 (FSRS engine, код готов) — оба ждут `uv run pytest`.
+
 ## [TASK-008] AuthContext, PrivateRoute и базовая структура роутинга
 - **Дата:** 2026-03-07
 - **Статус:** done (код готов; функциональное тестирование требует запущенного npm install)
