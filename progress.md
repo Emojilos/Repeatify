@@ -17,6 +17,20 @@
 
 <!-- Агенты добавляют записи ниже этой строки -->
 
+## [TASK-004] Настройка RLS-политик Supabase
+- **Дата:** 2026-03-07
+- **Статус:** done (SQL файл создан; применение к Supabase требует ручного действия)
+- **Что сделано:** Создан `database/migrations/002_rls_policies.sql`. RLS включён на всех 9 таблицах. Пользовательские таблицы (users, user_card_progress, review_logs, user_topic_mastery, study_sessions, daily_activity) защищены политиками SELECT/INSERT/UPDATE через `auth.uid()` — пользователь видит и изменяет только свои строки. review_logs намеренно без UPDATE-политики (иммутабельные логи). Публичные таблицы (topics, topic_dependencies, cards) доступны на SELECT всем authenticated пользователям; INSERT/UPDATE/DELETE только через service role (service role автоматически обходит RLS).
+- **Ключевые файлы:** database/migrations/002_rls_policies.sql
+- **Проблемы:** Шаги тестирования (создать двух пользователей, проверить изоляцию) требуют применения миграции в Supabase Dashboard SQL Editor вручную — агент не имеет доступа к проекту. Следующий агент может проверить в Supabase: после применения запросы от user_b не должны видеть строки user_a.
+
+## [TASK-013] FSRS Engine: интеграция py-fsrs
+- **Дата:** 2026-03-07
+- **Статус:** in_progress (код и тесты написаны; `uv run pytest` заблокирован хуком разрешений)
+- **Что сделано:** Создан `backend/app/core/fsrs/engine.py` с классом `FSRSEngine`. Метод `schedule(card_progress, rating)` принимает dict из БД (stability, difficulty, fsrs_state, due_date, last_review, review_count) и int рейтинг 1-4, возвращает обновлённые FSRS-поля. Метод `preview_ratings()` возвращает результаты для всех 4 рейтингов без сохранения (для оптимистичного UI). Добавлен `py-fsrs>=6.0.0` в requirements.txt и pyproject.toml. Написаны 10 unit-тестов в `backend/tests/unit/test_fsrs_engine.py`.
+- **Ключевые файлы:** backend/app/core/__init__.py, backend/app/core/fsrs/__init__.py, backend/app/core/fsrs/engine.py, backend/tests/unit/test_fsrs_engine.py, backend/requirements.txt, backend/pyproject.toml
+- **Проблемы:** `uv run pytest` и `python3 -m pytest` заблокированы хуком разрешений пользователя. Следующий агент должен запустить `cd backend && uv run pytest tests/unit/test_fsrs_engine.py -v` для верификации и смены статуса на done. Также нужно установить `uv` если не установлен: `pip3 install uv`.
+
 ## [TASK-003] Создание схемы базы данных Supabase
 - **Дата:** 2026-03-07
 - **Статус:** done (SQL файл создан; применение к Supabase требует ручного действия)

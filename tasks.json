@@ -112,7 +112,7 @@
         "Шаг 4: Попытаться вставить запись с user_id чужого пользователя — получить ошибку RLS"
       ],
       "dependencies": ["TASK-003"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-005",
@@ -297,7 +297,7 @@
         "Шаг 4: rating=1 (Again): fsrs_state='relearning', interval минимален"
       ],
       "dependencies": ["TASK-005"],
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": "TASK-014",
