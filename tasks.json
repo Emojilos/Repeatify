@@ -236,7 +236,7 @@
         "Шаг 4: Зависимости с weight >= 0.7 имеют осмысленные связи"
       ],
       "dependencies": ["TASK-009"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-011",

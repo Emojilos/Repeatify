@@ -17,6 +17,13 @@
 
 <!-- Агенты добавляют записи ниже этой строки -->
 
+## [TASK-010] Seed-данные: рёбра графа знаний topic_dependencies с весами
+- **Дата:** 2026-03-07
+- **Статус:** done (файлы созданы; загрузка в Supabase требует ручного запуска load_dependencies.py с настроенным .env)
+- **Что сделано:** Создан `database/seeds/topic_dependencies.json` с 50 зависимостями между темами графа знаний. Покрыты все ключевые педагогические цепочки ЕГЭ: ALG.LIN→ALG.QUAD (weight=1.0), ALG.QUAD→ALG.EXP (weight=0.8), ALG.EXP→ALG.LOG (weight=0.9), цепочки тригонометрии, прогрессий, комбинаторики, геометрии (план→стерео→координаты), математического анализа (функции→производная→интеграл), вероятности и задач с параметром. Три типа связей: prerequisite, related, part_of. Создан `database/seeds/load_dependencies.py` со встроенной проверкой DAG (DFS, обнаружение циклов перед загрузкой), upsert-логикой (нет дублей при повторном запуске), информативными логами.
+- **Ключевые файлы:** database/seeds/topic_dependencies.json, database/seeds/load_dependencies.py
+- **Проблемы:** uv не установлен на машине — ruff/pytest не запускались (нет Python-кода с логикой, требующей тестов; DAG-валидация встроена в скрипт). Загрузка в Supabase требует `python database/seeds/load_dependencies.py` с переменными SUPABASE_URL и SUPABASE_SERVICE_ROLE_KEY. Следующий агент: TASK-016 (FIRe credit propagation) теперь разблокирован вместе с TASK-010.
+
 ## [TASK-009] Seed-данные: граф знаний — узлы topics по кодификатору ЕГЭ
 - **Дата:** 2026-03-07
 - **Статус:** done (файлы созданы; загрузка в Supabase требует ручного запуска load_topics.py с настроенным .env)

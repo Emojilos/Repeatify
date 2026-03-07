@@ -1,0 +1,362 @@
+{
+  "description": "Рёбра графа знаний профильного ЕГЭ по математике. Каждое ребро: prerequisite_topic_code → dependent_topic_code. DAG: циклов нет. weight ∈ (0.0, 1.0]. relationship_type: prerequisite | related | part_of.",
+  "dependencies": [
+    {
+      "prerequisite_topic_code": "ALG.LIN",
+      "dependent_topic_code": "ALG.QUAD",
+      "weight": 1.0,
+      "relationship_type": "prerequisite",
+      "comment": "Линейные уравнения — база для квадратных"
+    },
+    {
+      "prerequisite_topic_code": "ALG.QUAD",
+      "dependent_topic_code": "ALG.EXP",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Квадратные уравнения нужны для решения показательных методом замены переменной"
+    },
+    {
+      "prerequisite_topic_code": "ALG.EXP",
+      "dependent_topic_code": "ALG.LOG",
+      "weight": 0.9,
+      "relationship_type": "prerequisite",
+      "comment": "Показательная функция и логарифм — взаимообратные; понимание одного критично для другого"
+    },
+    {
+      "prerequisite_topic_code": "ALG.QUAD",
+      "dependent_topic_code": "ALG.LOG",
+      "weight": 0.7,
+      "relationship_type": "related",
+      "comment": "Квадратные методы применяются при решении логарифмических уравнений через замену"
+    },
+    {
+      "prerequisite_topic_code": "ALG.LIN",
+      "dependent_topic_code": "ALG.TRIG",
+      "weight": 0.5,
+      "relationship_type": "prerequisite",
+      "comment": "Линейные преобразования нужны для решения простейших тригонометрических уравнений"
+    },
+    {
+      "prerequisite_topic_code": "ALG.QUAD",
+      "dependent_topic_code": "ALG.TRIG",
+      "weight": 0.6,
+      "relationship_type": "prerequisite",
+      "comment": "Квадратные уравнения возникают при решении тригонометрических через замену переменной"
+    },
+    {
+      "prerequisite_topic_code": "ALG.LIN",
+      "dependent_topic_code": "ALG.SEQ",
+      "weight": 0.6,
+      "relationship_type": "prerequisite",
+      "comment": "Линейные уравнения нужны для нахождения членов прогрессии"
+    },
+    {
+      "prerequisite_topic_code": "ALG.QUAD",
+      "dependent_topic_code": "ALG.SEQ",
+      "weight": 0.5,
+      "relationship_type": "related",
+      "comment": "Квадратные уравнения встречаются в задачах на прогрессии"
+    },
+    {
+      "prerequisite_topic_code": "ALG.LIN",
+      "dependent_topic_code": "ALG.COMB",
+      "weight": 0.4,
+      "relationship_type": "prerequisite",
+      "comment": "Базовая алгебра необходима для работы с формулами комбинаторики"
+    },
+    {
+      "prerequisite_topic_code": "ALG.LIN.EQ",
+      "dependent_topic_code": "ALG.LIN.INEQ",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Навык решения линейных уравнений переносится на неравенства"
+    },
+    {
+      "prerequisite_topic_code": "ALG.LIN.EQ",
+      "dependent_topic_code": "ALG.QUAD.EQ",
+      "weight": 1.0,
+      "relationship_type": "prerequisite",
+      "comment": "Линейные уравнения — строгая основа для квадратных"
+    },
+    {
+      "prerequisite_topic_code": "ALG.QUAD.EQ",
+      "dependent_topic_code": "ALG.QUAD.INEQ",
+      "weight": 0.9,
+      "relationship_type": "prerequisite",
+      "comment": "Нахождение корней квадратного уравнения необходимо для метода параболы"
+    },
+    {
+      "prerequisite_topic_code": "ALG.QUAD.EQ",
+      "dependent_topic_code": "ALG.QUAD.VIETA",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Теорема Виета применяется к корням квадратного уравнения"
+    },
+    {
+      "prerequisite_topic_code": "ALG.EXP.FUNC",
+      "dependent_topic_code": "ALG.EXP.EQ",
+      "weight": 0.9,
+      "relationship_type": "prerequisite",
+      "comment": "Свойства показательной функции нужны для решения показательных уравнений"
+    },
+    {
+      "prerequisite_topic_code": "ALG.EXP.EQ",
+      "dependent_topic_code": "ALG.EXP.INEQ",
+      "weight": 0.85,
+      "relationship_type": "prerequisite",
+      "comment": "Методы решения показательных уравнений переносятся на неравенства"
+    },
+    {
+      "prerequisite_topic_code": "ALG.LOG.PROP",
+      "dependent_topic_code": "ALG.LOG.EQ",
+      "weight": 0.9,
+      "relationship_type": "prerequisite",
+      "comment": "Свойства логарифмов необходимы для потенцирования и упрощения при решении уравнений"
+    },
+    {
+      "prerequisite_topic_code": "ALG.LOG.EQ",
+      "dependent_topic_code": "ALG.LOG.INEQ",
+      "weight": 0.85,
+      "relationship_type": "prerequisite",
+      "comment": "Методы решения логарифмических уравнений переносятся на неравенства"
+    },
+    {
+      "prerequisite_topic_code": "ALG.EXP.FUNC",
+      "dependent_topic_code": "ALG.LOG.PROP",
+      "weight": 0.8,
+      "relationship_type": "related",
+      "comment": "Логарифм — обратная функция к показательной; свойства тесно связаны"
+    },
+    {
+      "prerequisite_topic_code": "ALG.TRIG.BASIC",
+      "dependent_topic_code": "ALG.TRIG.TRANSF",
+      "weight": 0.9,
+      "relationship_type": "prerequisite",
+      "comment": "Основные тождества — база для преобразований тригонометрических выражений"
+    },
+    {
+      "prerequisite_topic_code": "ALG.TRIG.BASIC",
+      "dependent_topic_code": "ALG.TRIG.EQ",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Формулы тригонометрии нужны для решения тригонометрических уравнений"
+    },
+    {
+      "prerequisite_topic_code": "ALG.TRIG.EQ",
+      "dependent_topic_code": "ALG.TRIG.INEQ",
+      "weight": 0.85,
+      "relationship_type": "prerequisite",
+      "comment": "Методы решения тригонометрических уравнений переносятся на неравенства"
+    },
+    {
+      "prerequisite_topic_code": "ALG.TRIG.TRANSF",
+      "dependent_topic_code": "ALG.TRIG.EQ",
+      "weight": 0.7,
+      "relationship_type": "related",
+      "comment": "Преобразования тригонометрических выражений упрощают решение уравнений"
+    },
+    {
+      "prerequisite_topic_code": "ALG.SEQ.ARITH",
+      "dependent_topic_code": "ALG.SEQ.GEO",
+      "weight": 0.7,
+      "relationship_type": "prerequisite",
+      "comment": "Понимание арифметической прогрессии помогает изучить геометрическую"
+    },
+    {
+      "prerequisite_topic_code": "ALG.COMB.PERM",
+      "dependent_topic_code": "ALG.COMB.COMBO",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Перестановки и размещения — основа для сочетаний C(n,k)"
+    },
+    {
+      "prerequisite_topic_code": "GEO.PLAN.TRI",
+      "dependent_topic_code": "GEO.PLAN.CIRCLE",
+      "weight": 0.7,
+      "relationship_type": "prerequisite",
+      "comment": "Свойства треугольников нужны для вписанных/описанных окружностей"
+    },
+    {
+      "prerequisite_topic_code": "GEO.PLAN.TRI",
+      "dependent_topic_code": "GEO.PLAN.QUAD",
+      "weight": 0.6,
+      "relationship_type": "related",
+      "comment": "Свойства треугольников используются при анализе четырёхугольников (диагонали, площади)"
+    },
+    {
+      "prerequisite_topic_code": "GEO.PLAN.TRI",
+      "dependent_topic_code": "GEO.PLAN.AREA",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Формулы площади треугольника — основа для площадей других фигур"
+    },
+    {
+      "prerequisite_topic_code": "GEO.PLAN",
+      "dependent_topic_code": "GEO.STER",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Планиметрия — необходимая база для стереометрии (сечения, грани как плоские фигуры)"
+    },
+    {
+      "prerequisite_topic_code": "GEO.PLAN.TRI",
+      "dependent_topic_code": "GEO.STER.PYR",
+      "weight": 0.7,
+      "relationship_type": "related",
+      "comment": "Грани пирамид — треугольники; их свойства используются для расчёта апофемы и площади"
+    },
+    {
+      "prerequisite_topic_code": "GEO.PLAN.CIRCLE",
+      "dependent_topic_code": "GEO.STER.SPHERE",
+      "weight": 0.7,
+      "relationship_type": "related",
+      "comment": "Сечение шара — окружность; свойства окружности нужны для задач о вписанных шарах"
+    },
+    {
+      "prerequisite_topic_code": "GEO.PLAN.AREA",
+      "dependent_topic_code": "GEO.STER.PRIS",
+      "weight": 0.6,
+      "relationship_type": "prerequisite",
+      "comment": "Площадь основания призмы рассчитывается через формулы планиметрии"
+    },
+    {
+      "prerequisite_topic_code": "GEO.COORD.VEC",
+      "dependent_topic_code": "GEO.COORD.LINE",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Векторы — основа для уравнений плоскостей и прямых в координатах"
+    },
+    {
+      "prerequisite_topic_code": "GEO.STER",
+      "dependent_topic_code": "GEO.COORD",
+      "weight": 0.7,
+      "relationship_type": "related",
+      "comment": "Координатный метод применяется для решения стереометрических задач"
+    },
+    {
+      "prerequisite_topic_code": "ANA.FUNC.GRAPH",
+      "dependent_topic_code": "ANA.DER.RULES",
+      "weight": 0.7,
+      "relationship_type": "prerequisite",
+      "comment": "Умение читать графики необходимо для интерпретации производной"
+    },
+    {
+      "prerequisite_topic_code": "ALG.QUAD",
+      "dependent_topic_code": "ANA.FUNC",
+      "weight": 0.7,
+      "relationship_type": "prerequisite",
+      "comment": "Квадратная функция — центральный пример при изучении свойств функций"
+    },
+    {
+      "prerequisite_topic_code": "ANA.DER.RULES",
+      "dependent_topic_code": "ANA.DER.TANGENT",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Уравнение касательной строится через значение производной"
+    },
+    {
+      "prerequisite_topic_code": "ANA.DER.RULES",
+      "dependent_topic_code": "ANA.DER.MONO",
+      "weight": 0.85,
+      "relationship_type": "prerequisite",
+      "comment": "Знак производной определяет монотонность; вычисление производной — первый шаг"
+    },
+    {
+      "prerequisite_topic_code": "ANA.DER.MONO",
+      "dependent_topic_code": "ANA.DER.MAXMIN",
+      "weight": 0.9,
+      "relationship_type": "prerequisite",
+      "comment": "Исследование монотонности — основа алгоритма нахождения глобального максимума/минимума"
+    },
+    {
+      "prerequisite_topic_code": "ANA.DER.RULES",
+      "dependent_topic_code": "ANA.INT.BASIC",
+      "weight": 0.7,
+      "relationship_type": "related",
+      "comment": "Таблица первообразных симметрична таблице производных"
+    },
+    {
+      "prerequisite_topic_code": "ANA.INT.BASIC",
+      "dependent_topic_code": "ANA.INT.DEF",
+      "weight": 0.9,
+      "relationship_type": "prerequisite",
+      "comment": "Неопределённый интеграл (первообразная) — основа формулы Ньютона–Лейбница"
+    },
+    {
+      "prerequisite_topic_code": "ANA.FUNC",
+      "dependent_topic_code": "ANA.DER",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Анализ функций и их графиков — необходимая база для изучения производной"
+    },
+    {
+      "prerequisite_topic_code": "PRB.BASIC.CLASSIC",
+      "dependent_topic_code": "PRB.BASIC.COND",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Классическое определение вероятности — основа для условной вероятности"
+    },
+    {
+      "prerequisite_topic_code": "ALG.COMB.PERM",
+      "dependent_topic_code": "PRB.BASIC.CLASSIC",
+      "weight": 0.7,
+      "relationship_type": "prerequisite",
+      "comment": "Комбинаторика используется для подсчёта благоприятных и общих исходов"
+    },
+    {
+      "prerequisite_topic_code": "ALG.COMB.COMBO",
+      "dependent_topic_code": "PRB.BASIC.COND",
+      "weight": 0.6,
+      "relationship_type": "related",
+      "comment": "Сочетания встречаются в задачах на условную вероятность"
+    },
+    {
+      "prerequisite_topic_code": "PRB.STAT.MEAN",
+      "dependent_topic_code": "PRB.STAT.HIST",
+      "weight": 0.6,
+      "relationship_type": "prerequisite",
+      "comment": "Вычисление среднего по гистограмме требует знания характеристик выборки"
+    },
+    {
+      "prerequisite_topic_code": "ALG.QUAD",
+      "dependent_topic_code": "PAR.BOUND",
+      "weight": 0.9,
+      "relationship_type": "prerequisite",
+      "comment": "Большинство задач с параметром — это квадратные уравнения/неравенства с параметром"
+    },
+    {
+      "prerequisite_topic_code": "ALG.LOG",
+      "dependent_topic_code": "PAR.BOUND",
+      "weight": 0.7,
+      "relationship_type": "related",
+      "comment": "Логарифмические уравнения с параметром часто встречаются в ЕГЭ задание 19"
+    },
+    {
+      "prerequisite_topic_code": "ANA.DER.MONO",
+      "dependent_topic_code": "PAR.COUNT",
+      "weight": 0.85,
+      "relationship_type": "prerequisite",
+      "comment": "Метод производной — основной инструмент для определения количества корней с параметром"
+    },
+    {
+      "prerequisite_topic_code": "PAR.BOUND",
+      "dependent_topic_code": "PAR.COUNT",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Задачи на количество решений строятся на методах нахождения параметра"
+    },
+    {
+      "prerequisite_topic_code": "PAR.BOUND.GRAPHICAL",
+      "dependent_topic_code": "PAR.BOUND.ANALYTICAL",
+      "weight": 0.7,
+      "relationship_type": "related",
+      "comment": "Графический и аналитический методы дополняют друг друга"
+    },
+    {
+      "prerequisite_topic_code": "ANA.DER.MAXMIN",
+      "dependent_topic_code": "PAR.COUNT.ROOTS",
+      "weight": 0.8,
+      "relationship_type": "prerequisite",
+      "comment": "Нахождение экстремумов — ключ к определению числа корней через производную"
+    }
+  ]
+}
