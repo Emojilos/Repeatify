@@ -43,3 +43,17 @@
 - .env.example
 
 **Заметка для следующей итерации:** TASK-003 done → разблокированы: TASK-004 (RLS + seeds, зависит от TASK-003), TASK-005 (Supabase client, зависит от TASK-002 done + TASK-003 done). Следующие приоритетные задачи: TASK-001 (frontend init, без зависимостей), TASK-004 (RLS + seeds), TASK-005 (Supabase client). Ruff check и pytest проходят. Примечание: в PRD два разных enum для difficulty — difficulty_level (basic/medium/hard) для topics и problem_difficulty (basic/medium/hard/olympiad) для problems.
+
+### TASK-001 — Инициализация frontend (Vite + React + TypeScript + Tailwind CSS)
+**Статус:** pending → done
+**Дата:** 2026-03-09
+**Агент/Сессия:** Claude Opus 4.6
+**Summary:** Создан frontend-проект через Vite (react-ts шаблон). React 19 + TypeScript 5.9. Tailwind CSS v4 установлен и настроен через `@tailwindcss/vite` плагин. Структура папок: src/components, src/pages, src/stores, src/lib, src/types. HashRouter из react-router-dom v7 настроен со всеми маршрутами из acceptance criteria (/, /auth/login, /auth/register, /dashboard, /topics, /topics/:id, /topics/:id/fire, /practice, /practice/session, /practice/results, /progress, /profile). Все страницы-заглушки созданы. Dashboard показывает "Repeatify" с классом text-blue-500 (Tailwind работает). `npm run build` проходит без ошибок. `npm run dev` запускается.
+**Файлы изменены:**
+- frontend/package.json (Vite + React + Tailwind + react-router-dom)
+- frontend/vite.config.ts (Tailwind v4 plugin)
+- frontend/src/index.css (Tailwind import)
+- frontend/src/main.tsx, frontend/src/App.tsx (HashRouter setup)
+- frontend/src/pages/ (11 stub pages: Dashboard, Login, Register, Topics, TopicDetail, TopicFire, Practice, PracticeSession, PracticeResults, Progress, Profile)
+
+**Заметка для следующей итерации:** TASK-001 done → разблокированы: TASK-010 (layout + routing, зависит от TASK-001), TASK-013 (MathRenderer, зависит от TASK-001), TASK-033 (CI/CD GitHub Pages, зависит от TASK-001 + TASK-010). Все 3 infrastructure-задачи (TASK-001, TASK-002, TASK-003) теперь done. Следующие приоритетные critical задачи: TASK-004 (RLS + seeds), TASK-005 (Supabase client). Примечание: используется Tailwind CSS v4 (без tailwind.config.js — конфигурация через CSS и @tailwindcss/vite плагин), React 19 (не 18), react-router-dom v7.
