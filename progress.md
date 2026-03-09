@@ -72,3 +72,19 @@
 - backend/tests/test_supabase_client.py (новый — 3 теста)
 
 **Заметка для следующей итерации:** TASK-005 done → разблокированы: TASK-006 (auth, зависит от TASK-005), TASK-017 (SRS engine, зависит от TASK-005), TASK-036 (import script, зависит от TASK-005). Следующие приоритетные critical задачи с выполненными зависимостями: TASK-004 (RLS + seeds, dep: TASK-003 ✅), TASK-006 (auth, dep: TASK-005 ✅), TASK-010 (frontend layout, dep: TASK-001 ✅), TASK-013 (MathRenderer, dep: TASK-001 ✅). TASK-006 — наиболее критичная, разблокирует TASK-007/008/009/011. Singleton Supabase client через global _client. Тесты используют mock env vars через patch.dict(os.environ).
+
+### TASK-006 — Backend: аутентификация (регистрация, вход, выход через Supabase Auth)
+**Статус:** pending → done
+**Дата:** 2026-03-09
+**Агент/Сессия:** Claude Opus 4.6
+**Summary:** Реализована полная аутентификация через Supabase Auth. Создан `app/core/auth.py` с dependency `get_current_user` для JWT-верификации (HS256, audience="authenticated"). Создан `app/routers/auth.py` с эндпоинтами: POST /auth/register (регистрация + создание users row), POST /auth/login (вход по email/password), POST /auth/logout (sign_out). Создан `app/routers/users.py` с GET /api/users/me (профиль пользователя с JWT-защитой). Pydantic-схемы в `app/models/auth.py`: RegisterRequest, LoginRequest, AuthResponse, UserProfile. Добавлены зависимости: email-validator. 14 тестов (9 auth + 2 health + 3 supabase), ruff clean.
+**Файлы изменены:**
+- backend/app/core/auth.py (новый — JWT verification, get_current_user dependency)
+- backend/app/models/auth.py (новый — Pydantic schemas)
+- backend/app/routers/auth.py (новый — register, login, logout endpoints)
+- backend/app/routers/users.py (новый — GET /api/users/me)
+- backend/app/main.py (включены auth + users роутеры)
+- backend/pyproject.toml, backend/requirements.txt (email-validator)
+- backend/tests/test_auth.py (новый — 9 тестов)
+
+**Заметка для следующей итерации:** TASK-006 done → разблокированы: TASK-007 (user profile API, dep: TASK-006 ✅), TASK-008 (topics API, dep: TASK-006 ✅ + TASK-004), TASK-009 (problems API, dep: TASK-006 ✅ + TASK-004), TASK-011 (frontend auth, dep: TASK-010 + TASK-006 ✅). Следующие приоритетные critical задачи: TASK-004 (RLS + seeds), TASK-007 (user profile), TASK-010 (frontend layout), TASK-013 (MathRenderer), TASK-017 (SRS engine). Важно: supabase-py v2 использует `supabase_auth.errors.AuthApiError` (не `gotrue`). JWT secret из Supabase — используется для верификации токенов с audience="authenticated". GET /api/users/me уже реализован базово — TASK-007 добавит PATCH и /stats.
