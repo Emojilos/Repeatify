@@ -1,10 +1,19 @@
-TASK-007 DONE — User profile API (GET/PATCH /me, GET /me/stats)
+TASK-008 DONE — Topics API (GET /api/topics, GET /api/topics/{id}, GET /api/topics/{id}/relationships)
+
+Implementation:
+- Created app/models/topics.py with Pydantic models: TopicListItem, TopicDetail, TopicProgress, TopicRelationship
+- Created app/routers/topics.py with 3 endpoints:
+  - GET /api/topics — lists all topics sorted by task_number, includes user_progress if authenticated
+  - GET /api/topics/{id} — topic details with user progress
+  - GET /api/topics/{id}/relationships — topic relationships with enriched related topic data
+- Optional auth via HTTPBearer(auto_error=False) — returns progress when token present, works without auth too
+- 10 tests in tests/test_topics.py, all passing (36 total)
+- ruff check clean
 
 Next priorities (critical, all deps met):
-- TASK-008: Topics API (GET /api/topics, GET /api/topics/{id}, GET /api/topics/{id}/relationships)
-- TASK-009: Problems API (CRUD + POST /api/problems/{id}/attempt)
+- TASK-009: Problems API (CRUD + POST /api/problems/{id}/attempt) — unblocks TASK-015, TASK-018, TASK-021
 - TASK-010: Frontend layout (Header, Sidebar, routing)
 - TASK-013: MathRenderer component (KaTeX + Markdown)
 - TASK-017: SRS engine (SM-2 algorithm)
 
-TASK-008/009 are the most impactful — they unblock UI tasks and SRS sessions.
+TASK-009 is the most impactful next — it unblocks SRS sessions, XP system, and problem-solving UI.
