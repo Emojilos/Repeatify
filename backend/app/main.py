@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.supabase_client import verify_connection
-from app.routers import auth, topics, users
+from app.routers import auth, problems, topics, users
 
 _db_connected = False
 
@@ -43,6 +43,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(topics.router)
+app.include_router(problems.router)
 
 
 @app.get("/health")

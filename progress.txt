@@ -10,10 +10,23 @@ Implementation:
 - 10 tests in tests/test_topics.py, all passing (36 total)
 - ruff check clean
 
-Next priorities (critical, all deps met):
-- TASK-009: Problems API (CRUD + POST /api/problems/{id}/attempt) — unblocks TASK-015, TASK-018, TASK-021
-- TASK-010: Frontend layout (Header, Sidebar, routing)
-- TASK-013: MathRenderer component (KaTeX + Markdown)
-- TASK-017: SRS engine (SM-2 algorithm)
+TASK-009 DONE — Problems API (CRUD + POST /api/problems/{id}/attempt)
 
-TASK-009 is the most impactful next — it unblocks SRS sessions, XP system, and problem-solving UI.
+Implementation:
+- Created app/models/problems.py with Pydantic models: ProblemListItem, ProblemDetail, AttemptRequest, AttemptResponse, ProblemListResponse, Difficulty, SelfAssessment enums
+- Created app/routers/problems.py with 3 endpoints:
+  - GET /api/problems — list with filters (topic_id, difficulty, task_number) + pagination, enriched with max_points from topics
+  - GET /api/problems/{id} — single problem WITHOUT correct_answer (security)
+  - POST /api/problems/{id}/attempt — submit answer, check correctness (case-insensitive + tolerance), record attempt, award XP
+- XP rules: +10 for correct Part 1 (tasks 1-12), +25 for Part 2 (tasks 13-19, only good/easy assessment)
+- Answer checking: case-insensitive string match + numeric tolerance support
+- 13 tests in tests/test_problems.py, all passing (49 total)
+- ruff check clean
+
+Next priorities (critical, all deps met):
+- TASK-010: Frontend layout (Header, Sidebar, routing) — unblocks TASK-011, TASK-033
+- TASK-013: MathRenderer component (KaTeX + Markdown) — unblocks TASK-014, TASK-015
+- TASK-017: SRS engine (SM-2 algorithm) — unblocks TASK-018
+- TASK-016: Seed problems data (95 problems) — unblocks content
+
+TASK-010 and TASK-013 can be parallelized (both frontend, no interdependencies).
