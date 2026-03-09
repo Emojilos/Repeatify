@@ -57,3 +57,18 @@
 - frontend/src/pages/ (11 stub pages: Dashboard, Login, Register, Topics, TopicDetail, TopicFire, Practice, PracticeSession, PracticeResults, Progress, Profile)
 
 **Заметка для следующей итерации:** TASK-001 done → разблокированы: TASK-010 (layout + routing, зависит от TASK-001), TASK-013 (MathRenderer, зависит от TASK-001), TASK-033 (CI/CD GitHub Pages, зависит от TASK-001 + TASK-010). Все 3 infrastructure-задачи (TASK-001, TASK-002, TASK-003) теперь done. Следующие приоритетные critical задачи: TASK-004 (RLS + seeds), TASK-005 (Supabase client). Примечание: используется Tailwind CSS v4 (без tailwind.config.js — конфигурация через CSS и @tailwindcss/vite плагин), React 19 (не 18), react-router-dom v7.
+
+### TASK-005 — Подключение Supabase клиента к backend
+**Статус:** pending → done
+**Дата:** 2026-03-09
+**Агент/Сессия:** Claude Opus 4.6
+**Summary:** Подключён Supabase клиент к backend. Создан `backend/app/core/config.py` с классом Settings (pydantic-settings), читающим SUPABASE_URL, SUPABASE_SERVICE_KEY, JWT_SECRET из .env. Создан `backend/app/db/supabase_client.py` с функциями get_supabase_client() и verify_connection(). main.py обновлён: lifespan event проверяет подключение при старте, health-check возвращает `{"status": "ok", "db": "connected"|"disconnected"}`. Добавлены зависимости: supabase>=2.0.0, pydantic-settings>=2.0.0, python-dotenv>=1.0.0. 5 тестов проходят, ruff check clean.
+**Файлы изменены:**
+- backend/app/core/config.py (новый — Settings class)
+- backend/app/db/supabase_client.py (новый — Supabase client)
+- backend/app/main.py (lifespan event + updated health check)
+- backend/pyproject.toml, backend/requirements.txt (новые зависимости)
+- backend/tests/test_health.py (обновлён для mock env vars)
+- backend/tests/test_supabase_client.py (новый — 3 теста)
+
+**Заметка для следующей итерации:** TASK-005 done → разблокированы: TASK-006 (auth, зависит от TASK-005), TASK-017 (SRS engine, зависит от TASK-005), TASK-036 (import script, зависит от TASK-005). Следующие приоритетные critical задачи с выполненными зависимостями: TASK-004 (RLS + seeds, dep: TASK-003 ✅), TASK-006 (auth, dep: TASK-005 ✅), TASK-010 (frontend layout, dep: TASK-001 ✅), TASK-013 (MathRenderer, dep: TASK-001 ✅). TASK-006 — наиболее критичная, разблокирует TASK-007/008/009/011. Singleton Supabase client через global _client. Тесты используют mock env vars через patch.dict(os.environ).

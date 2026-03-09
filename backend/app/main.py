@@ -1,10 +1,30 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.db.supabase_client import verify_connection
+
+_db_connected = False
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    global _db_connected
+    _db_connected = await verify_connection()
+    if _db_connected:
+        print("✓ Supabase connection verified")
+    else:
+        print("✗ Supabase connection failed — check credentials")
+    yield
+
 
 app = FastAPI(
     title="Repeatify API",
     description="Backend for Repeatify — EGE Math preparation platform",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -21,4 +41,4 @@ app.add_middleware(
 
 @app.get("/health")
 async def health_check() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "db": "connected" if _db_connected else "disconnected"}
