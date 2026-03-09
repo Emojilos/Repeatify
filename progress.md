@@ -99,3 +99,15 @@
 - tasks.json (TASK-004 status → done)
 
 **Заметка для следующей итерации:** TASK-004 done → разблокированы: TASK-008 (topics API, dep: TASK-006 ✅ + TASK-004 ✅), TASK-009 (problems API, dep: TASK-006 ✅ + TASK-004 ✅), TASK-016 (seed problems, dep: TASK-004 ✅), TASK-032 (seed theory, dep: TASK-004 ✅). Следующие приоритетные critical задачи с выполненными зависимостями: TASK-007 (user profile, dep: TASK-006 ✅), TASK-008 (topics API), TASK-009 (problems API), TASK-010 (frontend layout, dep: TASK-001 ✅), TASK-013 (MathRenderer, dep: TASK-001 ✅), TASK-017 (SRS engine, dep: TASK-005 ✅). TASK-007/008/009 — наиболее критичные для разблокировки UI-задач.
+
+### TASK-007 — Backend: API профиля пользователя (GET/PATCH /api/users/me, GET /api/users/me/stats)
+**Статус:** pending → done
+**Дата:** 2026-03-09
+**Агент/Сессия:** Claude Opus 4.6
+**Summary:** Реализованы три эндпоинта профиля пользователя. GET /api/users/me возвращает профиль (display_name, exam_date, target_score, current_xp, current_level, current_streak, longest_streak). PATCH /api/users/me обновляет display_name (1–100 символов), exam_date (не в прошлом), target_score (27–100) с Pydantic-валидацией. GET /api/users/me/stats возвращает XP, уровень, стрики, total_problems_solved (count из user_problem_attempts с is_correct=True). Добавлены Pydantic-схемы UpdateProfileRequest (с model_validator для exam_date) и UserStats. Рефакторинг: вынесены _row_to_profile() и _get_user_row() для DRY. 26 тестов (12 новых для users), ruff clean.
+**Файлы изменены:**
+- backend/app/models/auth.py (добавлены UpdateProfileRequest, UserStats)
+- backend/app/routers/users.py (PATCH /me, GET /me/stats, рефакторинг GET /me)
+- backend/tests/test_users.py (новый — 12 тестов)
+
+**Заметка для следующей итерации:** TASK-007 done → разблокированы: TASK-021 (XP system, dep: TASK-007 ✅ + TASK-009), TASK-022 (streaks, dep: TASK-007 ✅), TASK-025 (dashboard API, dep: TASK-007 ✅ + TASK-018 + TASK-022), TASK-029 (profile page, dep: TASK-011 + TASK-007 ✅). Следующие приоритетные critical задачи с выполненными зависимостями: TASK-008 (topics API, dep: TASK-006 ✅ + TASK-004 ✅), TASK-009 (problems API, dep: TASK-006 ✅ + TASK-004 ✅), TASK-010 (frontend layout, dep: TASK-001 ✅), TASK-013 (MathRenderer, dep: TASK-001 ✅), TASK-017 (SRS engine, dep: TASK-005 ✅). TASK-008 и TASK-009 — наиболее критичные для разблокировки UI и SRS задач.

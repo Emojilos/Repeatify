@@ -1,0 +1,10 @@
+TASK-007 DONE — User profile API (GET/PATCH /me, GET /me/stats)
+
+Next priorities (critical, all deps met):
+- TASK-008: Topics API (GET /api/topics, GET /api/topics/{id}, GET /api/topics/{id}/relationships)
+- TASK-009: Problems API (CRUD + POST /api/problems/{id}/attempt)
+- TASK-010: Frontend layout (Header, Sidebar, routing)
+- TASK-013: MathRenderer component (KaTeX + Markdown)
+- TASK-017: SRS engine (SM-2 algorithm)
+
+TASK-008/009 are the most impactful — they unblock UI tasks and SRS sessions.
