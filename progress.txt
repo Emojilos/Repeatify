@@ -23,10 +23,23 @@ Implementation:
 - 13 tests in tests/test_problems.py, all passing (49 total)
 - ruff check clean
 
-Next priorities (critical, all deps met):
-- TASK-010: Frontend layout (Header, Sidebar, routing) — unblocks TASK-011, TASK-033
-- TASK-013: MathRenderer component (KaTeX + Markdown) — unblocks TASK-014, TASK-015
-- TASK-017: SRS engine (SM-2 algorithm) — unblocks TASK-018
-- TASK-016: Seed problems data (95 problems) — unblocks content
+TASK-010 DONE — Frontend layout (Header, Sidebar, routing, protected routes)
 
-TASK-010 and TASK-013 can be parallelized (both frontend, no interdependencies).
+Implementation:
+- Created src/components/Header.tsx — logo "Repeatify", XP/level/streak stubs (badges), logout button
+- Created src/components/Sidebar.tsx — NavLink navigation: Dashboard, Темы, Тренировка, Прогресс, Профиль with active state highlighting
+- Created src/components/Layout.tsx — combines Header + Sidebar + Outlet for page content
+- Created src/components/ProtectedRoute.tsx — checks localStorage for access_token, redirects to /auth/login if absent
+- Updated App.tsx — public routes (/auth/login, /auth/register) without layout; all other routes wrapped in ProtectedRoute + Layout
+- Updated index.html title to "Repeatify"
+- Updated Dashboard stub with heading
+- Frontend builds successfully (tsc + vite build), backend ruff + pytest still pass (49 tests)
+
+Next priorities (critical, all deps met):
+- TASK-011: Frontend auth pages + Zustand store (deps: TASK-010 ✅, TASK-006 ✅) — unblocks TASK-012, TASK-029, TASK-030
+- TASK-013: MathRenderer component (KaTeX + Markdown) (deps: TASK-001 ✅) — unblocks TASK-014, TASK-015
+- TASK-017: SRS engine (SM-2 algorithm) (deps: TASK-005 ✅) — unblocks TASK-018
+- TASK-016: Seed problems data (95 problems) (deps: TASK-004 ✅) — unblocks content
+
+TASK-011 and TASK-013 can be parallelized (both frontend, no interdependencies).
+TASK-017 and TASK-016 can be parallelized (both backend, no interdependencies).
