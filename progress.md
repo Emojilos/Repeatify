@@ -88,3 +88,14 @@
 - backend/tests/test_auth.py (новый — 9 тестов)
 
 **Заметка для следующей итерации:** TASK-006 done → разблокированы: TASK-007 (user profile API, dep: TASK-006 ✅), TASK-008 (topics API, dep: TASK-006 ✅ + TASK-004), TASK-009 (problems API, dep: TASK-006 ✅ + TASK-004), TASK-011 (frontend auth, dep: TASK-010 + TASK-006 ✅). Следующие приоритетные critical задачи: TASK-004 (RLS + seeds), TASK-007 (user profile), TASK-010 (frontend layout), TASK-013 (MathRenderer), TASK-017 (SRS engine). Важно: supabase-py v2 использует `supabase_auth.errors.AuthApiError` (не `gotrue`). JWT secret из Supabase — используется для верификации токенов с audience="authenticated". GET /api/users/me уже реализован базово — TASK-007 добавит PATCH и /stats.
+
+### TASK-004 — Настройка RLS-политик и seed-данные для topics
+**Статус:** pending → done
+**Дата:** 2026-03-09
+**Агент/Сессия:** Claude Opus 4.6
+**Summary:** Создана миграция `supabase/migrations/002_rls_and_seeds.sql`. RLS включён на всех 10 таблицах. Пользовательские таблицы (users, user_problem_attempts, srs_cards, user_topic_progress, user_sessions, user_daily_activity) — полные CRUD-политики с `auth.uid() = user_id/id`. Справочные таблицы (topics, theory_content, problems, topic_relationships) — SELECT для всех authenticated. Seed: 19 записей в topics с task_number 1–19, названиями из ЕГЭ, описаниями, difficulty_level, max_points (1 для 1–12, 2 для 13–15, 3 для 16–17, 4 для 18–19), estimated_study_hours. Ruff clean, 14 тестов pass.
+**Файлы изменены:**
+- supabase/migrations/002_rls_and_seeds.sql (новый — RLS + seeds)
+- tasks.json (TASK-004 status → done)
+
+**Заметка для следующей итерации:** TASK-004 done → разблокированы: TASK-008 (topics API, dep: TASK-006 ✅ + TASK-004 ✅), TASK-009 (problems API, dep: TASK-006 ✅ + TASK-004 ✅), TASK-016 (seed problems, dep: TASK-004 ✅), TASK-032 (seed theory, dep: TASK-004 ✅). Следующие приоритетные critical задачи с выполненными зависимостями: TASK-007 (user profile, dep: TASK-006 ✅), TASK-008 (topics API), TASK-009 (problems API), TASK-010 (frontend layout, dep: TASK-001 ✅), TASK-013 (MathRenderer, dep: TASK-001 ✅), TASK-017 (SRS engine, dep: TASK-005 ✅). TASK-007/008/009 — наиболее критичные для разблокировки UI-задач.
