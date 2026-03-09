@@ -4,3 +4,8 @@ PRD-EGE-Math-2026-03-09.md
 ralph.sh
 tasks.json
 .claude
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
