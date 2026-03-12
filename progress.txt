@@ -120,11 +120,25 @@ Implementation:
   - _ensure_srs_card: creates new, returns existing
 - All 88 tests passing, ruff check clean
 
+TASK-014 DONE — Topic detail page /topics/:id (theory + problems list)
+
+Implementation:
+- Rewrote src/pages/TopicDetail.tsx — full topic detail page with API integration
+- Loads topic via GET /api/topics/{id}, problems via GET /api/problems?topic_id=, relationships via GET /api/topics/{id}/relationships — all in parallel
+- Displays: task_number badge, title, difficulty badge (basic/medium/hard/olympiad), max_points, estimated study hours
+- User progress stats grid: total attempts, correct answers, accuracy %, strength score
+- Theory section: renders topic description through MathRenderer (full LaTeX/Markdown support)
+- Related topics: clickable links to connected topics with relationship type labels
+- Problems list: numbered cards with difficulty badges, source info, problem text preview via MathRenderer (truncated to 200 chars)
+- Action buttons: "Начать FIRe-flow" (→ /topics/:id/fire), "Решать задания" (→ /topics/:id/practice)
+- FIRe button shows "Повторить FIRe-flow" if already completed
+- Loading skeleton state, error state with back link
+- Back navigation "← Все темы" link to /topics
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 88 tests pass
+
 Next priorities (critical, all deps met):
-- TASK-014: Topic page /topics/:id (deps: TASK-012 ✅, TASK-013 ✅)
 - TASK-015: Problem solving screen (deps: TASK-013 ✅, TASK-009 ✅)
 - TASK-016: Seed problems data (deps: TASK-004 ✅)
 
-TASK-014 and TASK-015 can be parallelized (both frontend).
+TASK-015 blocks TASK-019 (SRS UI session) and TASK-024 (FIRe-flow wizard).
 TASK-016 is independent (backend seed data).
-TASK-019 (SRS UI) is now unblocked (deps: TASK-015, TASK-018 ✅).
