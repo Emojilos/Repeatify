@@ -1,0 +1,886 @@
+{
+  "agent_instructions": {
+    "before_start": [
+      "Прочитай этот файл и git log --oneline -20",
+      "Выбери ОДНУ задачу со статусом pending и наивысшим приоритетом",
+      "Проверь, что все dependencies этой задачи имеют статус done"
+    ],
+    "during_work": [
+      "Работай только над выбранной задачей",
+      "Делай коммиты после каждого логического изменения",
+      "Не трогай код, не связанный с текущей задачей"
+    ],
+    "before_finish": [
+      "Выполни ВСЕ test_steps из задачи",
+      "Меняй status на done ТОЛЬКО после успешного прохождения всех тестов",
+      "Напиши summary в progress.md",
+      "ЗАПРЕЩЕНО удалять или редактировать задачи — только менять status"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Инициализация frontend-проекта: Vite + React 18 + TypeScript + Tailwind CSS",
+      "acceptance_criteria": [
+        "Проект создан через Vite с шаблоном react-ts",
+        "Tailwind CSS установлен и настроен (tailwind.config.js, postcss.config.js)",
+        "Базовая структура папок: src/components, src/pages, src/stores, src/lib, src/types",
+        "HashRouter из react-router-dom v6 настроен с заглушками для всех страниц",
+        "dev-сервер запускается без ошибок (npm run dev)"
+      ],
+      "test_steps": [
+        "Шаг 1: npm run dev — приложение запускается на localhost",
+        "Шаг 2: Открыть браузер — видна страница с текстом 'Repeatify'",
+        "Шаг 3: npm run build — билд завершается без ошибок",
+        "Шаг 4: Проверить что Tailwind работает — добавить класс text-blue-500, убедиться что стиль применяется"
+      ],
+      "dependencies": [],
+      "status": "done"
+    },
+    {
+      "id": "TASK-002",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Инициализация backend-проекта: FastAPI + Python 3.11 + структура",
+      "acceptance_criteria": [
+        "Проект в папке backend/ с pyproject.toml или requirements.txt",
+        "FastAPI приложение с базовым health-check эндпоинтом GET /health",
+        "Структура: backend/app/main.py, backend/app/routers/, backend/app/models/, backend/app/services/, backend/app/core/",
+        "CORS настроен для localhost:5173 (dev) и будущего GitHub Pages домена",
+        "Uvicorn запускается: uvicorn app.main:app --reload"
+      ],
+      "test_steps": [
+        "Шаг 1: cd backend && pip install -r requirements.txt",
+        "Шаг 2: uvicorn app.main:app --reload — сервер запускается",
+        "Шаг 3: GET http://localhost:8000/health → {\"status\": \"ok\"}",
+        "Шаг 4: GET http://localhost:8000/docs → Swagger UI отображается"
+      ],
+      "dependencies": [],
+      "status": "done"
+    },
+    {
+      "id": "TASK-003",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Настройка Supabase: создание схемы БД (все таблицы, индексы, enum-типы)",
+      "acceptance_criteria": [
+        "SQL-миграция создаёт все 9 таблиц из PRD: users, topics, theory_content, problems, user_problem_attempts, srs_cards, user_topic_progress, user_sessions, user_daily_activity, topic_relationships",
+        "Все ENUM-типы созданы: difficulty_level, content_type, card_type, card_status, session_type, self_assessment, relationship_type",
+        "Все 4 индекса из PRD созданы",
+        "SQL-файл миграции сохранён в supabase/migrations/001_initial_schema.sql",
+        "Файл .env.example с переменными SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY"
+      ],
+      "test_steps": [
+        "Шаг 1: Проверить SQL-файл на синтаксические ошибки (можно через любой SQL-валидатор)",
+        "Шаг 2: Убедиться что все FK-связи корректны (topics.parent_topic_id → topics.id и т.д.)",
+        "Шаг 3: Убедиться что все default значения установлены (ease_factor=2.5, current_xp=0 и т.д.)",
+        "Шаг 4: .env.example содержит все необходимые переменные окружения"
+      ],
+      "dependencies": [],
+      "status": "done"
+    },
+    {
+      "id": "TASK-004",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Настройка RLS-политик и seed-данные для таблицы topics (19 типов заданий ЕГЭ)",
+      "acceptance_criteria": [
+        "RLS включён на всех таблицах с user_id",
+        "Политики: пользователь видит/редактирует только свои данные в user_* таблицах",
+        "Таблицы topics, theory_content, problems, topic_relationships доступны для чтения всем авторизованным",
+        "Seed-скрипт заполняет таблицу topics: 19 записей с task_number 1–19, title, description, max_points, difficulty_level",
+        "SQL-файл: supabase/migrations/002_rls_and_seeds.sql"
+      ],
+      "test_steps": [
+        "Шаг 1: Проверить что seed-данные содержат все 19 типов заданий с корректными названиями из PRD",
+        "Шаг 2: Проверить что max_points корректны: 1 для заданий 1–12, 2–4 для заданий 13–19",
+        "Шаг 3: Проверить что RLS-политики покрывают SELECT, INSERT, UPDATE, DELETE",
+        "Шаг 4: SQL-синтаксис валиден"
+      ],
+      "dependencies": ["TASK-003"],
+      "status": "done"
+    },
+    {
+      "id": "TASK-005",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Подключение Supabase клиента к backend (Python) с конфигурацией из .env",
+      "acceptance_criteria": [
+        "supabase-py установлен в зависимости",
+        "Модуль backend/app/db/supabase_client.py создаёт и экспортирует клиент Supabase",
+        "Конфигурация читается из переменных окружения через pydantic-settings",
+        "backend/app/core/config.py с классом Settings (SUPABASE_URL, SUPABASE_SERVICE_KEY, JWT_SECRET)",
+        "Подключение проверяется при старте приложения (lifespan event)"
+      ],
+      "test_steps": [
+        "Шаг 1: Создать .env с реальными Supabase credentials",
+        "Шаг 2: Запустить backend — нет ошибок подключения",
+        "Шаг 3: GET /health возвращает {\"status\": \"ok\", \"db\": \"connected\"}"
+      ],
+      "dependencies": ["TASK-002", "TASK-003"],
+      "status": "done"
+    },
+    {
+      "id": "TASK-006",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Backend: аутентификация — регистрация, вход, выход через Supabase Auth",
+      "acceptance_criteria": [
+        "POST /auth/register — регистрация по email + пароль, возвращает JWT",
+        "POST /auth/login — вход, возвращает access_token и refresh_token",
+        "POST /auth/logout — инвалидация сессии",
+        "Middleware для проверки JWT на защищённых роутах (dependency get_current_user)",
+        "При регистрации создаётся запись в таблице users с default значениями",
+        "Pydantic-схемы для request/response"
+      ],
+      "test_steps": [
+        "Шаг 1: POST /auth/register с email/password → 201, получен access_token",
+        "Шаг 2: POST /auth/login с теми же credentials → 200, получен access_token",
+        "Шаг 3: GET /api/users/me с Bearer token → 200, данные пользователя",
+        "Шаг 4: GET /api/users/me без токена → 401",
+        "Шаг 5: POST /auth/logout → 200"
+      ],
+      "dependencies": ["TASK-005"],
+      "status": "done"
+    },
+    {
+      "id": "TASK-007",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Backend: API профиля пользователя (GET/PATCH /api/users/me, GET /api/users/me/stats)",
+      "acceptance_criteria": [
+        "GET /api/users/me — возвращает профиль: display_name, exam_date, target_score, current_xp, current_level, current_streak",
+        "PATCH /api/users/me — обновление display_name, exam_date (DATE), target_score (27–100)",
+        "GET /api/users/me/stats — XP, уровень, стрик, longest_streak, общее кол-во решённых задач",
+        "Валидация: target_score в диапазоне 27–100, exam_date не в прошлом"
+      ],
+      "test_steps": [
+        "Шаг 1: GET /api/users/me → профиль с default значениями",
+        "Шаг 2: PATCH /api/users/me с {\"target_score\": 80, \"exam_date\": \"2026-06-19\"} → 200",
+        "Шаг 3: GET /api/users/me → target_score=80, exam_date='2026-06-19'",
+        "Шаг 4: PATCH с {\"target_score\": 150} → 422 (validation error)",
+        "Шаг 5: GET /api/users/me/stats → корректная статистика"
+      ],
+      "dependencies": ["TASK-006"],
+      "status": "done"
+    },
+    {
+      "id": "TASK-008",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Backend: API тем — GET /api/topics, GET /api/topics/{id}, GET /api/topics/{id}/relationships",
+      "acceptance_criteria": [
+        "GET /api/topics — список всех тем, отсортированных по task_number, с прогрессом текущего пользователя (если авторизован)",
+        "GET /api/topics/{id} — детали темы включая description, max_points, estimated_study_hours",
+        "GET /api/topics/{id}/relationships — связи с другими темами из topic_relationships",
+        "Ответ включает user_topic_progress (strength_score, fire_completed) если пользователь авторизован"
+      ],
+      "test_steps": [
+        "Шаг 1: GET /api/topics → массив из 19 тем с корректными task_number",
+        "Шаг 2: GET /api/topics/{id} конкретной темы → полные данные",
+        "Шаг 3: Проверить что прогресс пользователя включён в ответ (или null если нет прогресса)"
+      ],
+      "dependencies": ["TASK-006", "TASK-004"],
+      "status": "done"
+    },
+    {
+      "id": "TASK-009",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Backend: API заданий — CRUD для problems + POST /api/problems/{id}/attempt",
+      "acceptance_criteria": [
+        "GET /api/problems?topic_id=&difficulty=&task_number= — список с фильтрами и пагинацией",
+        "GET /api/problems/{id} — конкретное задание (без correct_answer до attempt!)",
+        "POST /api/problems/{id}/attempt — принимает {answer, time_spent_seconds, self_assessment}",
+        "Ответ attempt: {is_correct, correct_answer, solution_markdown, xp_earned}",
+        "Запись в user_problem_attempts при каждой попытке",
+        "XP начисление: +10 за правильный ответ Ч1, +25 за Ч2 (good/easy)"
+      ],
+      "test_steps": [
+        "Шаг 1: GET /api/problems?task_number=1 → список заданий по планиметрии",
+        "Шаг 2: GET /api/problems/{id} → условие задачи БЕЗ correct_answer",
+        "Шаг 3: POST attempt с правильным ответом → is_correct=true, xp_earned=10",
+        "Шаг 4: POST attempt с неправильным ответом → is_correct=false, correct_answer показан",
+        "Шаг 5: Проверить запись в user_problem_attempts"
+      ],
+      "dependencies": ["TASK-006", "TASK-004"],
+      "status": "done"
+    },
+    {
+      "id": "TASK-010",
+      "category": "ui",
+      "priority": "critical",
+      "description": "Frontend: базовый layout — Header (XP, уровень, стрик), Sidebar, routing между страницами",
+      "acceptance_criteria": [
+        "Layout компонент с Header и Sidebar",
+        "Header: логотип 'Repeatify', XP/уровень/стрик (заглушки), кнопка выхода",
+        "Sidebar: навигация — Dashboard, Темы, Тренировка, Прогресс, Профиль",
+        "HashRouter с маршрутами: /, /auth/login, /auth/register, /dashboard, /topics, /topics/:id, /topics/:id/fire, /practice, /practice/session, /practice/results, /progress, /profile",
+        "Страницы-заглушки для каждого маршрута",
+        "Защищённые маршруты (редирект на /auth/login если не авторизован)"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть / → редирект на /auth/login (если не авторизован)",
+        "Шаг 2: Проверить навигацию по Sidebar — все ссылки работают",
+        "Шаг 3: Header отображает заглушки XP/уровень",
+        "Шаг 4: Layout адекватно выглядит на экране ≥1024px"
+      ],
+      "dependencies": ["TASK-001"],
+      "status": "done"
+    },
+    {
+      "id": "TASK-011",
+      "category": "ui",
+      "priority": "critical",
+      "description": "Frontend: страницы авторизации — регистрация и вход + Zustand auth store",
+      "acceptance_criteria": [
+        "Zustand store для auth: user, token, isAuthenticated, login(), register(), logout()",
+        "Страница /auth/login: форма email + пароль, кнопка 'Войти', ссылка на регистрацию",
+        "Страница /auth/register: форма email + пароль + подтверждение, кнопка 'Зарегистрироваться'",
+        "HTTP-клиент (axios или fetch wrapper) с автоматической подстановкой Bearer token",
+        "Ошибки валидации отображаются под полями",
+        "После успешного входа — редирект на /dashboard"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть /auth/register, заполнить форму → запрос уходит на backend",
+        "Шаг 2: После регистрации — редирект на /dashboard",
+        "Шаг 3: Нажать 'Выйти' → редирект на /auth/login, токен удалён",
+        "Шаг 4: Открыть /auth/login, войти → редирект на /dashboard",
+        "Шаг 5: Ввести неправильный пароль → ошибка отображается"
+      ],
+      "dependencies": ["TASK-010", "TASK-006"],
+      "status": "done"
+    },
+    {
+      "id": "TASK-012",
+      "category": "ui",
+      "priority": "critical",
+      "description": "Frontend: каталог тем — страница /topics со списком 19 типов заданий ЕГЭ",
+      "acceptance_criteria": [
+        "Страница /topics загружает список тем через GET /api/topics",
+        "Каждая тема — карточка с: номер задания, название, макс. баллы, difficulty_level",
+        "Цветовая индикация: зелёный (изучено), жёлтый (в процессе), серый (не начато) — на основе user_topic_progress",
+        "Разделение на 'Часть 1' (задания 1–12) и 'Часть 2' (задания 13–19)",
+        "Клик на карточку → переход на /topics/:id"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть /topics → видны 19 карточек тем",
+        "Шаг 2: Проверить разделение на Часть 1 и Часть 2",
+        "Шаг 3: Кликнуть на тему → переход на /topics/:id",
+        "Шаг 4: Все 19 тем имеют корректные названия из seed-данных"
+      ],
+      "dependencies": ["TASK-011", "TASK-008"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-013",
+      "category": "ui",
+      "priority": "critical",
+      "description": "Frontend: компонент MathRenderer — рендеринг Markdown с LaTeX через KaTeX",
+      "acceptance_criteria": [
+        "Компонент <MathRenderer content={markdownString} />",
+        "Парсит inline LaTeX: $...$ и \\\\(...\\\\)",
+        "Парсит block LaTeX: $$...$$ и \\\\[...\\\\]",
+        "Рендерит обычный Markdown (заголовки, списки, жирный, код)",
+        "KaTeX ошибки обрабатываются gracefully (показывается исходный текст)",
+        "KaTeX CSS подключён глобально"
+      ],
+      "test_steps": [
+        "Шаг 1: Рендер строки 'Решите $x^2 + 2x + 1 = 0$' → формула отображается корректно",
+        "Шаг 2: Рендер блочной формулы $$\\\\frac{-b \\\\pm \\\\sqrt{b^2-4ac}}{2a}$$ → отображается по центру",
+        "Шаг 3: Рендер обычного Markdown: **жирный**, *курсив*, списки",
+        "Шаг 4: Невалидный LaTeX '$\\\\invalidcommand$' → отображается текст, а не крэш"
+      ],
+      "dependencies": ["TASK-001"],
+      "status": "done"
+    },
+    {
+      "id": "TASK-014",
+      "category": "ui",
+      "priority": "critical",
+      "description": "Frontend: страница темы /topics/:id — теория и список заданий",
+      "acceptance_criteria": [
+        "Загружает данные темы через GET /api/topics/{id}",
+        "Отображает: название, описание, макс. баллы, difficulty",
+        "Секция 'Теория' — рендерит theory_content через MathRenderer",
+        "Секция 'Задания' — список заданий по этой теме (из GET /api/problems?topic_id=)",
+        "Кнопка 'Начать FIRe-flow' → переход на /topics/:id/fire",
+        "Кнопка 'Решать задания' → переход к первому заданию"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть /topics/:id → название и описание темы отображаются",
+        "Шаг 2: Теория рендерится с формулами через MathRenderer",
+        "Шаг 3: Список заданий отображается с difficulty-бейджами",
+        "Шаг 4: Кнопки навигации работают"
+      ],
+      "dependencies": ["TASK-012", "TASK-013"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-015",
+      "category": "ui",
+      "priority": "critical",
+      "description": "Frontend: экран решения задания — условие, ввод ответа, проверка, решение, SRS-кнопки",
+      "acceptance_criteria": [
+        "Компонент ProblemCard отображает условие через MathRenderer",
+        "Поле ввода числового ответа для Части 1",
+        "Кнопка 'Проверить' → POST /api/problems/{id}/attempt",
+        "После проверки: зелёный/красный индикатор, правильный ответ, разворачиваемое решение",
+        "Кнопки самооценки SRS: again / hard / good / easy (появляются после проверки)",
+        "Для Части 2: кнопка 'Показать решение' вместо поля ввода + самооценка",
+        "Таймер (опциональный, отключаемый)"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть задание Части 1 → условие отображается, поле ввода видно",
+        "Шаг 2: Ввести правильный ответ → 'Проверить' → зелёный индикатор",
+        "Шаг 3: Нажать 'Показать решение' → решение разворачивается с формулами",
+        "Шаг 4: Нажать SRS-кнопку 'good' → запрос отправляется",
+        "Шаг 5: Задание Части 2 → только кнопка 'Показать решение' и самооценка"
+      ],
+      "dependencies": ["TASK-013", "TASK-009"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-016",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Backend: seed-данные — минимум 5 заданий на каждый из 19 типов (95 задач) с решениями",
+      "acceptance_criteria": [
+        "Скрипт/миграция supabase/migrations/003_seed_problems.sql + JSON-файлы в supabase/seed/problems/",
+        "Минимум 5 заданий на каждый task_number (1–19), итого >= 95 заданий",
+        "Каждое задание: problem_text с LaTeX, correct_answer, solution_markdown с пошаговым решением",
+        "Разнообразие difficulty: basic, medium, hard в каждом типе",
+        "Источники указаны (ФИПИ, Ященко и т.д.)"
+      ],
+      "test_steps": [
+        "Шаг 1: Подсчитать задания — >= 95 штук",
+        "Шаг 2: Проверить что каждый task_number (1–19) имеет >= 5 заданий",
+        "Шаг 3: Проверить корректность LaTeX в problem_text (нет синтаксических ошибок)",
+        "Шаг 4: Проверить что correct_answer заполнен для заданий Части 1"
+      ],
+      "dependencies": ["TASK-004"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-017",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Backend: SRS-движок — модифицированный алгоритм SM-2 с расчётом интервалов",
+      "acceptance_criteria": [
+        "Модуль backend/app/services/srs_engine.py",
+        "Функция calculate_next_review(card, self_assessment, exam_date) → {next_review_date, new_interval, new_ease_factor}",
+        "Реализация SM-2: again → interval=1, ef-=0.2; hard → interval*=1.2, ef-=0.15; good → interval*=ef; easy → interval*=ef*1.3, ef+=0.15",
+        "ease_factor не падает ниже 1.3",
+        "Интеграция exam_countdown_factor: <14д → 60%, <30д → 75%, <90д → 100%, >=90д → 120%",
+        "Unit-тесты для всех 4 вариантов self_assessment и всех диапазонов exam_days"
+      ],
+      "test_steps": [
+        "Шаг 1: again на карточку с interval=10 → interval=1, ef уменьшен",
+        "Шаг 2: good на карточку с ef=2.5, interval=5 → interval=12.5",
+        "Шаг 3: easy на карточку → interval увеличен сильнее чем good",
+        "Шаг 4: Проверить сжатие при exam_days < 30 → интервалы короче",
+        "Шаг 5: ef не падает ниже 1.3 при серии again"
+      ],
+      "dependencies": ["TASK-005"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-018",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Backend: API SRS-сессий — формирование сессии с interleaving + POST review",
+      "acceptance_criteria": [
+        "GET /api/srs/session?max_cards=20 — формирует сессию из карточек, готовых к повторению",
+        "Алгоритм: urgency_score = days_since_last / interval, фильтр >= 1.0, сортировка по urgency desc",
+        "Interleaving: не более 2 подряд из одной темы, приоритет смешивания родственных тем",
+        "POST /api/srs/review — записывает результат, обновляет srs_cards (interval, ef, next_review_date)",
+        "Начисляет XP и обновляет user_topic_progress.strength_score",
+        "Создание SRS-карточек при первом решении задания (если карточки ещё нет)"
+      ],
+      "test_steps": [
+        "Шаг 1: Решить несколько заданий → SRS-карточки созданы автоматически",
+        "Шаг 2: GET /api/srs/session → массив карточек, нет 3+ подряд из одной темы",
+        "Шаг 3: POST /api/srs/review с assessment='good' → next_review_date в будущем",
+        "Шаг 4: Повторно GET /api/srs/session → отработанная карточка не включена (если не просрочена)"
+      ],
+      "dependencies": ["TASK-017", "TASK-009"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-019",
+      "category": "ui",
+      "priority": "critical",
+      "description": "Frontend: интерфейс SRS-тренировочной сессии — последовательное решение карточек",
+      "acceptance_criteria": [
+        "Страница /practice — кнопка 'Начать тренировку', показывает кол-во карточек на сегодня",
+        "Страница /practice/session — карточки показываются одна за другой",
+        "Прогресс-бар сессии: 3/15 решено",
+        "Каждая карточка — ProblemCard с вводом ответа + SRS-кнопки",
+        "После последней карточки — автоматический переход на /practice/results",
+        "Zustand store для текущей сессии: cards[], currentIndex, results[]"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть /practice → видно кол-во карточек и кнопка старта",
+        "Шаг 2: Нажать 'Начать' → первая карточка сессии",
+        "Шаг 3: Решить → нажать SRS-кнопку → следующая карточка",
+        "Шаг 4: Прогресс-бар обновляется при каждом переходе",
+        "Шаг 5: После последней карточки → переход на results"
+      ],
+      "dependencies": ["TASK-015", "TASK-018"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-020",
+      "category": "ui",
+      "priority": "high",
+      "description": "Frontend: экран результатов SRS-сессии — сводка, XP, статистика по темам",
+      "acceptance_criteria": [
+        "Страница /practice/results показывает: решено N из M, правильных X%",
+        "Разбивка по темам: 'Планиметрия: 3/4 правильно'",
+        "Показан заработанный XP с анимацией",
+        "Кнопка 'Ещё одна сессия' → /practice",
+        "Кнопка 'На главную' → /dashboard",
+        "Данные сессии сохраняются через backend (POST или автоматически)"
+      ],
+      "test_steps": [
+        "Шаг 1: Завершить SRS-сессию → переход на /practice/results",
+        "Шаг 2: Отображается корректное кол-во правильных/неправильных",
+        "Шаг 3: XP показан и совпадает с суммой за сессию",
+        "Шаг 4: Кнопки навигации работают"
+      ],
+      "dependencies": ["TASK-019"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-021",
+      "category": "functional",
+      "priority": "high",
+      "description": "Backend: система XP и уровней — начисление, уровни, обновление при каждом действии",
+      "acceptance_criteria": [
+        "Модуль backend/app/services/xp_service.py",
+        "Начисление XP по правилам PRD: +10 Ч1, +25 Ч2, +50 FIRe, +30 сессия, +5 серия",
+        "Автоматический расчёт уровня по таблице: 0→Новичок, 100→Ученик, 300→Практикант и т.д.",
+        "Обновление users.current_xp и users.current_level при каждом начислении",
+        "API возвращает xp_earned и new_level_reached (если повысился) в ответах на attempt и review"
+      ],
+      "test_steps": [
+        "Шаг 1: Правильный ответ Ч1 → xp_earned=10",
+        "Шаг 2: Набрать 100 XP → уровень меняется на 2 (Ученик)",
+        "Шаг 3: Завершить SRS-сессию → бонус +30 XP",
+        "Шаг 4: GET /api/users/me/stats → корректный XP и уровень"
+      ],
+      "dependencies": ["TASK-007", "TASK-009"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-022",
+      "category": "functional",
+      "priority": "high",
+      "description": "Backend: система стриков — подсчёт ежедневной активности и streak",
+      "acceptance_criteria": [
+        "При каждом завершении сессии/FIRe — запись в user_daily_activity",
+        "Если activity_date = сегодня и ещё нет записи — создать, streak_maintained = true",
+        "Обновление users.current_streak: если вчера была активность — streak+1, иначе — 1",
+        "Обновление users.longest_streak если current > longest",
+        "GET /api/progress/activity-calendar — данные для heatmap за последние 365 дней"
+      ],
+      "test_steps": [
+        "Шаг 1: Решить задание → current_streak = 1 (первый день)",
+        "Шаг 2: На следующий день решить ещё → current_streak = 2",
+        "Шаг 3: Пропустить день → current_streak сброшен на 0",
+        "Шаг 4: GET /api/progress/activity-calendar → массив {date, sessions_completed, problems_solved}"
+      ],
+      "dependencies": ["TASK-007"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-023",
+      "category": "functional",
+      "priority": "high",
+      "description": "Backend: API теории и FIRe-flow — GET theory content, POST fire-progress",
+      "acceptance_criteria": [
+        "GET /api/topics/{id}/theory — массив theory_content по этапам: framework, inquiry, relationships, elaboration",
+        "POST /api/topics/{id}/fire-progress — обновляет user_topic_progress (fire_framework_completed и т.д.)",
+        "При завершении всех 4 этапов: fire_completed_at = now(), начисление +50 XP",
+        "Автоматическое создание SRS-карточек (card_type='concept') для ключевых концептов темы"
+      ],
+      "test_steps": [
+        "Шаг 1: GET /api/topics/{id}/theory → массив с content_type: framework, inquiry, relationships, elaboration",
+        "Шаг 2: POST fire-progress {stage: 'framework'} → fire_framework_completed = true",
+        "Шаг 3: Завершить все 4 этапа → fire_completed_at заполнен, +50 XP",
+        "Шаг 4: Проверить создание SRS-карточек для темы"
+      ],
+      "dependencies": ["TASK-008", "TASK-021"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-024",
+      "category": "ui",
+      "priority": "high",
+      "description": "Frontend: FIRe-flow wizard — 4-этапный интерфейс изучения темы",
+      "acceptance_criteria": [
+        "Страница /topics/:id/fire — wizard с 4 шагами и прогресс-баром (F → I → R → E)",
+        "Этап F (Framework): карта темы с ключевыми концептами, формулы через MathRenderer",
+        "Этап I (Inquiry): исследовательские вопросы + текстовые поля для ответов, эталонные ответы после",
+        "Этап R (Relationships): список связей с другими темами, возможность добавления заметок",
+        "Этап E (Elaboration): текстовое поле 'объясни простым языком' + чек-лист ключевых пунктов",
+        "Навигация вперёд/назад между этапами, сохранение прогресса через API"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть /topics/:id/fire → первый этап Framework",
+        "Шаг 2: Просмотреть контент → кнопка 'Далее' → этап Inquiry",
+        "Шаг 3: Ответить на вопросы → 'Далее' → этап Relationships",
+        "Шаг 4: Пройти все 4 этапа → прогресс сохранён, появляется 'Тема изучена!'",
+        "Шаг 5: Вернуться на /topics/:id → индикатор 'FIRe пройден'"
+      ],
+      "dependencies": ["TASK-014", "TASK-023"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-025",
+      "category": "functional",
+      "priority": "high",
+      "description": "Backend: Dashboard API — GET /api/progress/dashboard с обратным отсчётом и рекомендациями",
+      "acceptance_criteria": [
+        "GET /api/progress/dashboard возвращает:",
+        "  - exam_countdown: дней до экзамена",
+        "  - topics_progress: массив {task_number, title, strength_score, fire_completed}",
+        "  - today_review_count: сколько карточек на повторение сегодня",
+        "  - weekly_stats: решено/правильно за 7 дней",
+        "  - recommendations: массив текстовых рекомендаций по темпу подготовки",
+        "  - current_xp, current_level, current_streak"
+      ],
+      "test_steps": [
+        "Шаг 1: GET /api/progress/dashboard → все поля присутствуют",
+        "Шаг 2: exam_countdown корректен (разница между exam_date и today)",
+        "Шаг 3: today_review_count совпадает с реальным кол-вом просроченных SRS-карточек",
+        "Шаг 4: Рекомендации адаптируются к оставшемуся времени"
+      ],
+      "dependencies": ["TASK-007", "TASK-018", "TASK-022"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-026",
+      "category": "ui",
+      "priority": "high",
+      "description": "Frontend: Dashboard — обратный отсчёт, прогресс по темам, виджет SRS, рекомендации",
+      "acceptance_criteria": [
+        "Страница /dashboard загружает данные через GET /api/progress/dashboard",
+        "Крупный обратный отсчёт до экзамена (дней)",
+        "XP / Уровень / Стрик в header (уже из TASK-010, но теперь с реальными данными)",
+        "Карта тем: 19 карточек с цветовой индикацией strength_score (красный→жёлтый→зелёный)",
+        "Виджет 'Сегодня на повторение: N карточек' с кнопкой быстрого старта",
+        "Блок рекомендаций по темпу"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть /dashboard → обратный отсчёт отображается",
+        "Шаг 2: XP и уровень в header — реальные данные",
+        "Шаг 3: Карта тем показывает цвета по strength_score",
+        "Шаг 4: Кнопка 'Начать повторение' → переход на /practice"
+      ],
+      "dependencies": ["TASK-025", "TASK-012"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-027",
+      "category": "functional",
+      "priority": "high",
+      "description": "Backend: Карта пробелов (Gap Map) — GET /api/progress/gap-map",
+      "acceptance_criteria": [
+        "GET /api/progress/gap-map возвращает массив записей:",
+        "  - task_number, topic (название), strength (0–100%)",
+        "  - error_count за последние 30 дней",
+        "  - last_error_date",
+        "  - recommended_action: 'Повторить теорию' / 'Решить 5 задач' / 'Пройти FIRe-flow заново'",
+        "Фильтрация по query params: ?task_number=&min_strength=&max_strength=",
+        "Сортировка по strength (слабые первыми)"
+      ],
+      "test_steps": [
+        "Шаг 1: Решить задания с ошибками → GET /api/progress/gap-map → ошибки отражены",
+        "Шаг 2: Проверить что recommended_action зависит от strength и error_count",
+        "Шаг 3: Фильтрация по task_number работает"
+      ],
+      "dependencies": ["TASK-009", "TASK-022"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-028",
+      "category": "ui",
+      "priority": "high",
+      "description": "Frontend: страница Прогресс — Gap Map таблица, heatmap активности, графики",
+      "acceptance_criteria": [
+        "Страница /progress с тремя секциями:",
+        "1. Карта пробелов: таблица с фильтрами по номеру задания, силе темы",
+        "2. Calendar heatmap (как на GitHub) — данные за последние 365 дней",
+        "3. График динамики правильных ответов за 7/30 дней (Recharts)",
+        "Фильтры работают без перезагрузки страницы"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть /progress → три секции видны",
+        "Шаг 2: Карта пробелов показывает темы с ошибками",
+        "Шаг 3: Heatmap отображает дни активности",
+        "Шаг 4: График показывает динамику (или пустой если мало данных)",
+        "Шаг 5: Фильтры в Gap Map работают"
+      ],
+      "dependencies": ["TASK-027", "TASK-022"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-029",
+      "category": "ui",
+      "priority": "high",
+      "description": "Frontend: страница Профиль — настройки, дата экзамена, целевой балл, стрик-календарь",
+      "acceptance_criteria": [
+        "Страница /profile с формой: display_name, exam_date (date picker), target_score (27–100, slider или input)",
+        "Кнопка 'Сохранить' → PATCH /api/users/me",
+        "Отображение текущего уровня, XP, longest_streak",
+        "Календарь стриков (маленький heatmap)",
+        "Шкала перевода баллов из PRD для справки"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть /profile → текущие данные загружены",
+        "Шаг 2: Изменить target_score → 'Сохранить' → данные обновлены",
+        "Шаг 3: Обновить страницу → сохранённые данные отображаются",
+        "Шаг 4: Стрик-календарь отображает историю активности"
+      ],
+      "dependencies": ["TASK-011", "TASK-007"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-030",
+      "category": "ui",
+      "priority": "high",
+      "description": "Frontend: XP-анимации и уровневый прогресс-бар в header",
+      "acceptance_criteria": [
+        "При получении XP — всплывающая анимация '+10 XP' около header",
+        "Прогресс-бар XP до следующего уровня в header",
+        "При повышении уровня — модальное уведомление с названием нового уровня",
+        "Анимации не блокирующие (не мешают пользоваться приложением)"
+      ],
+      "test_steps": [
+        "Шаг 1: Решить задание правильно → видна анимация '+10 XP'",
+        "Шаг 2: Прогресс-бар обновляется в реальном времени",
+        "Шаг 3: Набрать XP до следующего уровня → модалка с поздравлением",
+        "Шаг 4: Анимации исчезают через 2-3 секунды"
+      ],
+      "dependencies": ["TASK-021", "TASK-011"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-031",
+      "category": "functional",
+      "priority": "high",
+      "description": "Backend: приоритизация тем по ROI для рекомендаций",
+      "acceptance_criteria": [
+        "Функция calculate_topic_priority(topic, user_progress, exam_days_remaining) → priority_score",
+        "Формула: (max_points / estimated_study_hours) * weakness_score * exam_urgency",
+        "Используется в Dashboard рекомендациях и формировании SRS-сессий",
+        "GET /api/progress/exam-readiness — оценка готовности + топ-5 приоритетных тем"
+      ],
+      "test_steps": [
+        "Шаг 1: GET /api/progress/exam-readiness → список приоритетных тем",
+        "Шаг 2: Тема с высокими баллами и низким strength → высокий приоритет",
+        "Шаг 3: Тема с низкими баллами и высоким strength → низкий приоритет",
+        "Шаг 4: При малом exam_days_remaining → exam_urgency выше"
+      ],
+      "dependencies": ["TASK-025"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-032",
+      "category": "functional",
+      "priority": "high",
+      "description": "Backend: seed-данные теории FIRe — контент для 5 приоритетных тем (№6, №7, №8, №9, №12)",
+      "acceptance_criteria": [
+        "Миграция supabase/migrations/004_seed_theory.sql + JSON-файлы в supabase/seed/theory/",
+        "Для каждой из 5 тем: 4 записи theory_content (framework, inquiry, relationships, elaboration)",
+        "Framework: ключевые формулы, карта темы (markdown с LaTeX)",
+        "Inquiry: минимум 3 исследовательских вопроса + эталонные ответы (JSON)",
+        "Relationships: связи с 4+ другими темами (+ записи в topic_relationships)",
+        "Elaboration: чек-лист из 3–5 пунктов для объяснения"
+      ],
+      "test_steps": [
+        "Шаг 1: Подсчитать: 5 тем × 4 этапа = 20 записей theory_content",
+        "Шаг 2: Проверить LaTeX в framework-контенте — формулы корректны",
+        "Шаг 3: Inquiry содержит >= 3 вопросов на тему",
+        "Шаг 4: topic_relationships имеет записи для всех 5 тем"
+      ],
+      "dependencies": ["TASK-004"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-033",
+      "category": "infrastructure",
+      "priority": "medium",
+      "description": "CI/CD: GitHub Actions — автобилд frontend на GitHub Pages при push в main",
+      "acceptance_criteria": [
+        ".github/workflows/deploy-frontend.yml",
+        "Триггер: push в main, изменения в frontend/ (или корне если frontend в корне)",
+        "Шаги: checkout → setup node → npm ci → npm run build → deploy to gh-pages branch",
+        "Base URL в vite.config.ts настроен для GitHub Pages (repository name)",
+        "Билд проходит успешно"
+      ],
+      "test_steps": [
+        "Шаг 1: Push в main → GitHub Action запускается",
+        "Шаг 2: Action завершается успешно → gh-pages branch обновлён",
+        "Шаг 3: Открыть https://<username>.github.io/<repo>/ → приложение загружается",
+        "Шаг 4: Навигация работает (HashRouter)"
+      ],
+      "dependencies": ["TASK-001", "TASK-010"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-034",
+      "category": "infrastructure",
+      "priority": "medium",
+      "description": "CI/CD: настройка деплоя backend на Render + render.yaml",
+      "acceptance_criteria": [
+        "render.yaml в корне проекта с конфигурацией Web Service",
+        "Build command: pip install -r requirements.txt",
+        "Start command: uvicorn app.main:app --host 0.0.0.0 --port $PORT",
+        "Переменные окружения: SUPABASE_URL, SUPABASE_SERVICE_KEY, JWT_SECRET",
+        "CORS обновлён для GitHub Pages домена"
+      ],
+      "test_steps": [
+        "Шаг 1: render.yaml валиден",
+        "Шаг 2: Backend запускается с указанными командами",
+        "Шаг 3: CORS разрешает запросы с GitHub Pages домена"
+      ],
+      "dependencies": ["TASK-002"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-035",
+      "category": "security",
+      "priority": "medium",
+      "description": "Безопасность: rate limiting, CORS, валидация входных данных на всех эндпоинтах",
+      "acceptance_criteria": [
+        "Rate limiting на auth-эндпоинтах: 5 попыток/минута (через slowapi или middleware)",
+        "Rate limiting на API: 100 запросов/минута на пользователя",
+        "CORS: whitelist только frontend-домен (localhost:5173 для dev, GitHub Pages для prod)",
+        "Все Pydantic-модели имеют строгую валидацию (min/max значения, regex для email)",
+        "correct_answer НИКОГДА не возвращается в GET /api/problems/{id} до attempt"
+      ],
+      "test_steps": [
+        "Шаг 1: 6 запросов POST /auth/login за минуту → 429 Too Many Requests",
+        "Шаг 2: Запрос с Origin не из whitelist → заблокирован CORS",
+        "Шаг 3: POST attempt с невалидным self_assessment → 422",
+        "Шаг 4: GET /api/problems/{id} → correct_answer отсутствует в ответе"
+      ],
+      "dependencies": ["TASK-006", "TASK-009"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-036",
+      "category": "functional",
+      "priority": "medium",
+      "description": "Backend: админский скрипт для массового добавления заданий из JSON/CSV",
+      "acceptance_criteria": [
+        "Скрипт backend/scripts/import_problems.py",
+        "Принимает JSON-файл с массивом заданий",
+        "Валидация: обязательные поля (problem_text, correct_answer, task_number, topic_id)",
+        "Дедупликация: не добавляет задания с идентичным problem_text",
+        "Отчёт: 'Добавлено: 15, Пропущено (дубликаты): 3, Ошибки: 0'"
+      ],
+      "test_steps": [
+        "Шаг 1: Подготовить JSON с 5 заданиями → запустить скрипт → 'Добавлено: 5'",
+        "Шаг 2: Повторно запустить → 'Пропущено (дубликаты): 5'",
+        "Шаг 3: JSON с невалидным заданием (без correct_answer) → ошибка валидации"
+      ],
+      "dependencies": ["TASK-005"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-037",
+      "category": "ui",
+      "priority": "medium",
+      "description": "Frontend: тёмная/светлая тема — переключатель и Tailwind dark mode",
+      "acceptance_criteria": [
+        "Tailwind dark mode через class strategy",
+        "Переключатель темы в header (иконка солнце/луна)",
+        "Предпочтение сохраняется в localStorage",
+        "Все страницы корректно выглядят в обеих темах",
+        "По умолчанию — светлая тема"
+      ],
+      "test_steps": [
+        "Шаг 1: По умолчанию — светлая тема",
+        "Шаг 2: Нажать переключатель → тёмная тема применяется",
+        "Шаг 3: Обновить страницу → тёмная тема сохранена",
+        "Шаг 4: Проверить все основные страницы в обеих темах — нет визуальных артефактов"
+      ],
+      "dependencies": ["TASK-010"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-038",
+      "category": "ui",
+      "priority": "medium",
+      "description": "Frontend: обработка edge cases — пустые состояния, загрузка, ошибки",
+      "acceptance_criteria": [
+        "Skeleton/loading states для всех страниц с API-запросами",
+        "Пустое состояние: 'Нет заданий на повторение — отличная работа!' (для SRS)",
+        "Пустое состояние: 'Начните с изучения первой темы' (для нового пользователя на dashboard)",
+        "Ошибка API: toast-уведомление с сообщением, не крэш приложения",
+        "Render cold start: индикатор 'Сервер просыпается...' при первом долгом запросе"
+      ],
+      "test_steps": [
+        "Шаг 1: Новый пользователь → dashboard показывает приветственное сообщение",
+        "Шаг 2: Нет карточек на повторение → /practice показывает пустое состояние",
+        "Шаг 3: Отключить backend → ошибка отображается как toast, не белый экран",
+        "Шаг 4: Skeleton видны при загрузке данных"
+      ],
+      "dependencies": ["TASK-026", "TASK-019"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-039",
+      "category": "integration",
+      "priority": "medium",
+      "description": "Интеграция: сквозной тест — регистрация → изучение темы → решение задач → SRS-сессия",
+      "acceptance_criteria": [
+        "Проверен полный пользовательский путь end-to-end:",
+        "1. Регистрация нового пользователя",
+        "2. Настройка профиля (exam_date, target_score)",
+        "3. Просмотр каталога тем → выбор темы",
+        "4. Прохождение FIRe-flow по теме",
+        "5. Решение 5 задач по этой теме",
+        "6. Запуск SRS-сессии → решение карточек",
+        "7. Просмотр результатов и dashboard",
+        "Все данные корректно сохраняются и отображаются"
+      ],
+      "test_steps": [
+        "Шаг 1: Зарегистрироваться → попасть на dashboard",
+        "Шаг 2: Настроить дату экзамена и целевой балл",
+        "Шаг 3: Перейти в темы → выбрать тему → пройти FIRe-flow",
+        "Шаг 4: Решить 5 задач по теме → XP начислен, прогресс обновлён",
+        "Шаг 5: Вернуться на /practice → начать SRS-сессию → решить карточки",
+        "Шаг 6: Просмотреть results → dashboard → progress → всё корректно"
+      ],
+      "dependencies": ["TASK-024", "TASK-020", "TASK-026", "TASK-028"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-040",
+      "category": "integration",
+      "priority": "medium",
+      "description": "Интеграция: подключение frontend к production backend (Render) + финальная проверка деплоя",
+      "acceptance_criteria": [
+        "Frontend использует environment variable для API URL (localhost для dev, Render URL для prod)",
+        "vite.config.ts: define VITE_API_URL",
+        "GitHub Actions передаёт production API URL при билде",
+        "Продакшен-сборка работает на GitHub Pages с backend на Render",
+        "CORS на backend разрешает GitHub Pages домен"
+      ],
+      "test_steps": [
+        "Шаг 1: npm run build с VITE_API_URL=<render-url> → билд успешен",
+        "Шаг 2: Открыть GitHub Pages → приложение загружается",
+        "Шаг 3: Регистрация/вход работает через Render backend",
+        "Шаг 4: Решение заданий и SRS работают в production"
+      ],
+      "dependencies": ["TASK-033", "TASK-034", "TASK-039"],
+      "status": "pending"
+    }
+  ]
+}
