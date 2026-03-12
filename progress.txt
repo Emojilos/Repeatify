@@ -92,11 +92,39 @@ Implementation:
   - Invalid assessment error handling
 - All 75 tests passing, ruff check clean
 
+TASK-018 DONE — SRS Sessions API (GET /api/srs/session + POST /api/srs/review)
+
+Implementation:
+- Created app/models/srs.py with Pydantic models: SRSCardResponse, SRSSessionResponse, SRSReviewRequest, SRSReviewResponse
+- Created app/routers/srs.py with 2 endpoints + helper functions:
+  - GET /api/srs/session?max_cards=20 — builds review session from due cards
+    - Urgency scoring: days_since_last / interval, sorted desc (most overdue first)
+    - Interleaving: _interleave() prevents 3+ consecutive cards from same topic
+    - Enriched with problem_text, topic_title, difficulty from related tables
+  - POST /api/srs/review — records review result, updates SRS card schedule
+    - Uses SRS engine (calculate_next_review) with user's exam_date for countdown factor
+    - Checks answer correctness (case-insensitive)
+    - Awards XP (same rules as problems: +10 Part1, +25 Part2 good/easy)
+    - Records attempt in user_problem_attempts
+    - Updates user_topic_progress.strength_score (correct/total ratio)
+    - Sets card status: "review" for good/hard/easy, "learning" for again
+- _ensure_srs_card() — auto-creates SRS card on first problem attempt
+  - Integrated into problems.py POST /api/problems/{id}/attempt
+- _update_topic_progress() — recalculates strength_score from all attempts
+- Registered srs router in app/main.py
+- 13 tests in tests/test_srs.py covering:
+  - Session: due cards sorted by urgency, empty session, auth required, max_cards limit
+  - Interleaving: no 3 consecutive same topic, all-same-topic edge case, empty
+  - Review: good assessment (correct answer, XP, interval growth), again (reset interval)
+  - Review: card not found 404, auth required
+  - _ensure_srs_card: creates new, returns existing
+- All 88 tests passing, ruff check clean
+
 Next priorities (critical, all deps met):
 - TASK-014: Topic page /topics/:id (deps: TASK-012 ✅, TASK-013 ✅)
 - TASK-015: Problem solving screen (deps: TASK-013 ✅, TASK-009 ✅)
 - TASK-016: Seed problems data (deps: TASK-004 ✅)
-- TASK-018: SRS sessions API (deps: TASK-017 ✅, TASK-009 ✅) — NOW UNBLOCKED
 
 TASK-014 and TASK-015 can be parallelized (both frontend).
-TASK-016 and TASK-018 can be parallelized (both backend).
+TASK-016 is independent (backend seed data).
+TASK-019 (SRS UI) is now unblocked (deps: TASK-015, TASK-018 ✅).

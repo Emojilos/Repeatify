@@ -406,7 +406,7 @@
         "Шаг 4: Повторно GET /api/srs/session → отработанная карточка не включена (если не просрочена)"
       ],
       "dependencies": ["TASK-017", "TASK-009"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-019",

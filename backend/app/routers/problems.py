@@ -218,6 +218,11 @@ async def submit_attempt(
                 .execute()
             )
 
+    # Auto-create SRS card on first attempt
+    from app.routers.srs import _ensure_srs_card
+
+    _ensure_srs_card(client, user["id"], problem_id, problem["topic_id"])
+
     return AttemptResponse(
         is_correct=is_correct,
         correct_answer=correct_answer,
