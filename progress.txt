@@ -56,12 +56,24 @@ Implementation:
 - Invalid LaTeX handled gracefully by rehype-katex (renders error text, no crash)
 - Frontend builds clean (tsc + vite build), backend ruff + 49 tests still pass
 
+TASK-012 DONE — Topics catalog page (/topics)
+
+Implementation:
+- Rewrote src/pages/Topics.tsx — full topics catalog with API integration
+- Fetches topics via GET /api/topics, displays as card grid
+- Each card shows: task_number (blue badge), title, description, difficulty badge (color-coded), max_points
+- Color indication based on user_topic_progress: green (strength >= 0.7), yellow (in progress), gray (not started)
+- Split into "Часть 1" (tasks 1-12) and "Часть 2" (tasks 13-19) with section headers
+- Click on card navigates to /topics/:id via React Router Link
+- Loading skeleton state, error state handling
+- Fire emoji shown for topics with fire_completed
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 49 tests pass
+
 Next priorities (critical, all deps met):
-- TASK-012: Topics catalog page (deps: TASK-011 ✅, TASK-008 ✅)
-- TASK-014: Topic page /topics/:id (deps: TASK-012, TASK-013 ✅) — blocked by TASK-012
-- TASK-015: Problem solving screen (deps: TASK-013 ✅, TASK-009 ✅) — now unblocked!
+- TASK-014: Topic page /topics/:id (deps: TASK-012 ✅, TASK-013 ✅) — NOW UNBLOCKED
+- TASK-015: Problem solving screen (deps: TASK-013 ✅, TASK-009 ✅)
 - TASK-017: SRS engine (deps: TASK-005 ✅) — unblocks TASK-018
 - TASK-016: Seed problems data (deps: TASK-004 ✅)
 
-TASK-012 and TASK-015 can be parallelized (both frontend, no interdependencies).
+TASK-014 and TASK-015 can be parallelized (both frontend, no interdependencies).
 TASK-017 and TASK-016 can be parallelized (both backend, no interdependencies).

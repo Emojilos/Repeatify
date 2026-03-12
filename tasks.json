@@ -272,7 +272,7 @@
         "Шаг 4: Все 19 тем имеют корректные названия из seed-данных"
       ],
       "dependencies": ["TASK-011", "TASK-008"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-013",
