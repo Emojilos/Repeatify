@@ -1,9 +1,17 @@
+import { useEffect } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
+import { useAuthStore } from '../stores/authStore'
 
 export default function ProtectedRoute() {
-  const token = localStorage.getItem('access_token')
+  const { isAuthenticated, user, loadUser } = useAuthStore()
 
-  if (!token) {
+  useEffect(() => {
+    if (isAuthenticated && !user) {
+      loadUser()
+    }
+  }, [isAuthenticated, user, loadUser])
+
+  if (!isAuthenticated) {
     return <Navigate to="/auth/login" replace />
   }
 
