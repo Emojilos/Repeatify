@@ -384,7 +384,7 @@
         "Шаг 5: ef не падает ниже 1.3 при серии again"
       ],
       "dependencies": ["TASK-005"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-018",
