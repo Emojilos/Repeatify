@@ -451,7 +451,7 @@
         "Шаг 4: Кнопки навигации работают"
       ],
       "dependencies": ["TASK-019"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-021",

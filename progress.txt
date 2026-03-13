@@ -188,11 +188,22 @@ Implementation:
   - No changes to existing behavior when prop is not provided
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 88 tests pass
 
+TASK-020 DONE — SRS session results screen (/practice/results)
+
+Implementation:
+- Rewrote src/pages/PracticeResults.tsx — full results page using session store data
+- Summary card: total solved, correct count, accuracy % with visual progress bar
+- XP earned display with bounce animation at top
+- Topic breakdown: groups results by topic, shows correct/total per topic
+- Empty state: handles direct navigation to /practice/results without session data
+- Navigation: "Ещё одна сессия" → /practice (resets store), "На главную" → /dashboard (resets store)
+- Session data already saved via backend during PracticeSession (POST /api/srs/review per card)
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 88 tests pass
+
 Next priorities (critical, all deps met):
 - TASK-016: Seed problems data (deps: TASK-004 ✅) — independent backend work
 
 Next priorities (high, all deps met):
-- TASK-020: SRS results screen (deps: TASK-019 ✅) — NOW UNBLOCKED
 - TASK-021: XP/levels system (deps: TASK-007 ✅, TASK-009 ✅) — all deps met
 - TASK-022: Streaks system (deps: TASK-007 ✅) — all deps met
 - TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
