@@ -7,6 +7,7 @@ import Register from './pages/Register'
 import Topics from './pages/Topics'
 import TopicDetail from './pages/TopicDetail'
 import TopicFire from './pages/TopicFire'
+import TopicPractice from './pages/TopicPractice'
 import Practice from './pages/Practice'
 import PracticeSession from './pages/PracticeSession'
 import PracticeResults from './pages/PracticeResults'
@@ -28,6 +29,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/topics" element={<Topics />} />
             <Route path="/topics/:id" element={<TopicDetail />} />
+            <Route path="/topics/:id/practice" element={<TopicPractice />} />
             <Route path="/topics/:id/fire" element={<TopicFire />} />
             <Route path="/practice" element={<Practice />} />
             <Route path="/practice/session" element={<PracticeSession />} />

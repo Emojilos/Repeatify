@@ -136,9 +136,35 @@ Implementation:
 - Back navigation "← Все темы" link to /topics
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 88 tests pass
 
-Next priorities (critical, all deps met):
-- TASK-015: Problem solving screen (deps: TASK-013 ✅, TASK-009 ✅)
-- TASK-016: Seed problems data (deps: TASK-004 ✅)
+TASK-015 DONE — Problem solving screen (ProblemCard + TopicPractice page)
 
-TASK-015 blocks TASK-019 (SRS UI session) and TASK-024 (FIRe-flow wizard).
-TASK-016 is independent (backend seed data).
+Implementation:
+- Created src/components/ProblemCard.tsx — reusable problem solving component:
+  - Displays problem text via MathRenderer with task_number badge, difficulty badge, source
+  - Part 1 (tasks 1-12): text input for answer + "Проверить" button, Enter key support
+  - Part 2 (tasks 13-19): "Показать решение" button → self-assessment (no input field)
+  - After check: green/red result indicator, correct answer shown on wrong, expandable solution via MathRenderer
+  - SRS self-assessment buttons: Снова (again) / Сложно (hard) / Хорошо (good) / Легко (easy) — appear after check
+  - POST /api/problems/{id}/attempt on submit with answer, time_spent, self_assessment
+  - Optional timer: toggleable start/pause, displays elapsed time in mm:ss format
+  - XP earned display after correct answer
+  - Error display at bottom of card
+- Created src/pages/TopicPractice.tsx — sequential problem solving for a topic:
+  - Loads topic info + problems via parallel API calls
+  - Progress bar showing current/total and completed count
+  - Shows problems one-by-one using ProblemCard with key prop for fresh state
+  - Tracks completed count, correct count, total XP earned
+  - Auto-advances to next problem after 1s delay on completion
+  - Finish screen: stats grid (solved, accuracy %, XP earned), navigation buttons
+  - Loading skeleton, error states, empty state handling
+- Added route /topics/:id/practice to App.tsx (matches existing "Решать задания" link in TopicDetail)
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 88 tests pass
+
+Next priorities (critical, all deps met):
+- TASK-016: Seed problems data (deps: TASK-004 ✅) — independent backend work
+
+Next priorities (high, deps partially met):
+- TASK-021: XP/levels system (deps: TASK-007 ✅, TASK-009 ✅) — all deps met
+- TASK-022: Streaks system (deps: TASK-007 ✅) — all deps met
+- TASK-019: SRS session UI (deps: TASK-015 ✅, TASK-018 ✅) — NOW UNBLOCKED
+- TASK-020: SRS results screen (deps: TASK-019) — blocked by TASK-019
