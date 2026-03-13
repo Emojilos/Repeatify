@@ -160,11 +160,40 @@ Implementation:
 - Added route /topics/:id/practice to App.tsx (matches existing "Решать задания" link in TopicDetail)
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 88 tests pass
 
+TASK-019 DONE — SRS training session UI (Practice landing + PracticeSession + session store)
+
+Implementation:
+- Created src/stores/sessionStore.ts — Zustand store for SRS session state:
+  - cards[], totalDue, currentIndex, results[] (CardResult with card + review + assessment)
+  - fetchSession(maxCards) — calls GET /api/srs/session
+  - submitReview(cardId, answer, timeSpent, assessment) — calls POST /api/srs/review
+  - advanceCard(), addResult(), reset(), isFinished() helpers
+- Rewrote src/pages/Practice.tsx — landing page:
+  - Fetches session on mount to show due card count (big number display)
+  - Russian pluralization for card count label
+  - "Начать тренировку" button → navigates to /practice/session
+  - Empty state: celebration emoji + "Нет карточек на повторение" + link to topics
+  - Loading skeleton, error display
+- Rewrote src/pages/PracticeSession.tsx — sequential card solving:
+  - Maps SRSCard to Problem interface for ProblemCard compatibility
+  - Progress bar: "Карточка X из N" + completed count + total XP
+  - Shows topic title in header
+  - Uses onSubmitOverride prop to call SRS review endpoint instead of problems/attempt
+  - Auto-advances to next card after 1s delay on completion
+  - Auto-navigates to /practice/results when all cards done (isFinished())
+  - Loading skeleton, error state, empty state handling
+- Modified src/components/ProblemCard.tsx — added onSubmitOverride prop:
+  - Optional callback replaces default /api/problems/{id}/attempt call
+  - Allows SRS session to use /api/srs/review endpoint transparently
+  - No changes to existing behavior when prop is not provided
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 88 tests pass
+
 Next priorities (critical, all deps met):
 - TASK-016: Seed problems data (deps: TASK-004 ✅) — independent backend work
 
-Next priorities (high, deps partially met):
+Next priorities (high, all deps met):
+- TASK-020: SRS results screen (deps: TASK-019 ✅) — NOW UNBLOCKED
 - TASK-021: XP/levels system (deps: TASK-007 ✅, TASK-009 ✅) — all deps met
 - TASK-022: Streaks system (deps: TASK-007 ✅) — all deps met
-- TASK-019: SRS session UI (deps: TASK-015 ✅, TASK-018 ✅) — NOW UNBLOCKED
-- TASK-020: SRS results screen (deps: TASK-019) — blocked by TASK-019
+- TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
+- TASK-032: Theory seed data (deps: TASK-004 ✅) — all deps met

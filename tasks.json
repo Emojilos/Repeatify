@@ -429,7 +429,7 @@
         "Шаг 5: После последней карточки → переход на results"
       ],
       "dependencies": ["TASK-015", "TASK-018"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-020",

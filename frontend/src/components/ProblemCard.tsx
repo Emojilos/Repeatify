@@ -27,6 +27,7 @@ interface ProblemCardProps {
   problem: Problem
   onComplete?: (assessment: SelfAssessment, result: AttemptResponse) => void
   showTimer?: boolean
+  onSubmitOverride?: (answer: string, timeSpent: number, assessment: SelfAssessment) => Promise<AttemptResponse | null>
 }
 
 const assessmentButtons: { value: SelfAssessment; label: string; color: string }[] = [
@@ -56,7 +57,7 @@ function difficultyBadge(level: string) {
   )
 }
 
-export default function ProblemCard({ problem, onComplete, showTimer = false }: ProblemCardProps) {
+export default function ProblemCard({ problem, onComplete, showTimer = false, onSubmitOverride }: ProblemCardProps) {
   const isPart2 = problem.task_number >= 13
 
   const [answer, setAnswer] = useState('')
@@ -92,16 +93,24 @@ export default function ProblemCard({ problem, onComplete, showTimer = false }: 
     setSubmitting(true)
     setError(null)
     try {
-      const res = await api<AttemptResponse>(`/api/problems/${problem.id}/attempt`, {
-        method: 'POST',
-        body: JSON.stringify({
-          answer: isPart2 ? 'self-check' : answer.trim(),
-          time_spent_seconds: elapsedSeconds,
-          self_assessment: assessment,
-        }),
-      })
-      setResult(res)
-      if (timerRef.current) clearInterval(timerRef.current)
+      const answerText = isPart2 ? 'self-check' : answer.trim()
+      let res: AttemptResponse | null
+      if (onSubmitOverride) {
+        res = await onSubmitOverride(answerText, elapsedSeconds, assessment)
+      } else {
+        res = await api<AttemptResponse>(`/api/problems/${problem.id}/attempt`, {
+          method: 'POST',
+          body: JSON.stringify({
+            answer: answerText,
+            time_spent_seconds: elapsedSeconds,
+            self_assessment: assessment,
+          }),
+        })
+      }
+      if (res) {
+        setResult(res)
+        if (timerRef.current) clearInterval(timerRef.current)
+      }
       return res
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка отправки')
@@ -109,7 +118,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false }: 
     } finally {
       setSubmitting(false)
     }
-  }, [problem.id, isPart2, answer, elapsedSeconds])
+  }, [problem.id, isPart2, answer, elapsedSeconds, onSubmitOverride])
 
   // Part 1: Check answer first, then show SRS buttons
   const handleCheck = async () => {
