@@ -12,30 +12,9 @@ from app.models.problems import (
     ProblemListItem,
     ProblemListResponse,
 )
+from app.services.xp_service import award_xp, calculate_problem_xp
 
 router = APIRouter(prefix="/api/problems", tags=["problems"])
-
-# XP rewards
-_XP_PART1_CORRECT = 10  # tasks 1-12
-_XP_PART2_CORRECT = 25  # tasks 13-19 (only for good/easy)
-
-
-def _is_part2(task_number: int) -> bool:
-    return task_number >= 13
-
-
-def _calculate_xp(
-    is_correct: bool,
-    task_number: int,
-    self_assessment: str,
-) -> int:
-    if not is_correct:
-        return 0
-    if _is_part2(task_number):
-        if self_assessment in ("good", "easy"):
-            return _XP_PART2_CORRECT
-        return 0
-    return _XP_PART1_CORRECT
 
 
 def _row_to_list_item(row: dict, max_points: int | None = None) -> ProblemListItem:
@@ -184,7 +163,7 @@ async def submit_attempt(
                 pass
 
     # Calculate XP
-    xp_earned = _calculate_xp(
+    xp_earned = calculate_problem_xp(
         is_correct, problem["task_number"], body.self_assessment.value,
     )
 
@@ -200,23 +179,8 @@ async def submit_attempt(
         "time_spent_seconds": body.time_spent_seconds,
     }).execute()
 
-    # Award XP to user
-    if xp_earned > 0:
-        user_result = (
-            client.table("users")
-            .select("current_xp")
-            .eq("id", user["id"])
-            .maybe_single()
-            .execute()
-        )
-        if user_result.data:
-            new_xp = (user_result.data.get("current_xp") or 0) + xp_earned
-            (
-                client.table("users")
-                .update({"current_xp": new_xp})
-                .eq("id", user["id"])
-                .execute()
-            )
+    # Award XP and recalculate level
+    _, new_level_reached = award_xp(client, user["id"], xp_earned)
 
     # Auto-create SRS card on first attempt
     from app.routers.srs import _ensure_srs_card
@@ -228,5 +192,6 @@ async def submit_attempt(
         correct_answer=correct_answer,
         solution_markdown=problem.get("solution_markdown"),
         xp_earned=xp_earned,
+        new_level_reached=new_level_reached,
         attempt_id=attempt_id,
     )

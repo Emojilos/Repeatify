@@ -200,11 +200,35 @@ Implementation:
 - Session data already saved via backend during PracticeSession (POST /api/srs/review per card)
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 88 tests pass
 
+TASK-021 DONE — XP and levels system (backend service + integration)
+
+Implementation:
+- Created app/services/xp_service.py — centralised XP/level module:
+  - XP constants: +10 Part1, +25 Part2, +50 FIRe, +30 session, +5 streak
+  - Level table: 10 levels from Новичок (0 XP) to Бог ЕГЭ (10000 XP)
+  - calculate_level(xp) → (level_number, level_name)
+  - xp_for_next_level(xp) → next threshold or None if max
+  - calculate_problem_xp(is_correct, task_number, assessment) → XP earned
+  - award_xp(client, user_id, amount) → (new_total_xp, new_level_reached)
+    - Fetches current XP/level, calculates new level, updates DB atomically
+    - Returns new_level_reached (int) if user levelled up, None otherwise
+- Integrated into app/routers/problems.py — replaced inline XP logic with xp_service
+- Integrated into app/routers/srs.py — replaced inline XP logic with xp_service
+- Added new_level_reached field to AttemptResponse and SRSReviewResponse models
+- Updated SRS test mocks for new DB call patterns (award_xp makes own user queries)
+- 30 unit tests in tests/test_xp_service.py covering:
+  - All level boundaries (0→10000 XP, 10 levels)
+  - calculate_problem_xp for Part1/Part2, all assessments, correct/incorrect
+  - xp_for_next_level at all thresholds + max level
+  - Level table consistency (sorted, unique, starts at 0/1)
+  - XP constants match PRD values
+- All 118 tests passing, ruff check clean
+
 Next priorities (critical, all deps met):
 - TASK-016: Seed problems data (deps: TASK-004 ✅) — independent backend work
 
 Next priorities (high, all deps met):
-- TASK-021: XP/levels system (deps: TASK-007 ✅, TASK-009 ✅) — all deps met
 - TASK-022: Streaks system (deps: TASK-007 ✅) — all deps met
+- TASK-023: Theory/FIRe API (deps: TASK-008 ✅, TASK-021 ✅) — NOW UNBLOCKED
 - TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
 - TASK-032: Theory seed data (deps: TASK-004 ✅) — all deps met

@@ -348,7 +348,9 @@ def test_review_good_assessment(client):
             })
         elif name == "users":
             call_counts["users"] += 1
-            if call_counts["users"] == 1:
+            if call_counts["users"] <= 2:
+                # call 1: fetch exam_date (srs router)
+                # call 2: fetch current_xp/level (award_xp)
                 (
                     mock_table.select.return_value
                     .eq.return_value
@@ -357,6 +359,7 @@ def test_review_good_assessment(client):
                 ) = MagicMock(data={
                     "exam_date": "2026-06-19",
                     "current_xp": 100,
+                    "current_level": 2,
                 })
             else:
                 (
@@ -457,6 +460,7 @@ def test_review_again_assessment(client):
             ) = MagicMock(data={
                 "exam_date": None,
                 "current_xp": 0,
+                "current_level": 1,
             })
         elif name == "user_problem_attempts":
             mock_table.insert.return_value.execute.return_value = (

@@ -472,7 +472,7 @@
         "Шаг 4: GET /api/users/me/stats → корректный XP и уровень"
       ],
       "dependencies": ["TASK-007", "TASK-009"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-022",

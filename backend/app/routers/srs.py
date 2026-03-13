@@ -16,20 +16,9 @@ from app.models.srs import (
     SRSSessionResponse,
 )
 from app.services.srs_engine import SRSCard, calculate_next_review
+from app.services.xp_service import award_xp, calculate_problem_xp
 
 router = APIRouter(prefix="/api/srs", tags=["srs"])
-
-# XP rewards (same rules as problems router)
-_XP_PART1_CORRECT = 10
-_XP_PART2_CORRECT = 25
-
-
-def _calculate_xp(is_correct: bool, task_number: int, self_assessment: str) -> int:
-    if not is_correct:
-        return 0
-    if task_number >= 13:
-        return _XP_PART2_CORRECT if self_assessment in ("good", "easy") else 0
-    return _XP_PART1_CORRECT
 
 
 def _interleave(cards: list[dict], max_cards: int) -> list[dict]:
@@ -217,18 +206,16 @@ async def submit_review(
     # Fetch user's exam_date for countdown factor
     user_result = (
         client.table("users")
-        .select("exam_date,current_xp")
+        .select("exam_date")
         .eq("id", user["id"])
         .maybe_single()
         .execute()
     )
     exam_date: date | None = None
-    current_xp = 0
     if user_result.data:
         ed = user_result.data.get("exam_date")
         if ed:
             exam_date = date.fromisoformat(ed) if isinstance(ed, str) else ed
-        current_xp = user_result.data.get("current_xp") or 0
 
     # Calculate next review using SRS engine
     srs_card = SRSCard(
@@ -270,14 +257,11 @@ async def submit_review(
             "time_spent_seconds": body.time_spent_seconds,
         }).execute()
 
-    # Calculate XP
-    xp_earned = _calculate_xp(is_correct, task_number, body.self_assessment.value)
-
-    # Award XP
-    if xp_earned > 0:
-        client.table("users").update({
-            "current_xp": current_xp + xp_earned,
-        }).eq("id", user["id"]).execute()
+    # Calculate and award XP
+    xp_earned = calculate_problem_xp(
+        is_correct, task_number, body.self_assessment.value,
+    )
+    _, new_level_reached = award_xp(client, user["id"], xp_earned)
 
     # Update user_topic_progress strength_score
     if topic_id:
@@ -288,6 +272,7 @@ async def submit_review(
         correct_answer=correct_answer,
         solution_markdown=solution_markdown,
         xp_earned=xp_earned,
+        new_level_reached=new_level_reached,
         next_review_date=review_result.next_review_date.isoformat(),
         new_interval=review_result.new_interval,
         new_ease_factor=review_result.new_ease_factor,

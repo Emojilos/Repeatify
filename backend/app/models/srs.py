@@ -46,6 +46,7 @@ class SRSReviewResponse(BaseModel):
     correct_answer: str | None = None
     solution_markdown: str | None = None
     xp_earned: int
+    new_level_reached: int | None = None
     next_review_date: str
     new_interval: float
     new_ease_factor: float

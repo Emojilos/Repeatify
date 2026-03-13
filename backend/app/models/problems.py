@@ -53,6 +53,7 @@ class AttemptResponse(BaseModel):
     correct_answer: str
     solution_markdown: str | None = None
     xp_earned: int
+    new_level_reached: int | None = None
     attempt_id: str
 
 
