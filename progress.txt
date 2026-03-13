@@ -278,12 +278,36 @@ Implementation:
   - Auth required (401/403)
 - All 135 tests passing, ruff check clean
 
+TASK-023 DONE — Theory/FIRe API (GET theory content, POST fire-progress)
+
+Implementation:
+- Created app/models/theory.py with Pydantic models:
+  - TheoryContentItem: id, topic_id, content_type, content_markdown, visual_assets, order_index
+  - TheoryResponse: topic_id, topic_title, items[], fire_progress
+  - FireProgress: 4 boolean stage fields + fire_completed_at
+  - FireProgressRequest: stage (framework/inquiry/relationships/elaboration)
+  - FireProgressResponse: stage, completed, all_stages_completed, xp_earned, new_level_reached
+- Created app/routers/theory.py with 2 endpoints:
+  - GET /api/topics/{id}/theory — returns theory_content sorted by order_index, with user FIRe progress
+  - POST /api/topics/{id}/fire-progress — marks a FIRe stage as completed
+    - Upserts user_topic_progress row (creates if first stage, updates if existing)
+    - When all 4 stages completed (first time): awards +50 XP, records activity, sets fire_completed_at
+    - Auto-creates SRS concept cards for up to 5 problems in the topic
+    - Prevents duplicate XP if stages already completed
+  - Validates stage name against allowed values
+- _create_concept_cards() helper: finds topic problems without SRS cards and creates them
+- Registered theory router in app/main.py
+- 12 tests in tests/test_theory.py covering:
+  - GET theory: with content + progress, no progress, empty content, topic not found, auth required
+  - POST fire-progress: first stage (new row), complete all stages (XP + SRS cards), already completed (no dup XP), invalid stage, topic not found, auth required, SRS card creation verification
+- All 147 tests passing, ruff check clean
+
 Next priorities (critical, all deps met):
 - TASK-016: Seed problems data (deps: TASK-004 ✅) — independent backend work
 
-Next priorities (high, all deps met):
-- TASK-023: Theory/FIRe API (deps: TASK-008 ✅, TASK-021 ✅) — unblocked
-- TASK-026: Dashboard UI (deps: TASK-025 ✅, TASK-012 ✅) — NOW UNBLOCKED
+Next priorities (high, all deps met — TASK-023 now unblocks TASK-024):
+- TASK-024: FIRe-flow wizard UI (deps: TASK-014 ✅, TASK-023 ✅) — NOW UNBLOCKED
+- TASK-026: Dashboard UI (deps: TASK-025 ✅, TASK-012 ✅) — unblocked
 - TASK-027: Gap Map API (deps: TASK-009 ✅, TASK-022 ✅) — unblocked
 - TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
 - TASK-032: Theory seed data (deps: TASK-004 ✅) — all deps met

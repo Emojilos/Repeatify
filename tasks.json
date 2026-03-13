@@ -513,7 +513,7 @@
         "Шаг 4: Проверить создание SRS-карточек для темы"
       ],
       "dependencies": ["TASK-008", "TASK-021"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-024",
