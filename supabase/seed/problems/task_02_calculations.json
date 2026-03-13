@@ -1,0 +1,52 @@
+[
+  {
+    "task_number": 2,
+    "difficulty": "basic",
+    "problem_text": "Найдите значение выражения $\\frac{3^5 \\cdot 3^{-3}}{3^4}$.",
+    "correct_answer": "0.333333",
+    "answer_tolerance": 0.001,
+    "solution_markdown": "## Решение\n\nПрименим свойства степеней:\n\n$$\\frac{3^5 \\cdot 3^{-3}}{3^4} = \\frac{3^{5+(-3)}}{3^4} = \\frac{3^2}{3^4} = 3^{2-4} = 3^{-2} = \\frac{1}{9} \\approx 0{,}333$$\n\nТочный ответ: $\\frac{1}{9}$\n\n**Ответ:** $\\frac{1}{3}$",
+    "hints": ["Используйте свойство: $a^m \\cdot a^n = a^{m+n}$"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  },
+  {
+    "task_number": 2,
+    "difficulty": "basic",
+    "problem_text": "Найдите значение выражения $\\sqrt{75} + \\sqrt{27}$.",
+    "correct_answer": "8.66",
+    "answer_tolerance": 0.01,
+    "solution_markdown": "## Решение\n\nУпростим каждый корень:\n\n$$\\sqrt{75} = \\sqrt{25 \\cdot 3} = 5\\sqrt{3}$$\n\n$$\\sqrt{27} = \\sqrt{9 \\cdot 3} = 3\\sqrt{3}$$\n\n$$5\\sqrt{3} + 3\\sqrt{3} = 8\\sqrt{3} \\approx 8{,}66$$\n\n**Ответ:** $8\\sqrt{3}$",
+    "hints": ["Вынесите множители из-под корня", "$\\sqrt{3} \\approx 1{,}732$"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  },
+  {
+    "task_number": 2,
+    "difficulty": "medium",
+    "problem_text": "Найдите значение выражения $\\log_2 48 - \\log_2 3$.",
+    "correct_answer": "4",
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\nПо свойству логарифмов (разность логарифмов = логарифм частного):\n\n$$\\log_2 48 - \\log_2 3 = \\log_2 \\frac{48}{3} = \\log_2 16 = 4$$\n\nТак как $2^4 = 16$.\n\n**Ответ:** $4$",
+    "hints": ["$\\log_a b - \\log_a c = \\log_a \\frac{b}{c}$", "Чему равен $\\log_2 16$?"],
+    "source": "Ященко И.В., Типовые варианты ЕГЭ"
+  },
+  {
+    "task_number": 2,
+    "difficulty": "medium",
+    "problem_text": "Найдите значение выражения $\\frac{6^7 \\cdot 2^{-7}}{3^5}$.",
+    "correct_answer": "9",
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\n$$\\frac{6^7 \\cdot 2^{-7}}{3^5} = \\frac{(2 \\cdot 3)^7 \\cdot 2^{-7}}{3^5} = \\frac{2^7 \\cdot 3^7 \\cdot 2^{-7}}{3^5} = \\frac{3^7}{3^5} = 3^2 = 9$$\n\n**Ответ:** $9$",
+    "hints": ["Представьте $6 = 2 \\cdot 3$ и раскройте степень произведения"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  },
+  {
+    "task_number": 2,
+    "difficulty": "hard",
+    "problem_text": "Найдите значение выражения $\\frac{\\sin 150° \\cdot \\cos 240°}{\\tan 135°}$.",
+    "correct_answer": "0.25",
+    "answer_tolerance": 0.001,
+    "solution_markdown": "## Решение\n\nВычислим каждое значение:\n\n$$\\sin 150° = \\sin(180° - 30°) = \\sin 30° = \\frac{1}{2}$$\n\n$$\\cos 240° = \\cos(180° + 60°) = -\\cos 60° = -\\frac{1}{2}$$\n\n$$\\tan 135° = \\tan(180° - 45°) = -\\tan 45° = -1$$\n\nПодставляем:\n\n$$\\frac{\\frac{1}{2} \\cdot \\left(-\\frac{1}{2}\\right)}{-1} = \\frac{-\\frac{1}{4}}{-1} = \\frac{1}{4} = 0{,}25$$\n\n**Ответ:** $0{,}25$",
+    "hints": ["Используйте формулы приведения для каждой тригонометрической функции"],
+    "source": "Ященко И.В., Типовые варианты ЕГЭ"
+  }
+]

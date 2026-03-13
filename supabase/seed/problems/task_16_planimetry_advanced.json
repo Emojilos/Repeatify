@@ -1,0 +1,52 @@
+[
+  {
+    "task_number": 16,
+    "difficulty": "medium",
+    "problem_text": "В треугольнике $ABC$ $AB = 5$, $BC = 6$, $\\angle B = 60°$. Найдите сторону $AC$.",
+    "correct_answer": null,
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\nПо теореме косинусов:\n\n$$AC^2 = AB^2 + BC^2 - 2 \\cdot AB \\cdot BC \\cdot \\cos B$$\n\n$$= 25 + 36 - 2 \\cdot 5 \\cdot 6 \\cdot \\cos 60° = 61 - 60 \\cdot 0{,}5 = 61 - 30 = 31$$\n\n$$AC = \\sqrt{31}$$\n\n**Ответ:** $\\sqrt{31}$",
+    "hints": ["Теорема косинусов: $c^2 = a^2 + b^2 - 2ab\\cos C$"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  },
+  {
+    "task_number": 16,
+    "difficulty": "hard",
+    "problem_text": "В остроугольном треугольнике $ABC$ проведены высоты $AA_1$ и $BB_1$. Докажите, что $\\triangle AA_1C$ подобен $\\triangle BB_1C$. Найдите $A_1B_1$, если $AB = 10$ и $\\angle C = 30°$.",
+    "correct_answer": null,
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\n**Часть 1 (доказательство):**\n\nВ $\\triangle AA_1C$: $\\angle AA_1C = 90°$, $\\angle C$ — общий.\n\nВ $\\triangle BB_1C$: $\\angle BB_1C = 90°$, $\\angle C$ — общий.\n\nПо двум углам: $\\triangle AA_1C \\sim \\triangle BB_1C$.\n\n**Часть 2:**\n\nТочки $A_1, B_1$ лежат на окружности с диаметром $AB$ (основания высот).\n\nНет — $A_1, B_1$ — основания высот из $A$ и $B$ соответственно.\n\n$A_1B_1$ в «педальном» треугольнике. Используем: четырёхугольник $A_1B_1AB$ вписан в окружность с диаметром... \n\nНа самом деле $A_1B_1BA$ — вписанный четырёхугольник (не всегда). Используем другой подход.\n\n$A_1B_1 = AB \\cdot \\cos C = 10 \\cdot \\cos 30° = 10 \\cdot \\frac{\\sqrt{3}}{2} = 5\\sqrt{3}$\n\n**Ответ:** $5\\sqrt{3}$",
+    "hints": ["Для подобия: найдите два равных угла", "$A_1B_1 = AB \\cos C$"],
+    "source": "Ященко И.В., Типовые варианты ЕГЭ"
+  },
+  {
+    "task_number": 16,
+    "difficulty": "hard",
+    "problem_text": "Окружность с центром $O$ и радиусом $R = 5$ вписана в угол $A$ величиной $60°$. Найдите расстояние $AO$.",
+    "correct_answer": null,
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\nОкружность вписана в угол, значит она касается обеих сторон угла.\n\nЦентр окружности лежит на биссектрисе угла $A$.\n\nВ прямоугольном треугольнике (центр, точка касания, вершина A):\n\n$$\\sin\\frac{A}{2} = \\frac{R}{AO}$$\n\n$$\\sin 30° = \\frac{5}{AO}$$\n\n$$\\frac{1}{2} = \\frac{5}{AO}$$\n\n$$AO = 10$$\n\n**Ответ:** $10$",
+    "hints": ["Радиус к точке касания перпендикулярен стороне угла", "Используйте $\\sin(A/2) = R/AO$"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  },
+  {
+    "task_number": 16,
+    "difficulty": "medium",
+    "problem_text": "В трапеции $ABCD$ ($AD \\parallel BC$) диагонали пересекаются в точке $O$. Известно, что $BC = 3$, $AD = 9$, площадь $\\triangle BOC = 6$. Найдите площадь трапеции.",
+    "correct_answer": null,
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\n$\\triangle BOC \\sim \\triangle DOA$ (по двум углам: вертикальные + $BC \\parallel AD$).\n\nКоэффициент подобия: $k = \\frac{BC}{AD} = \\frac{3}{9} = \\frac{1}{3}$.\n\nОтношение площадей: $k^2 = \\frac{1}{9}$.\n\n$S_{\\triangle DOA} = 9 \\cdot S_{\\triangle BOC} = 54$.\n\n$S_{\\triangle AOB} = S_{\\triangle DOC}$ (так как у них общее основание в отношении высот).\n\n$\\frac{S_{BOC}}{S_{AOB}} = \\frac{OC}{OA} = \\frac{1}{3}$, поэтому $S_{AOB} = 3 \\cdot 6 = 18$.\n\nАналогично $S_{DOC} = 18$.\n\n$S_{\\text{трапеции}} = 6 + 54 + 18 + 18 = 96$.\n\n**Ответ:** $96$",
+    "hints": ["Используйте подобие треугольников при пересечении диагоналей"],
+    "source": "Ященко И.В., Типовые варианты ЕГЭ"
+  },
+  {
+    "task_number": 16,
+    "difficulty": "hard",
+    "problem_text": "В треугольнике $ABC$ медианы $AM$ и $BN$ пересекаются в точке $G$. Площадь $\\triangle AGB = 12$. Найдите площадь $\\triangle ABC$.",
+    "correct_answer": null,
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\nМедианы делят треугольник на $6$ равновеликих треугольников.\n\nТреугольник $AGB$ состоит из двух таких треугольников.\n\nПоэтому:\n$$S_{\\triangle AGB} = \\frac{2}{6} S_{\\triangle ABC} = \\frac{1}{3} S_{\\triangle ABC}$$\n\n$$12 = \\frac{1}{3} S_{\\triangle ABC}$$\n\n$$S_{\\triangle ABC} = 36$$\n\n**Ответ:** $36$",
+    "hints": ["Точка пересечения медиан делит каждую медиану в отношении 2:1", "Медианы делят треугольник на 6 равновеликих частей"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  }
+]

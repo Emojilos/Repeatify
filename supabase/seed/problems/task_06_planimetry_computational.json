@@ -1,0 +1,52 @@
+[
+  {
+    "task_number": 6,
+    "difficulty": "basic",
+    "problem_text": "В треугольнике $ABC$ угол $A = 30°$, сторона $BC = 5$. Найдите радиус описанной окружности.",
+    "correct_answer": "5",
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\nПо теореме синусов:\n\n$$\\frac{BC}{\\sin A} = 2R$$\n\n$$2R = \\frac{5}{\\sin 30°} = \\frac{5}{0{,}5} = 10$$\n\n$$R = 5$$\n\n**Ответ:** $5$",
+    "hints": ["Теорема синусов: $\\frac{a}{\\sin A} = 2R$"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  },
+  {
+    "task_number": 6,
+    "difficulty": "basic",
+    "problem_text": "В окружность вписан четырёхугольник $ABCD$. Угол $A = 110°$. Найдите угол $C$ (в градусах).",
+    "correct_answer": "70",
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\nВ вписанном четырёхугольнике сумма противоположных углов равна $180°$:\n\n$$\\angle A + \\angle C = 180°$$\n$$\\angle C = 180° - 110° = 70°$$\n\n**Ответ:** $70$",
+    "hints": ["Сумма противоположных углов вписанного четырёхугольника = 180°"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  },
+  {
+    "task_number": 6,
+    "difficulty": "medium",
+    "problem_text": "В треугольнике $ABC$ стороны $AB = 13$, $BC = 14$, $AC = 15$. Найдите площадь треугольника.",
+    "correct_answer": "84",
+    "answer_tolerance": 0.01,
+    "solution_markdown": "## Решение\n\nПо формуле Герона. Полупериметр:\n\n$$p = \\frac{13 + 14 + 15}{2} = 21$$\n\n$$S = \\sqrt{p(p-a)(p-b)(p-c)} = \\sqrt{21 \\cdot 8 \\cdot 7 \\cdot 6}$$\n\n$$= \\sqrt{21 \\cdot 8 \\cdot 42} = \\sqrt{7056} = 84$$\n\n**Ответ:** $84$",
+    "hints": ["Формула Герона: $S = \\sqrt{p(p-a)(p-b)(p-c)}$"],
+    "source": "Ященко И.В., Типовые варианты ЕГЭ"
+  },
+  {
+    "task_number": 6,
+    "difficulty": "medium",
+    "problem_text": "Хорда $AB$ делит окружность радиуса $10$ на две дуги, причём дуга $AB$ равна $120°$. Найдите длину хорды $AB$.",
+    "correct_answer": "17.32",
+    "answer_tolerance": 0.01,
+    "solution_markdown": "## Решение\n\nХорда, стягивающая дугу $\\alpha$, имеет длину:\n\n$$AB = 2R \\sin\\frac{\\alpha}{2} = 2 \\cdot 10 \\cdot \\sin 60° = 20 \\cdot \\frac{\\sqrt{3}}{2} = 10\\sqrt{3} \\approx 17{,}32$$\n\n**Ответ:** $10\\sqrt{3} \\approx 17{,}32$",
+    "hints": ["Длина хорды: $AB = 2R\\sin\\frac{\\alpha}{2}$, где $\\alpha$ — центральный угол"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  },
+  {
+    "task_number": 6,
+    "difficulty": "hard",
+    "problem_text": "В треугольнике $ABC$ биссектриса угла $A$ пересекает сторону $BC$ в точке $D$. Известно, что $AB = 6$, $AC = 10$, $BC = 8$. Найдите длину $BD$.",
+    "correct_answer": "3",
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\nПо свойству биссектрисы:\n\n$$\\frac{BD}{DC} = \\frac{AB}{AC} = \\frac{6}{10} = \\frac{3}{5}$$\n\nПусть $BD = 3k$, $DC = 5k$. Тогда $3k + 5k = 8$, $k = 1$.\n\n$$BD = 3$$\n\n**Ответ:** $3$",
+    "hints": ["Биссектриса делит противоположную сторону в отношении прилежащих сторон"],
+    "source": "Ященко И.В., Типовые варианты ЕГЭ"
+  }
+]

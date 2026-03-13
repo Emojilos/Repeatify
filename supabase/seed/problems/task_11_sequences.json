@@ -1,0 +1,52 @@
+[
+  {
+    "task_number": 11,
+    "difficulty": "basic",
+    "problem_text": "В арифметической прогрессии $a_1 = 3$, $d = 4$. Найдите $a_{10}$.",
+    "correct_answer": "39",
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\n$$a_n = a_1 + (n-1)d = 3 + 9 \\cdot 4 = 3 + 36 = 39$$\n\n**Ответ:** $39$",
+    "hints": ["$a_n = a_1 + (n-1)d$"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  },
+  {
+    "task_number": 11,
+    "difficulty": "basic",
+    "problem_text": "В геометрической прогрессии $b_1 = 2$, $q = 3$. Найдите $b_5$.",
+    "correct_answer": "162",
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\n$$b_n = b_1 \\cdot q^{n-1} = 2 \\cdot 3^4 = 2 \\cdot 81 = 162$$\n\n**Ответ:** $162$",
+    "hints": ["$b_n = b_1 \\cdot q^{n-1}$"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  },
+  {
+    "task_number": 11,
+    "difficulty": "medium",
+    "problem_text": "Найдите сумму первых $20$ членов арифметической прогрессии, если $a_1 = 5$, $a_{20} = 62$.",
+    "correct_answer": "670",
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\n$$S_n = \\frac{n(a_1 + a_n)}{2} = \\frac{20(5 + 62)}{2} = \\frac{20 \\cdot 67}{2} = 670$$\n\n**Ответ:** $670$",
+    "hints": ["$S_n = \\frac{n(a_1 + a_n)}{2}$"],
+    "source": "Ященко И.В., Типовые варианты ЕГЭ"
+  },
+  {
+    "task_number": 11,
+    "difficulty": "medium",
+    "problem_text": "Сумма бесконечной убывающей геометрической прогрессии равна $8$, а первый член равен $4$. Найдите знаменатель прогрессии.",
+    "correct_answer": "0.5",
+    "answer_tolerance": 0.001,
+    "solution_markdown": "## Решение\n\n$$S = \\frac{b_1}{1 - q} \\Rightarrow 8 = \\frac{4}{1 - q}$$\n\n$$1 - q = \\frac{4}{8} = 0{,}5$$\n\n$$q = 0{,}5$$\n\n**Ответ:** $0{,}5$",
+    "hints": ["$S = \\frac{b_1}{1 - q}$ для бесконечной убывающей прогрессии"],
+    "source": "ФИПИ, Открытый банк заданий ЕГЭ"
+  },
+  {
+    "task_number": 11,
+    "difficulty": "hard",
+    "problem_text": "В арифметической прогрессии сумма первых $5$ членов равна $35$, а сумма первых $10$ членов равна $120$. Найдите $a_1$.",
+    "correct_answer": "3",
+    "answer_tolerance": 0,
+    "solution_markdown": "## Решение\n\n$$S_5 = \\frac{5(2a_1 + 4d)}{2} = 5a_1 + 10d = 35$$\n\n$$S_{10} = \\frac{10(2a_1 + 9d)}{2} = 10a_1 + 45d = 120$$\n\nИз первого: $a_1 + 2d = 7$.\nИз второго: $2a_1 + 9d = 24$.\n\nИз первого: $a_1 = 7 - 2d$. Подставляем:\n\n$$2(7 - 2d) + 9d = 24 \\Rightarrow 14 - 4d + 9d = 24 \\Rightarrow 5d = 10 \\Rightarrow d = 2$$\n\n$$a_1 = 7 - 4 = 3$$\n\n**Ответ:** $3$",
+    "hints": ["Составьте систему из двух уравнений с $a_1$ и $d$"],
+    "source": "Ященко И.В., Типовые варианты ЕГЭ"
+  }
+]

@@ -361,7 +361,7 @@
         "Шаг 4: Проверить что correct_answer заполнен для заданий Части 1"
       ],
       "dependencies": ["TASK-004"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-017",

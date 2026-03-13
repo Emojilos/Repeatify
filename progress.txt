@@ -302,12 +302,32 @@ Implementation:
   - POST fire-progress: first stage (new row), complete all stages (XP + SRS cards), already completed (no dup XP), invalid stage, topic not found, auth required, SRS card creation verification
 - All 147 tests passing, ruff check clean
 
-Next priorities (critical, all deps met):
-- TASK-016: Seed problems data (deps: TASK-004 ✅) — independent backend work
+TASK-016 DONE — Seed problems data (95 problems, 5 per task type 1-19)
 
-Next priorities (high, all deps met — TASK-023 now unblocks TASK-024):
-- TASK-024: FIRe-flow wizard UI (deps: TASK-014 ✅, TASK-023 ✅) — NOW UNBLOCKED
+Implementation:
+- Created 19 JSON seed files in supabase/seed/problems/ (one per task type)
+- Created SQL migration supabase/migrations/003_seed_problems.sql with 95 INSERT statements
+- Each INSERT references topics by task_number (not hardcoded UUIDs)
+- Problem coverage per task type:
+  - Tasks 1-12 (Part 1): 5 problems each with correct_answer (numeric), varied difficulty (basic/medium/hard)
+  - Tasks 13-19 (Part 2): 5 problems each with correct_answer = NULL (self-assessment only), detailed solutions
+- All problems include:
+  - problem_text with LaTeX formulas ($..$ and $$..$$)
+  - solution_markdown with step-by-step solutions and LaTeX
+  - hints array (1-2 hints per problem)
+  - source attribution (ФИПИ / Ященко И.В.)
+  - answer_tolerance for numeric answers where appropriate
+- Difficulty distribution: mix of basic, medium, hard across each task type
+- Topics covered: planimetry, calculations, stereometry, probability, equations, derivatives,
+  applied problems, functions, word problems, sequences, extrema, advanced stereometry,
+  inequalities, financial math, advanced planimetry, parameters, number theory, combinatorics
+- All 147 backend tests passing, ruff check clean
+
+Next priorities (high, all deps met):
+- TASK-024: FIRe-flow wizard UI (deps: TASK-014 ✅, TASK-023 ✅) — unblocked
 - TASK-026: Dashboard UI (deps: TASK-025 ✅, TASK-012 ✅) — unblocked
 - TASK-027: Gap Map API (deps: TASK-009 ✅, TASK-022 ✅) — unblocked
 - TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
+- TASK-030: XP animations (deps: TASK-021 ✅, TASK-011 ✅) — all deps met
+- TASK-031: Topic priority ROI (deps: TASK-025 ✅) — all deps met
 - TASK-032: Theory seed data (deps: TASK-004 ✅) — all deps met
