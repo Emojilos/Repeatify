@@ -493,7 +493,7 @@
         "Шаг 4: GET /api/progress/activity-calendar → массив {date, sessions_completed, problems_solved}"
       ],
       "dependencies": ["TASK-007"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-023",

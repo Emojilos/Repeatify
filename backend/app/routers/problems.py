@@ -12,6 +12,7 @@ from app.models.problems import (
     ProblemListItem,
     ProblemListResponse,
 )
+from app.services.streak_service import record_activity
 from app.services.xp_service import award_xp, calculate_problem_xp
 
 router = APIRouter(prefix="/api/problems", tags=["problems"])
@@ -186,6 +187,14 @@ async def submit_attempt(
     from app.routers.srs import _ensure_srs_card
 
     _ensure_srs_card(client, user["id"], problem_id, problem["topic_id"])
+
+    # Record daily activity and update streak
+    record_activity(
+        client,
+        user["id"],
+        problems_solved=1,
+        xp_earned=xp_earned,
+    )
 
     return AttemptResponse(
         is_correct=is_correct,

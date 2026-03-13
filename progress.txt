@@ -224,11 +224,40 @@ Implementation:
   - XP constants match PRD values
 - All 118 tests passing, ruff check clean
 
+TASK-022 DONE — Streaks system (daily activity tracking + streak management)
+
+Implementation:
+- Created app/services/streak_service.py — core streak logic:
+  - record_activity(client, user_id, problems_solved, sessions_completed, xp_earned, today)
+  - Upserts user_daily_activity row: creates new if first activity today, increments counters if exists
+  - _update_streak(): checks yesterday's activity → continues streak (+1) or resets to 1
+  - Updates users.current_streak, longest_streak, last_activity_date
+  - streak_maintained = True on every activity record
+- Created app/models/progress.py — Pydantic models:
+  - DailyActivity: date, sessions_completed, problems_solved, xp_earned, streak_maintained
+  - ActivityCalendarResponse: activities[], current_streak, longest_streak
+- Created app/routers/progress.py with 1 endpoint:
+  - GET /api/progress/activity-calendar — returns last 365 days of activity + streak info
+  - Queries user_daily_activity with date filter, enriches with users streak data
+- Integrated record_activity into:
+  - app/routers/problems.py POST /api/problems/{id}/attempt — records 1 problem solved + XP
+  - app/routers/srs.py POST /api/srs/review — records 1 problem solved + XP
+- Registered progress router in app/main.py
+- 8 tests in tests/test_streak_service.py covering:
+  - Existing activity: counter increments, streak not re-counted
+  - New activity: row creation, streak continues (yesterday exists), streak resets (no yesterday)
+  - Longest streak: updated when exceeded, not updated when lower
+  - Sessions tracking: sessions_completed incremented
+- 3 tests in tests/test_progress.py covering:
+  - Activity calendar with data, empty calendar, auth required
+- All 129 tests passing, ruff check clean
+
 Next priorities (critical, all deps met):
 - TASK-016: Seed problems data (deps: TASK-004 ✅) — independent backend work
 
 Next priorities (high, all deps met):
-- TASK-022: Streaks system (deps: TASK-007 ✅) — all deps met
-- TASK-023: Theory/FIRe API (deps: TASK-008 ✅, TASK-021 ✅) — NOW UNBLOCKED
+- TASK-023: Theory/FIRe API (deps: TASK-008 ✅, TASK-021 ✅) — unblocked
+- TASK-025: Dashboard API (deps: TASK-007 ✅, TASK-018 ✅, TASK-022 ✅) — NOW UNBLOCKED
+- TASK-027: Gap Map API (deps: TASK-009 ✅, TASK-022 ✅) — NOW UNBLOCKED
 - TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
 - TASK-032: Theory seed data (deps: TASK-004 ✅) — all deps met

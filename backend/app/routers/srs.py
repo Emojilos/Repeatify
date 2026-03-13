@@ -16,6 +16,7 @@ from app.models.srs import (
     SRSSessionResponse,
 )
 from app.services.srs_engine import SRSCard, calculate_next_review
+from app.services.streak_service import record_activity
 from app.services.xp_service import award_xp, calculate_problem_xp
 
 router = APIRouter(prefix="/api/srs", tags=["srs"])
@@ -266,6 +267,14 @@ async def submit_review(
     # Update user_topic_progress strength_score
     if topic_id:
         _update_topic_progress(client, user["id"], topic_id)
+
+    # Record daily activity and update streak
+    record_activity(
+        client,
+        user["id"],
+        problems_solved=1,
+        xp_earned=xp_earned,
+    )
 
     return SRSReviewResponse(
         is_correct=is_correct,
