@@ -252,12 +252,38 @@ Implementation:
   - Activity calendar with data, empty calendar, auth required
 - All 129 tests passing, ruff check clean
 
+TASK-025 DONE — Dashboard API (GET /api/progress/dashboard)
+
+Implementation:
+- Added models to app/models/progress.py: TopicProgress, WeeklyStats, DashboardResponse
+- Added GET /api/progress/dashboard endpoint to app/routers/progress.py:
+  - exam_countdown: days until exam (from users.exam_date), None if not set
+  - topics_progress: all 19 topics with task_number, title, strength_score, fire_completed
+    - Joins topics table with user_topic_progress for current user
+  - today_review_count: count of due SRS cards (next_review_date <= today, not suspended)
+  - weekly_stats: problems_solved and problems_correct from last 7 days of user_problem_attempts
+  - recommendations: dynamic text array based on:
+    - SRS review reminder (if cards due)
+    - Weak topics (strength < 0.5, names top 3)
+    - Exam urgency (<14d, <30d, <90d different messages)
+    - Weekly inactivity warning
+  - current_xp, current_level, current_streak from users table
+- _build_recommendations() helper generates contextual advice
+- 6 tests in tests/test_progress.py (total 9 in file) covering:
+  - All fields returned correctly, exam_countdown calculation
+  - No exam date → exam_countdown is null
+  - Zero review cards
+  - Empty weekly stats → inactivity recommendation
+  - Weak topics appear in recommendations
+  - Auth required (401/403)
+- All 135 tests passing, ruff check clean
+
 Next priorities (critical, all deps met):
 - TASK-016: Seed problems data (deps: TASK-004 ✅) — independent backend work
 
 Next priorities (high, all deps met):
 - TASK-023: Theory/FIRe API (deps: TASK-008 ✅, TASK-021 ✅) — unblocked
-- TASK-025: Dashboard API (deps: TASK-007 ✅, TASK-018 ✅, TASK-022 ✅) — NOW UNBLOCKED
-- TASK-027: Gap Map API (deps: TASK-009 ✅, TASK-022 ✅) — NOW UNBLOCKED
+- TASK-026: Dashboard UI (deps: TASK-025 ✅, TASK-012 ✅) — NOW UNBLOCKED
+- TASK-027: Gap Map API (deps: TASK-009 ✅, TASK-022 ✅) — unblocked
 - TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
 - TASK-032: Theory seed data (deps: TASK-004 ✅) — all deps met

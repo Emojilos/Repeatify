@@ -15,3 +15,26 @@ class ActivityCalendarResponse(BaseModel):
     activities: list[DailyActivity]
     current_streak: int = 0
     longest_streak: int = 0
+
+
+class TopicProgress(BaseModel):
+    task_number: int
+    title: str
+    strength_score: float = 0.0
+    fire_completed: bool = False
+
+
+class WeeklyStats(BaseModel):
+    problems_solved: int = 0
+    problems_correct: int = 0
+
+
+class DashboardResponse(BaseModel):
+    exam_countdown: int | None = None
+    topics_progress: list[TopicProgress]
+    today_review_count: int = 0
+    weekly_stats: WeeklyStats
+    recommendations: list[str]
+    current_xp: int = 0
+    current_level: int = 1
+    current_streak: int = 0

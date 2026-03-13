@@ -559,7 +559,7 @@
         "Шаг 4: Рекомендации адаптируются к оставшемуся времени"
       ],
       "dependencies": ["TASK-007", "TASK-018", "TASK-022"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-026",
