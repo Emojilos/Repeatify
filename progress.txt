@@ -404,8 +404,35 @@ Implementation:
   - Auth required (401/403)
 - All 154 tests passing, ruff check clean
 
+TASK-028 DONE — Progress page UI (Gap Map table, activity heatmap, Recharts chart)
+
+Implementation:
+- Rewrote frontend/src/pages/Progress.tsx — full progress page with 3 sections
+- Installed recharts dependency for charting
+- Section 1: Gap Map table
+  - Fetches data via GET /api/progress/gap-map
+  - Filters: task number (dropdown 1-19), min/max strength (number inputs)
+  - All filters work client-side without page reload
+  - Table columns: task number (blue badge), topic name, strength (% badge + progress bar), errors (30d), last error date, recommended action (color-coded pill)
+  - Empty state for no matching filters
+  - Reset button clears all filters
+- Section 2: Activity heatmap (GitHub-style)
+  - Fetches data via GET /api/progress/activity-calendar
+  - 52-week × 7-day CSS grid aligned to Monday
+  - 5-level green color scale based on problems_solved count
+  - Month labels above columns, day labels (Пн/Ср/Пт) on left
+  - Legend bar (Меньше → Больше)
+  - Streak stats header (current + longest)
+  - Hover tooltip shows date + count
+- Section 3: Activity chart (Recharts BarChart)
+  - Toggle between 7-day and 30-day view
+  - Bar chart showing problems solved per day
+  - Responsive container, tooltips, grid lines
+  - Empty state message when no data
+- Loading skeleton, error state
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 154 tests pass
+
 Next priorities (high, all deps met):
-- TASK-028: Progress page UI (deps: TASK-027 ✅, TASK-022 ✅) — NOW UNBLOCKED
 - TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
 - TASK-030: XP animations (deps: TASK-021 ✅, TASK-011 ✅) — all deps met
 - TASK-031: Topic priority ROI (deps: TASK-025 ✅) — all deps met

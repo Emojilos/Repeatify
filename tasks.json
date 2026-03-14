@@ -625,7 +625,7 @@
         "Шаг 5: Фильтры в Gap Map работают"
       ],
       "dependencies": ["TASK-027", "TASK-022"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-029",
