@@ -344,10 +344,46 @@ Implementation:
 - XP/Level/Streak already shown in Header via auth store (TASK-010/011)
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 147 tests pass
 
+TASK-024 DONE — FIRe-flow wizard UI (4-stage learning interface)
+
+Implementation:
+- Rewrote frontend/src/pages/TopicFire.tsx — full 4-stage FIRe wizard with API integration
+- Stage progress bar: clickable F → I → R → E buttons with color states (orange=current, green=done, gray=pending)
+- Overall progress bar showing completion percentage
+- Fetches data via GET /api/topics/{id}/theory + GET /api/topics/{id}/relationships in parallel
+
+Stage implementations:
+- Framework (F): renders theory content with formulas via MathRenderer (key concepts, formulas, topic map)
+- Inquiry (I): renders markdown + structured Q&A from visual_assets, text input fields for user answers,
+  "Показать эталонные ответы" button reveals reference answers in green boxes
+- Relationships (R): renders markdown + related topics list from /api/topics/{id}/relationships,
+  each topic shows task_number, title, relationship type, and "Открыть" link
+- Elaboration (E): renders markdown + "explain in your own words" textarea,
+  checklist of key points parsed from visual_assets (checkboxes)
+
+Navigation:
+- Back/Forward buttons between stages
+- "Завершить этап и далее →" saves progress via POST /api/topics/{id}/fire-progress
+- Auto-advances to first incomplete stage on load
+- Last stage button says "Завершить FIRe-flow"
+
+Completion screen:
+- 🔥 emoji + "Тема изучена!" message
+- XP earned display (if any), new level notification
+- Navigation: "К теме", "Решать задания", "На главную"
+
+States handled:
+- Loading skeleton, error state, empty content fallback
+- Already-completed stage indicator ("✓ Этот этап уже пройден")
+- Saving spinner on stage completion button
+- Works with or without theory content (graceful empty state)
+
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 147 tests pass
+
 Next priorities (high, all deps met):
-- TASK-024: FIRe-flow wizard UI (deps: TASK-014 ✅, TASK-023 ✅) — unblocked
 - TASK-027: Gap Map API (deps: TASK-009 ✅, TASK-022 ✅) — unblocked
 - TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
 - TASK-030: XP animations (deps: TASK-021 ✅, TASK-011 ✅) — all deps met
 - TASK-031: Topic priority ROI (deps: TASK-025 ✅) — all deps met
-- TASK-032: Theory seed data (deps: TASK-004 ✅) — all deps met
+- TASK-032: Theory seed data (deps: TASK-004 ✅) — all deps met, needed for FIRe content
+- TASK-028: Progress page UI (deps: TASK-027 ❌, TASK-022 ✅) — blocked by TASK-027

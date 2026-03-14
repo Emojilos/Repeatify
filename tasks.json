@@ -536,7 +536,7 @@
         "Шаг 5: Вернуться на /topics/:id → индикатор 'FIRe пройден'"
       ],
       "dependencies": ["TASK-014", "TASK-023"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-025",
