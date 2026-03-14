@@ -323,9 +323,29 @@ Implementation:
   inequalities, financial math, advanced planimetry, parameters, number theory, combinatorics
 - All 147 backend tests passing, ruff check clean
 
+TASK-026 DONE — Dashboard UI (countdown, topic map, SRS widget, recommendations)
+
+Implementation:
+- Rewrote frontend/src/pages/Dashboard.tsx — full dashboard with API integration
+- Fetches data via GET /api/progress/dashboard
+- Exam countdown: large gradient banner showing days until exam (with pluralized Russian)
+  - If no exam_date set: info banner with link to /profile to configure
+- Stats row (3 cards):
+  - SRS widget: due card count + "Начать повторение" button → /practice (or "Все повторены!" if 0)
+  - Weekly stats: problems solved count + accuracy percentage
+  - Streak: current streak with motivational text
+- Recommendations block: amber-styled list from backend recommendations
+- Topics progress map: 19 cards in responsive grid (2→4→5→7 cols)
+  - Each card: task_number badge, title, fire emoji if completed
+  - Strength progress bar with color coding (green ≥70%, yellow ≥40%, orange >0%, gray 0%)
+  - Percentage label below bar
+  - Click → /topics for full catalog
+- Loading skeleton, error state
+- XP/Level/Streak already shown in Header via auth store (TASK-010/011)
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 147 tests pass
+
 Next priorities (high, all deps met):
 - TASK-024: FIRe-flow wizard UI (deps: TASK-014 ✅, TASK-023 ✅) — unblocked
-- TASK-026: Dashboard UI (deps: TASK-025 ✅, TASK-012 ✅) — unblocked
 - TASK-027: Gap Map API (deps: TASK-009 ✅, TASK-022 ✅) — unblocked
 - TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
 - TASK-030: XP animations (deps: TASK-021 ✅, TASK-011 ✅) — all deps met

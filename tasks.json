@@ -581,7 +581,7 @@
         "Шаг 4: Кнопка 'Начать повторение' → переход на /practice"
       ],
       "dependencies": ["TASK-025", "TASK-012"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-027",
