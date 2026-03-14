@@ -456,7 +456,29 @@ Implementation:
 - Loading skeleton, error state
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 154 tests pass
 
+TASK-032 DONE — Theory seed data for 5 priority topics (FIRe content)
+
+Implementation:
+- Created 5 JSON seed files in supabase/seed/theory/ (one per priority topic):
+  - task_06_planimetry.json — Планиметрия (вычислительная)
+  - task_07_derivatives.json — Производная и первообразная
+  - task_08_applied.json — Прикладные задачи
+  - task_09_functions.json — Функции и графики
+  - task_12_extrema.json — Наибольшее и наименьшее значение
+- Created SQL migration supabase/migrations/004_seed_theory.sql:
+  - 20 theory_content INSERT statements (5 topics × 4 FIRe stages)
+  - 20 topic_relationships INSERT statements (4 relationships per topic × 5 topics)
+  - All INSERTs use task_number lookups (not hardcoded UUIDs)
+- Content per topic:
+  - Framework: key formulas with LaTeX, topic concept maps (ASCII tree diagrams)
+  - Inquiry: 3-4 research questions with detailed reference answers (stored in visual_assets JSON)
+  - Relationships: markdown describing connections + actual topic_relationships DB records
+  - Elaboration: "explain in your own words" prompt + 4-5 item checklists (visual_assets JSON)
+- LaTeX coverage: theorems (косинусов, синусов), formulas (площади, производные, интегралы),
+  function notation, tables of derivatives/transformations
+- SQL validated: 288 balanced quotes, all content_type and relationship_type enums correct
+- All 154 backend tests passing, ruff check clean
+
 Next priorities (high, all deps met):
 - TASK-030: XP animations (deps: TASK-021 ✅, TASK-011 ✅) — all deps met
 - TASK-031: Topic priority ROI (deps: TASK-025 ✅) — all deps met
-- TASK-032: Theory seed data (deps: TASK-004 ✅) — all deps met, needed for FIRe content

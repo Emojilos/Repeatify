@@ -708,7 +708,7 @@
         "Шаг 4: topic_relationships имеет записи для всех 5 тем"
       ],
       "dependencies": ["TASK-004"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-033",
