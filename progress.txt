@@ -432,8 +432,31 @@ Implementation:
 - Loading skeleton, error state
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 154 tests pass
 
+TASK-029 DONE — Profile page (settings, exam date, target score, streak calendar)
+
+Implementation:
+- Rewrote frontend/src/pages/Profile.tsx — full profile page with 5 sections
+- Updated src/stores/authStore.ts User interface to include exam_date and target_score fields
+- Section 1: Stats cards grid (XP, level name, current streak, longest streak)
+- Section 2: XP progress bar to next level with gradient, shows XP needed and next level name
+  - Level table mirrored from backend xp_service.py (10 levels: Новичок → Бог ЕГЭ)
+- Section 3: Settings form
+  - display_name text input
+  - exam_date date picker (min = today)
+  - target_score number input (validated 27-100 client-side)
+  - "Сохранить" button → PATCH /api/users/me → reloads user + stats
+  - Success/error feedback messages
+- Section 4: Mini streak heatmap (last 16 weeks)
+  - Reuses heatmap pattern from Progress page (compact version)
+  - 7-day rows, color-coded by activity level
+  - Shows current/longest streak, legend
+  - Tooltips with date and problem count
+- Section 5: Score conversion table (primary → test score reference)
+- Fetches data via GET /api/users/me/stats + GET /api/progress/activity-calendar in parallel
+- Loading skeleton, error state
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 154 tests pass
+
 Next priorities (high, all deps met):
-- TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
 - TASK-030: XP animations (deps: TASK-021 ✅, TASK-011 ✅) — all deps met
 - TASK-031: Topic priority ROI (deps: TASK-025 ✅) — all deps met
 - TASK-032: Theory seed data (deps: TASK-004 ✅) — all deps met, needed for FIRe content

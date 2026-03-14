@@ -646,7 +646,7 @@
         "Шаг 4: Стрик-календарь отображает историю активности"
       ],
       "dependencies": ["TASK-011", "TASK-007"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-030",

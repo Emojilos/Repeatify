@@ -5,6 +5,8 @@ interface User {
   id: string
   email: string | null
   display_name: string | null
+  exam_date: string | null
+  target_score: number | null
   current_xp: number
   current_level: number
   current_streak: number
