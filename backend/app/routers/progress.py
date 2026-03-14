@@ -12,6 +12,8 @@ from app.models.progress import (
     ActivityCalendarResponse,
     DailyActivity,
     DashboardResponse,
+    GapMapEntry,
+    GapMapResponse,
     TopicProgress,
     WeeklyStats,
 )
@@ -63,6 +65,128 @@ async def activity_calendar(
         current_streak=streak_data.get("current_streak", 0),
         longest_streak=streak_data.get("longest_streak", 0),
     )
+
+
+def _recommend_action(strength: float, error_count: int, fire_completed: bool) -> str:
+    """Pick a recommended action based on topic state."""
+    if not fire_completed and strength < 0.3:
+        return "Пройти FIRe-flow заново"
+    if strength < 0.5 or error_count >= 5:
+        return "Повторить теорию"
+    return "Решить 5 задач"
+
+
+@router.get("/gap-map", response_model=GapMapResponse)
+async def gap_map(
+    user: dict = Depends(get_current_user),
+    task_number: int | None = None,
+    min_strength: float | None = None,
+    max_strength: float | None = None,
+) -> GapMapResponse:
+    """Return gap map: per-topic weakness analysis with recommendations."""
+    client = get_supabase_client()
+    today = date.today()
+    thirty_days_ago = (today - timedelta(days=30)).isoformat()
+
+    # --- All topics ---
+    topics_result = (
+        client.table("topics")
+        .select("id,task_number,title")
+        .order("task_number")
+        .execute()
+    )
+    topics_rows = topics_result.data or []
+
+    # --- User topic progress ---
+    progress_result = (
+        client.table("user_topic_progress")
+        .select("topic_id,strength_score,fire_completed_at")
+        .eq("user_id", user["id"])
+        .execute()
+    )
+    progress_map: dict[str, dict] = {
+        row["topic_id"]: row for row in (progress_result.data or [])
+    }
+
+    # --- Error attempts in last 30 days ---
+    attempts_result = (
+        client.table("user_problem_attempts")
+        .select("problem_id,is_correct,created_at")
+        .eq("user_id", user["id"])
+        .eq("is_correct", False)
+        .gte("created_at", thirty_days_ago)
+        .execute()
+    )
+    error_attempts = attempts_result.data or []
+
+    # --- Map problem_id → topic_id via problems table ---
+    problem_ids = list({a["problem_id"] for a in error_attempts})
+    problem_topic_map: dict[str, str] = {}
+    if problem_ids:
+        problems_result = (
+            client.table("problems")
+            .select("id,topic_id")
+            .in_("id", problem_ids)
+            .execute()
+        )
+        problem_topic_map = {
+            row["id"]: row["topic_id"]
+            for row in (problems_result.data or [])
+        }
+
+    # Count errors and track last error date per topic
+    topic_errors: dict[str, int] = {}
+    topic_last_error: dict[str, str] = {}
+    for attempt in error_attempts:
+        tid = problem_topic_map.get(attempt["problem_id"])
+        if tid:
+            topic_errors[tid] = topic_errors.get(tid, 0) + 1
+            err_date = attempt.get("created_at", "")
+            if err_date > topic_last_error.get(tid, ""):
+                topic_last_error[tid] = err_date
+
+    # --- Build entries ---
+    entries: list[GapMapEntry] = []
+    for t in topics_rows:
+        tn = t["task_number"]
+        tid = t["id"]
+
+        # Apply task_number filter
+        if task_number is not None and tn != task_number:
+            continue
+
+        prog = progress_map.get(tid, {})
+        strength = prog.get("strength_score", 0.0)
+        fire_completed = prog.get("fire_completed_at") is not None
+
+        # Apply strength filters
+        if min_strength is not None and strength < min_strength:
+            continue
+        if max_strength is not None and strength > max_strength:
+            continue
+
+        error_count = topic_errors.get(tid, 0)
+        last_error = topic_last_error.get(tid)
+        # Trim to date only if present
+        last_error_date = last_error[:10] if last_error else None
+
+        entries.append(
+            GapMapEntry(
+                task_number=tn,
+                topic=t["title"],
+                strength=round(strength * 100, 1),
+                error_count=error_count,
+                last_error_date=last_error_date,
+                recommended_action=_recommend_action(
+                    strength, error_count, fire_completed
+                ),
+            )
+        )
+
+    # Sort by strength ascending (weakest first)
+    entries.sort(key=lambda e: e.strength)
+
+    return GapMapResponse(entries=entries)
 
 
 def _build_recommendations(

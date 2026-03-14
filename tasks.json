@@ -603,7 +603,7 @@
         "Шаг 3: Фильтрация по task_number работает"
       ],
       "dependencies": ["TASK-009", "TASK-022"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-028",

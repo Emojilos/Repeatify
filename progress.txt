@@ -380,10 +380,33 @@ States handled:
 
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 147 tests pass
 
+TASK-027 DONE — Gap Map API (GET /api/progress/gap-map)
+
+Implementation:
+- Added models to app/models/progress.py: GapMapEntry, GapMapResponse
+- Added GET /api/progress/gap-map endpoint to app/routers/progress.py:
+  - Returns per-topic weakness analysis: task_number, topic name, strength (0-100%), error_count, last_error_date, recommended_action
+  - Queries topics, user_topic_progress, user_problem_attempts (errors last 30 days), problems (for topic mapping)
+  - Strength filters: ?min_strength=&max_strength= (values 0.0-1.0)
+  - Task number filter: ?task_number=
+  - Sorted by strength ascending (weakest topics first)
+- _recommend_action() helper picks recommendation based on:
+  - No FIRe + strength < 0.3 → "Пройти FIRe-flow заново"
+  - strength < 0.5 or error_count >= 5 → "Повторить теорию"
+  - Otherwise → "Решить 5 задач"
+- 7 tests in tests/test_progress.py (TestGapMap class) covering:
+  - All topics returned sorted by strength
+  - Error counts from last 30 days with correct topic mapping
+  - Recommended action depends on strength, errors, FIRe status
+  - Filter by task_number
+  - Filter by strength range (min/max)
+  - Empty progress (all zeros, all recommend FIRe)
+  - Auth required (401/403)
+- All 154 tests passing, ruff check clean
+
 Next priorities (high, all deps met):
-- TASK-027: Gap Map API (deps: TASK-009 ✅, TASK-022 ✅) — unblocked
+- TASK-028: Progress page UI (deps: TASK-027 ✅, TASK-022 ✅) — NOW UNBLOCKED
 - TASK-029: Profile page (deps: TASK-011 ✅, TASK-007 ✅) — all deps met
 - TASK-030: XP animations (deps: TASK-021 ✅, TASK-011 ✅) — all deps met
 - TASK-031: Topic priority ROI (deps: TASK-025 ✅) — all deps met
 - TASK-032: Theory seed data (deps: TASK-004 ✅) — all deps met, needed for FIRe content
-- TASK-028: Progress page UI (deps: TASK-027 ❌, TASK-022 ✅) — blocked by TASK-027

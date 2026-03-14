@@ -52,18 +52,11 @@ def _mock_table(activity_data, streak_data):
         t = MagicMock()
         if name == "user_daily_activity":
             (
-                t.select.return_value
-                .eq.return_value
-                .gte.return_value
-                .order.return_value
-                .execute.return_value
+                t.select.return_value.eq.return_value.gte.return_value.order.return_value.execute.return_value
             ) = act_result
         elif name == "users":
             (
-                t.select.return_value
-                .eq.return_value
-                .maybe_single.return_value
-                .execute.return_value
+                t.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value
             ) = usr_result
         return t
 
@@ -95,9 +88,7 @@ class TestActivityCalendar:
         }
         mc = _mock_table(activity_data, streak)
 
-        patch_target = (
-            "app.routers.progress.get_supabase_client"
-        )
+        patch_target = "app.routers.progress.get_supabase_client"
         with patch(patch_target, return_value=mc):
             token = _make_token()
             resp = client.get(
@@ -122,9 +113,7 @@ class TestActivityCalendar:
         }
         mc = _mock_table([], streak)
 
-        patch_target = (
-            "app.routers.progress.get_supabase_client"
-        )
+        patch_target = "app.routers.progress.get_supabase_client"
         with patch(patch_target, return_value=mc):
             token = _make_token()
             resp = client.get(
@@ -194,37 +183,23 @@ def _mock_dashboard_client(
         t = MagicMock()
         if name == "users":
             (
-                t.select.return_value
-                .eq.return_value
-                .maybe_single.return_value
-                .execute.return_value
+                t.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value
             ) = users_result
         elif name == "topics":
             (
-                t.select.return_value
-                .order.return_value
-                .execute.return_value
+                t.select.return_value.order.return_value.execute.return_value
             ) = topics_result
         elif name == "user_topic_progress":
             (
-                t.select.return_value
-                .eq.return_value
-                .execute.return_value
+                t.select.return_value.eq.return_value.execute.return_value
             ) = progress_result
         elif name == "srs_cards":
             (
-                t.select.return_value
-                .eq.return_value
-                .lte.return_value
-                .neq.return_value
-                .execute.return_value
+                t.select.return_value.eq.return_value.lte.return_value.neq.return_value.execute.return_value
             ) = srs_result
         elif name == "user_problem_attempts":
             (
-                t.select.return_value
-                .eq.return_value
-                .gte.return_value
-                .execute.return_value
+                t.select.return_value.eq.return_value.gte.return_value.execute.return_value
             ) = attempts_result
         return t
 
@@ -346,4 +321,253 @@ class TestDashboard:
 
     def test_requires_auth(self, client):
         resp = client.get("/api/progress/dashboard")
+        assert resp.status_code in (401, 403)
+
+
+def _mock_gap_map_client(
+    *,
+    topics_data=None,
+    progress_data=None,
+    attempts_data=None,
+    problems_data=None,
+):
+    """Create a mock Supabase client for the gap-map endpoint."""
+    mock_client = MagicMock()
+
+    if topics_data is None:
+        topics_data = [
+            {"id": "t1", "task_number": 1, "title": "Планиметрия"},
+            {"id": "t2", "task_number": 2, "title": "Вычисления"},
+            {"id": "t3", "task_number": 3, "title": "Стереометрия"},
+        ]
+    if progress_data is None:
+        progress_data = []
+    if attempts_data is None:
+        attempts_data = []
+    if problems_data is None:
+        problems_data = []
+
+    topics_result = MagicMock(data=topics_data)
+    progress_result = MagicMock(data=progress_data)
+    attempts_result = MagicMock(data=attempts_data)
+    problems_result = MagicMock(data=problems_data)
+
+    def table_effect(name):
+        t = MagicMock()
+        if name == "topics":
+            (
+                t.select.return_value.order.return_value.execute.return_value
+            ) = topics_result
+        elif name == "user_topic_progress":
+            (
+                t.select.return_value.eq.return_value.execute.return_value
+            ) = progress_result
+        elif name == "user_problem_attempts":
+            (
+                t.select.return_value.eq.return_value.eq.return_value.gte.return_value.execute.return_value
+            ) = attempts_result
+        elif name == "problems":
+            (
+                t.select.return_value.in_.return_value.execute.return_value
+            ) = problems_result
+        return t
+
+    mock_client.table.side_effect = table_effect
+    return mock_client
+
+
+class TestGapMap:
+    def test_returns_all_topics_sorted_by_strength(self, client):
+        mc = _mock_gap_map_client(
+            progress_data=[
+                {
+                    "topic_id": "t1",
+                    "strength_score": 0.8,
+                    "fire_completed_at": "2026-01-01T00:00:00Z",
+                },
+                {"topic_id": "t2", "strength_score": 0.3, "fire_completed_at": None},
+            ],
+        )
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/gap-map",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        entries = data["entries"]
+        assert len(entries) == 3
+        # Sorted by strength ascending
+        assert entries[0]["strength"] == 0.0  # t3 no progress
+        assert entries[1]["strength"] == 30.0  # t2
+        assert entries[2]["strength"] == 80.0  # t1
+
+    def test_error_count_from_last_30_days(self, client):
+        mc = _mock_gap_map_client(
+            attempts_data=[
+                {
+                    "problem_id": "p1",
+                    "is_correct": False,
+                    "created_at": "2026-03-10T12:00:00Z",
+                },
+                {
+                    "problem_id": "p2",
+                    "is_correct": False,
+                    "created_at": "2026-03-12T14:00:00Z",
+                },
+                {
+                    "problem_id": "p3",
+                    "is_correct": False,
+                    "created_at": "2026-03-12T15:00:00Z",
+                },
+            ],
+            problems_data=[
+                {"id": "p1", "topic_id": "t1"},
+                {"id": "p2", "topic_id": "t1"},
+                {"id": "p3", "topic_id": "t2"},
+            ],
+        )
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/gap-map",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        entries = {e["task_number"]: e for e in resp.json()["entries"]}
+        assert entries[1]["error_count"] == 2
+        assert entries[1]["last_error_date"] == "2026-03-12"
+        assert entries[2]["error_count"] == 1
+        assert entries[3]["error_count"] == 0
+
+    def test_recommended_action_depends_on_state(self, client):
+        mc = _mock_gap_map_client(
+            progress_data=[
+                {"topic_id": "t1", "strength_score": 0.2, "fire_completed_at": None},
+                {
+                    "topic_id": "t2",
+                    "strength_score": 0.4,
+                    "fire_completed_at": "2026-01-01T00:00:00Z",
+                },
+                {
+                    "topic_id": "t3",
+                    "strength_score": 0.7,
+                    "fire_completed_at": "2026-01-01T00:00:00Z",
+                },
+            ],
+            attempts_data=[
+                {
+                    "problem_id": "p1",
+                    "is_correct": False,
+                    "created_at": "2026-03-10T12:00:00Z",
+                },
+                {
+                    "problem_id": "p2",
+                    "is_correct": False,
+                    "created_at": "2026-03-10T12:00:00Z",
+                },
+                {
+                    "problem_id": "p3",
+                    "is_correct": False,
+                    "created_at": "2026-03-10T12:00:00Z",
+                },
+                {
+                    "problem_id": "p4",
+                    "is_correct": False,
+                    "created_at": "2026-03-10T12:00:00Z",
+                },
+                {
+                    "problem_id": "p5",
+                    "is_correct": False,
+                    "created_at": "2026-03-10T12:00:00Z",
+                },
+            ],
+            problems_data=[
+                {"id": "p1", "topic_id": "t2"},
+                {"id": "p2", "topic_id": "t2"},
+                {"id": "p3", "topic_id": "t2"},
+                {"id": "p4", "topic_id": "t2"},
+                {"id": "p5", "topic_id": "t2"},
+            ],
+        )
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/gap-map",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        entries = {e["task_number"]: e for e in resp.json()["entries"]}
+        # Low strength, no FIRe → "Пройти FIRe-flow заново"
+        assert entries[1]["recommended_action"] == "Пройти FIRe-flow заново"
+        # strength < 0.5 with 5 errors → "Повторить теорию"
+        assert entries[2]["recommended_action"] == "Повторить теорию"
+        # strength >= 0.5 → "Решить 5 задач"
+        assert entries[3]["recommended_action"] == "Решить 5 задач"
+
+    def test_filter_by_task_number(self, client):
+        mc = _mock_gap_map_client()
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/gap-map?task_number=2",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        entries = resp.json()["entries"]
+        assert len(entries) == 1
+        assert entries[0]["task_number"] == 2
+
+    def test_filter_by_strength_range(self, client):
+        mc = _mock_gap_map_client(
+            progress_data=[
+                {"topic_id": "t1", "strength_score": 0.8, "fire_completed_at": None},
+                {"topic_id": "t2", "strength_score": 0.4, "fire_completed_at": None},
+                {"topic_id": "t3", "strength_score": 0.1, "fire_completed_at": None},
+            ],
+        )
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/gap-map?min_strength=0.2&max_strength=0.5",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        entries = resp.json()["entries"]
+        assert len(entries) == 1
+        assert entries[0]["task_number"] == 2
+
+    def test_empty_progress(self, client):
+        mc = _mock_gap_map_client()
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/gap-map",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        entries = resp.json()["entries"]
+        assert len(entries) == 3
+        # All strength should be 0
+        assert all(e["strength"] == 0.0 for e in entries)
+        # All should recommend FIRe-flow (no progress, no fire)
+        assert all(
+            e["recommended_action"] == "Пройти FIRe-flow заново" for e in entries
+        )
+
+    def test_requires_auth(self, client):
+        resp = client.get("/api/progress/gap-map")
         assert resp.status_code in (401, 403)

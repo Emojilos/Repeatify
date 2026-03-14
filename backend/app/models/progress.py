@@ -29,6 +29,19 @@ class WeeklyStats(BaseModel):
     problems_correct: int = 0
 
 
+class GapMapEntry(BaseModel):
+    task_number: int
+    topic: str
+    strength: float = 0.0
+    error_count: int = 0
+    last_error_date: str | None = None
+    recommended_action: str
+
+
+class GapMapResponse(BaseModel):
+    entries: list[GapMapEntry]
+
+
 class DashboardResponse(BaseModel):
     exam_countdown: int | None = None
     topics_progress: list[TopicProgress]
