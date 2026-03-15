@@ -698,7 +698,34 @@ Implementation:
 - Patches get_supabase_client across all 7 router modules via ExitStack
 - All 190 tests passing (189 existing + 1 new), ruff check clean
 
+TASK-040 DONE — Production integration (frontend → Render backend + GitHub Pages deploy)
+
+Implementation:
+- All production integration was already implemented across prior tasks:
+  - frontend/src/lib/api.ts: uses VITE_API_URL env var with localhost fallback (TASK-038)
+  - frontend/vite.config.ts: base path '/Repeatify/' for GitHub Pages (TASK-033)
+  - .github/workflows/deploy-frontend.yml: passes vars.VITE_API_URL at build time (TASK-033)
+  - backend/app/core/config.py: CORS_ORIGINS configurable via env var (TASK-035)
+  - render.yaml: CORS_ORIGINS listed as env var to configure on Render (TASK-034)
+- Added frontend/.env.example documenting VITE_API_URL for dev and production
+- Updated .env.example with CORS_ORIGINS documentation
+- Cold-start indicator already implemented (TASK-038): shows toast after 3s delay
+
+Verification:
+- npm run build succeeds (tsc + vite build) — production assets generated
+- VITE_API_URL is baked into bundle at build time via import.meta.env (standard Vite behavior)
+- GitHub Actions workflow correctly passes VITE_API_URL from repository variables
+- CORS is configurable on Render via CORS_ORIGINS env var (comma-separated origins)
+- HashRouter ensures client-side routing works on GitHub Pages (no 404 on refresh)
+- All 190 backend tests passing, ruff check clean
+
+Setup instructions for production:
+1. Set VITE_API_URL repository variable in GitHub Settings → Variables to Render backend URL
+2. Set CORS_ORIGINS on Render to include GitHub Pages domain (e.g., https://username.github.io)
+3. Set SUPABASE_URL, SUPABASE_SERVICE_KEY, JWT_SECRET on Render
+4. Push to main → GitHub Actions builds and deploys frontend to GitHub Pages
+5. Render auto-deploys backend from main branch
+
 Next priorities (medium, all deps met):
 - TASK-036: Admin import script (deps: TASK-005 ✅)
 - TASK-037: Dark/light theme (deps: TASK-010 ✅)
-- TASK-040: Production integration (deps: TASK-033 ✅, TASK-034 ✅, TASK-039 ✅)

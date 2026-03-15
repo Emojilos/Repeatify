@@ -880,7 +880,7 @@
         "Шаг 4: Решение заданий и SRS работают в production"
       ],
       "dependencies": ["TASK-033", "TASK-034", "TASK-039"],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
