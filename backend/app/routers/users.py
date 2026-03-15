@@ -23,7 +23,7 @@ def _row_to_profile(row: dict, email: str | None = None) -> UserProfile:
     )
 
 
-def _get_user_row(client, user_id: str) -> dict:
+def _get_user_row(client, user_id: str, auto_create: bool = True) -> dict:
     result = (
         client.table("users")
         .select("*")
@@ -31,6 +31,9 @@ def _get_user_row(client, user_id: str) -> dict:
         .execute()
     )
     if not result.data:
+        if auto_create:
+            client.table("users").insert({"id": user_id}).execute()
+            return _get_user_row(client, user_id, auto_create=False)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User profile not found",
