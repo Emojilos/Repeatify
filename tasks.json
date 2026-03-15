@@ -790,7 +790,7 @@
         "Шаг 3: JSON с невалидным заданием (без correct_answer) → ошибка валидации"
       ],
       "dependencies": ["TASK-005"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-037",

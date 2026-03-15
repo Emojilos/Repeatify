@@ -761,5 +761,26 @@ Implementation:
   - ToastContainer: dark toast styling
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 190 tests pass
 
-Next priorities (medium, all deps met):
-- TASK-036: Admin import script (deps: TASK-005 ✅)
+TASK-036 DONE — Admin import script for bulk problem import from JSON
+
+Implementation:
+- Created backend/scripts/import_problems.py — standalone CLI script:
+  - Usage: cd backend && python -m scripts.import_problems <path/to/problems.json>
+  - Reads JSON array of problem objects
+  - Validates all items before any DB writes:
+    - Required fields: task_number (1-19), problem_text
+    - correct_answer required for Part 1 (tasks 1-12)
+    - difficulty must be basic/medium/hard/olympiad
+  - Looks up topic_id from topics table via task_number
+  - Deduplication: fetches existing problem_text values, skips exact matches
+  - Inserts new problems one by one, counts errors
+  - Report: "Добавлено: N, Пропущено (дубликаты): M, Ошибки: K"
+  - Accepts optional `client` parameter for testability (defers settings import)
+- Created backend/scripts/__init__.py (package marker)
+- 18 tests in tests/test_import_problems.py covering:
+  - Validation: valid Part 1/Part 2, missing fields, out-of-range task_number, missing correct_answer for Part 1, invalid difficulty, all valid difficulties
+  - Helpers: _get_topic_map mapping, _get_existing_texts with/without topic_ids
+  - Import: add new problems, skip duplicates, validation error exits, missing topic exits, insert error counting, empty file, repeat import idempotency
+- All 208 tests passing, ruff check clean
+
+All tasks complete. No pending tasks remain.
