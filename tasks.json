@@ -859,7 +859,7 @@
         "Шаг 6: Просмотреть results → dashboard → progress → всё корректно"
       ],
       "dependencies": ["TASK-024", "TASK-020", "TASK-026", "TASK-028"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-040",

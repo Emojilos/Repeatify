@@ -670,8 +670,35 @@ Implementation:
 - CORS already configurable via CORS_ORIGINS env var (set on Render to include GitHub Pages domain)
 - All 189 tests passing, ruff check clean
 
+TASK-039 DONE — E2E integration test (full user journey)
+
+Implementation:
+- Created backend/tests/test_e2e_flow.py — comprehensive end-to-end integration test
+- Built FakeSupabase in-memory mock DB (FakeSupabase, _FakeTableQuery, _FakeResult):
+  - Supports full Supabase query API: select, eq, neq, lte, gte, in_, order, range, limit, maybe_single
+  - Stateful: inserts/updates persist across API calls within the test
+  - Auto-populates created_at timestamps on insert (simulates DB defaults)
+  - Seed data: 19 topics, 5 problems for topic-6, 4 FIRe theory stages, topic relationships, user
+- Single test method TestFullUserJourney.test_full_journey covers 14 sequential steps:
+  1. Register new user (POST /auth/register)
+  2. Login (POST /auth/login)
+  3. Configure profile — exam_date + target_score (PATCH /api/users/me)
+  4. Browse topic catalog (GET /api/topics — 19 topics sorted by task_number)
+  5. View topic detail (GET /api/topics/topic-6)
+  6. Complete FIRe-flow — all 4 stages with XP verification (+50 XP)
+  7. Solve 5 problems — correct answers, XP earned (+10 each), SRS cards created
+  8. SRS session — fetch due cards, review one card with assessment
+  9. View dashboard — exam countdown, XP, topics progress, recommendations, weekly stats
+  10. View gap map — all 19 topics, filtered by task_number
+  11. View activity calendar — streak verification
+  12. View exam readiness — priority topics, readiness %
+  13. View user stats — XP, total problems solved
+  14. Logout
+- Data integrity verification: XP accumulation, attempts recorded, daily activity, topic progress
+- Patches get_supabase_client across all 7 router modules via ExitStack
+- All 190 tests passing (189 existing + 1 new), ruff check clean
+
 Next priorities (medium, all deps met):
 - TASK-036: Admin import script (deps: TASK-005 ✅)
 - TASK-037: Dark/light theme (deps: TASK-010 ✅)
-- TASK-039: E2E integration test (deps: TASK-024 ✅, TASK-020 ✅, TASK-026 ✅, TASK-028 ✅)
-- TASK-040: Production integration (deps: TASK-033 ✅, TASK-034 ✅, TASK-039 pending)
+- TASK-040: Production integration (deps: TASK-033 ✅, TASK-034 ✅, TASK-039 ✅)
