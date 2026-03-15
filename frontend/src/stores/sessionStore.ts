@@ -30,6 +30,7 @@ export interface ReviewResult {
   next_review_date: string
   new_interval: number
   new_ease_factor: number
+  new_level_reached: number | null
 }
 
 export interface CardResult {

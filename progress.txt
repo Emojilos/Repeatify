@@ -520,5 +520,48 @@ Implementation:
   - Auth required (401/403)
 - All 175 tests passing, ruff check clean
 
-Next priorities (high, all deps met):
-- TASK-030: XP animations (deps: TASK-021 ✅, TASK-011 ✅) — all deps met
+TASK-030 DONE — XP animations and level progress bar in header
+
+Implementation:
+- Created frontend/src/stores/xpStore.ts — Zustand store for XP notifications:
+  - notifyXp(amount) — adds floating "+N XP" notification to queue
+  - showLevelUp(level, name) — triggers level-up modal
+  - removeNotification(id) / dismissLevelUp() — cleanup
+  - Exported helpers: levelName(), xpForNextLevel(), xpForCurrentLevel()
+- Created frontend/src/components/XpPopup.tsx — floating XP notification:
+  - Renders fixed-position bubbles near top-right of screen
+  - Each bubble auto-removes after 2.5s
+  - CSS animation: scale-up → float-up → fade-out (animate-xp-popup)
+- Created frontend/src/components/LevelUpModal.tsx — level-up celebration:
+  - Full-screen overlay with trophy icon, level number + name
+  - CSS animation: scale-in bounce (animate-level-up)
+  - Auto-dismisses after 4s, click to dismiss early
+  - Non-blocking (click outside to close)
+- Updated frontend/src/index.css — added @theme animations:
+  - xp-popup keyframes: appear, float up, fade out over 2.5s
+  - level-up keyframes: scale bounce over 0.4s
+- Updated frontend/src/components/Header.tsx:
+  - Added XP progress bar (mini, under XP badge) showing progress to next level
+  - Gradient blue→purple bar with smooth transition on XP changes
+  - Uses shared helpers from xpStore for level calculations
+- Updated frontend/src/components/Layout.tsx — renders XpPopup + LevelUpModal globally
+- Integrated XP notifications into frontend/src/components/ProblemCard.tsx:
+  - Added new_level_reached to AttemptResponse interface
+  - After earning XP: triggers notifyXp(), refreshes user data via loadUser()
+  - On level up: triggers showLevelUp() with level name
+  - Works for both direct problem solving and SRS sessions (via onSubmitOverride)
+- Integrated into frontend/src/pages/TopicFire.tsx:
+  - On FIRe completion with XP: triggers notifyXp() + loadUser()
+  - On level up: triggers showLevelUp()
+- Updated frontend/src/stores/sessionStore.ts — added new_level_reached to ReviewResult
+- Updated frontend/src/pages/PracticeSession.tsx — passes new_level_reached through override mapping
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 175 tests pass
+
+Next priorities (medium, all deps met):
+- TASK-033: GitHub Actions CI/CD (deps: TASK-001 ✅, TASK-010 ✅)
+- TASK-034: Render deploy config (deps: TASK-002 ✅)
+- TASK-035: Security: rate limiting + validation (deps: TASK-006 ✅, TASK-009 ✅)
+- TASK-036: Admin import script (deps: TASK-005 ✅)
+- TASK-037: Dark/light theme (deps: TASK-010 ✅)
+- TASK-038: Edge cases / empty states (deps: TASK-026 ✅, TASK-019 ✅)
+- TASK-039: E2E integration test (deps: TASK-024 ✅, TASK-020 ✅, TASK-026 ✅, TASK-028 ✅)

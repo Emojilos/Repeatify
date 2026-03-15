@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../lib/api'
 import MathRenderer from './MathRenderer'
+import { useXpStore, levelName } from '../stores/xpStore'
+import { useAuthStore } from '../stores/authStore'
 
 interface Problem {
   id: string
@@ -19,6 +21,7 @@ interface AttemptResponse {
   solution_markdown: string | null
   xp_earned: number
   attempt_id: string
+  new_level_reached: number | null
 }
 
 type SelfAssessment = 'again' | 'hard' | 'good' | 'easy'
@@ -59,6 +62,9 @@ function difficultyBadge(level: string) {
 
 export default function ProblemCard({ problem, onComplete, showTimer = false, onSubmitOverride }: ProblemCardProps) {
   const isPart2 = problem.task_number >= 13
+  const notifyXp = useXpStore((s) => s.notifyXp)
+  const showLevelUp = useXpStore((s) => s.showLevelUp)
+  const loadUser = useAuthStore((s) => s.loadUser)
 
   const [answer, setAnswer] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -110,6 +116,13 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
       if (res) {
         setResult(res)
         if (timerRef.current) clearInterval(timerRef.current)
+        if (res.xp_earned > 0) {
+          notifyXp(res.xp_earned)
+          loadUser()
+        }
+        if (res.new_level_reached) {
+          showLevelUp(res.new_level_reached, levelName(res.new_level_reached))
+        }
       }
       return res
     } catch (err) {

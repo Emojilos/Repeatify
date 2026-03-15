@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import MathRenderer from '../components/MathRenderer'
+import { useXpStore, levelName as getLevelName } from '../stores/xpStore'
+import { useAuthStore } from '../stores/authStore'
 
 interface TheoryContentItem {
   id: string
@@ -164,6 +166,13 @@ export default function TopicFire() {
         setXpEarned(res.xp_earned)
         setNewLevel(res.new_level_reached)
         setCompleted(true)
+        if (res.xp_earned > 0) {
+          useXpStore.getState().notifyXp(res.xp_earned)
+          useAuthStore.getState().loadUser()
+        }
+        if (res.new_level_reached) {
+          useXpStore.getState().showLevelUp(res.new_level_reached, getLevelName(res.new_level_reached))
+        }
       } else {
         // Advance to next stage
         if (currentStageIdx < STAGES.length - 1) {

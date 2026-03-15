@@ -666,7 +666,7 @@
         "Шаг 4: Анимации исчезают через 2-3 секунды"
       ],
       "dependencies": ["TASK-021", "TASK-011"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-031",

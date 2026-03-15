@@ -68,6 +68,7 @@ export default function PracticeSession() {
         solution_markdown: review.solution_markdown,
         xp_earned: review.xp_earned,
         attempt_id: currentCard.card_id,
+        new_level_reached: review.new_level_reached,
       }
     },
     [currentCard, submitReview],
@@ -85,6 +86,7 @@ export default function PracticeSession() {
         next_review_date: '',
         new_interval: 0,
         new_ease_factor: 0,
+        new_level_reached: null,
       }
 
       addResult({ card: currentCard, review: reviewResult, assessment })
