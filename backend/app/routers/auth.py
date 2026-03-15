@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from supabase_auth.errors import AuthApiError
 
 from app.core.auth import get_current_user
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.db.supabase_client import get_supabase_client
 from app.models.auth import (
     AuthResponse,
@@ -13,7 +15,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
-async def register(body: RegisterRequest) -> AuthResponse:
+@limiter.limit(settings.AUTH_RATE_LIMIT)
+async def register(request: Request, body: RegisterRequest) -> AuthResponse:
     """Register a new user via Supabase Auth and create users row."""
     client = get_supabase_client()
     try:
@@ -52,7 +55,8 @@ async def register(body: RegisterRequest) -> AuthResponse:
 
 
 @router.post("/login", response_model=AuthResponse)
-async def login(body: LoginRequest) -> AuthResponse:
+@limiter.limit(settings.AUTH_RATE_LIMIT)
+async def login(request: Request, body: LoginRequest) -> AuthResponse:
     """Sign in with email and password."""
     client = get_supabase_client()
     try:

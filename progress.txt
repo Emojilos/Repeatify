@@ -557,10 +557,47 @@ Implementation:
 - Updated frontend/src/pages/PracticeSession.tsx — passes new_level_reached through override mapping
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 175 tests pass
 
+TASK-035 DONE — Security: rate limiting, CORS, input validation
+
+Implementation:
+- Installed slowapi for rate limiting (added to pyproject.toml dependencies)
+- Created app/core/rate_limit.py — Limiter instance with configurable default rate
+- Updated app/core/config.py — added configurable settings:
+  - CORS_ORIGINS: comma-separated allowed origins (env-configurable for prod)
+  - AUTH_RATE_LIMIT: 5/minute for auth endpoints (login/register)
+  - API_RATE_LIMIT: 100/minute default for all API endpoints
+  - cors_origin_list property parses comma-separated string
+- Updated app/main.py:
+  - Rate limiter attached to app.state + custom 429 exception handler
+  - CORS origins now from settings.cors_origin_list (not hardcoded)
+  - CORS methods restricted to GET/POST/PATCH/DELETE/OPTIONS (not wildcard)
+  - CORS headers restricted to Authorization/Content-Type (not wildcard)
+- Updated app/routers/auth.py:
+  - @limiter.limit(settings.AUTH_RATE_LIMIT) on /register and /login
+  - Added Request parameter required by slowapi
+- Updated app/models/auth.py:
+  - RegisterRequest.password: min_length=6, max_length=128
+  - LoginRequest.password: min_length=1, max_length=128
+- Existing security verified:
+  - correct_answer NEVER returned in GET /api/problems/{id} (uses _row_to_detail which excludes it)
+  - All Pydantic models already have strict validation (EmailStr, ge/le constraints, enum types)
+  - AttemptRequest.answer: min_length=1, max_length=50
+  - AttemptRequest.self_assessment: SelfAssessment enum (only again/hard/good/easy)
+  - UpdateProfileRequest: target_score ge=27 le=100, exam_date not in past
+- 14 tests in tests/test_security.py covering:
+  - Rate limiting: login 429 after 5+ requests, register 429 after 5+ requests
+  - Input validation: short password (422), long password (422), invalid email (422),
+    empty password (422), invalid self_assessment (422), answer too long (422),
+    target_score out of range (422)
+  - correct_answer not leaked: GET /api/problems/{id} excludes correct_answer,
+    solution_markdown, answer_tolerance
+  - CORS: configured origin allowed, unknown origin blocked, methods restricted,
+    headers restricted
+- All 189 tests passing, ruff check clean
+
 Next priorities (medium, all deps met):
 - TASK-033: GitHub Actions CI/CD (deps: TASK-001 ✅, TASK-010 ✅)
 - TASK-034: Render deploy config (deps: TASK-002 ✅)
-- TASK-035: Security: rate limiting + validation (deps: TASK-006 ✅, TASK-009 ✅)
 - TASK-036: Admin import script (deps: TASK-005 ✅)
 - TASK-037: Dark/light theme (deps: TASK-010 ✅)
 - TASK-038: Edge cases / empty states (deps: TASK-026 ✅, TASK-019 ✅)

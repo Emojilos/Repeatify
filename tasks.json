@@ -770,7 +770,7 @@
         "Шаг 4: GET /api/problems/{id} → correct_answer отсутствует в ответе"
       ],
       "dependencies": ["TASK-006", "TASK-009"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-036",
