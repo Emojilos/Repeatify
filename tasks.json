@@ -61,7 +61,7 @@
         "Шаг 4: INSERT в fsrs_cards с невалидным state — ожидать ошибку CHECK"
       ],
       "dependencies": ["TASK-001"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-003",

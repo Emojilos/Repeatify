@@ -805,3 +805,30 @@ Implementation:
 - ruff check clean, existing tests unaffected (migration is SQL only)
 
 Next: TASK-002 (fsrs_cards, diagnostic_results, user_study_plan + ALTER problems/users) depends on this.
+
+TASK-002 DONE — DB миграция: fsrs_cards, diagnostic_results, user_study_plan + ALTER problems/users
+
+Implementation:
+- Created supabase/migrations/006_fsrs_and_plan.sql
+- Table fsrs_cards: id UUID PK, user_id UUID FK→users.id, problem_id UUID FK→problems.id NULLABLE,
+  prototype_id UUID FK→prototypes.id NULLABLE, card_type VARCHAR(20) CHECK ('problem','concept','formula'),
+  difficulty FLOAT, stability FLOAT, due TIMESTAMPTZ, last_review TIMESTAMPTZ, reps INTEGER DEFAULT 0,
+  lapses INTEGER DEFAULT 0, state VARCHAR(20) CHECK ('new','learning','review','relearning'),
+  scheduled_days INTEGER, elapsed_days INTEGER, created_at TIMESTAMPTZ DEFAULT now()
+- Table diagnostic_results: id UUID PK, user_id UUID FK→users.id, task_number INTEGER (1-19),
+  is_correct BOOLEAN NULLABLE, self_assessment VARCHAR(20) NULLABLE, time_spent_seconds INTEGER,
+  diagnosed_at TIMESTAMPTZ DEFAULT now()
+- Table user_study_plan: id UUID PK, user_id UUID FK→users.id, target_score INTEGER, exam_date DATE,
+  hours_per_day FLOAT, plan_data JSONB, generated_at TIMESTAMPTZ DEFAULT now(), is_active BOOLEAN DEFAULT true
+- ALTER problems: ADD prototype_id UUID FK→prototypes.id, source_url VARCHAR(500), source_id VARCHAR(100), content_hash VARCHAR(64)
+- ALTER users: ADD hours_per_day FLOAT DEFAULT 1.0
+- Indexes: fsrs_cards(user_id, due, state), fsrs_cards(user_id, problem_id), fsrs_cards(user_id, prototype_id),
+  diagnostic_results(user_id, task_number), user_study_plan(user_id, is_active), problems(prototype_id), problems(content_hash)
+- RLS enabled on all 3 new tables:
+  - fsrs_cards: SELECT/INSERT/UPDATE/DELETE for owner (user_id = auth.uid()), ALL for service_role
+  - diagnostic_results: SELECT/INSERT only for owner (immutable — no UPDATE/DELETE for authenticated), ALL for service_role
+  - user_study_plan: SELECT/INSERT/UPDATE for owner, ALL for service_role
+- 14 RLS policies total
+- SQL validated, ruff check clean, existing tests unaffected (migration is SQL only)
+
+Next: TASK-003 (Pydantic models for all new tables) depends on TASK-001 + TASK-002.
