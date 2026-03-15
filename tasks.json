@@ -22,865 +22,857 @@
       "id": "TASK-001",
       "category": "infrastructure",
       "priority": "critical",
-      "description": "Инициализация frontend-проекта: Vite + React 18 + TypeScript + Tailwind CSS",
+      "description": "DB миграция: таблицы prototypes и video_resources",
+      "details": "Создать SQL-миграцию 005_prototypes_and_videos.sql. Таблица prototypes: id UUID PK, task_number INTEGER (1-19), prototype_code VARCHAR(10), title VARCHAR(200), description TEXT, difficulty_within_task VARCHAR(10) CHECK ('easy','medium','hard'), estimated_study_minutes INTEGER, theory_markdown TEXT, key_formulas JSONB, solution_algorithm JSONB, common_mistakes JSONB, related_prototypes JSONB, order_index INTEGER. Таблица video_resources: id UUID PK, prototype_id UUID FK->prototypes.id, youtube_video_id VARCHAR(20), title VARCHAR(300), channel_name VARCHAR(100), duration_seconds INTEGER, timestamps JSONB, order_index INTEGER. RLS: SELECT для authenticated, INSERT/UPDATE/DELETE для service_role.",
       "acceptance_criteria": [
-        "Проект создан через Vite с шаблоном react-ts",
-        "Tailwind CSS установлен и настроен (tailwind.config.js, postcss.config.js)",
-        "Базовая структура папок: src/components, src/pages, src/stores, src/lib, src/types",
-        "HashRouter из react-router-dom v6 настроен с заглушками для всех страниц",
-        "dev-сервер запускается без ошибок (npm run dev)"
+        "Миграция 005 успешно применяется без ошибок",
+        "Таблица prototypes создана со всеми колонками и constraints",
+        "Таблица video_resources создана с FK на prototypes",
+        "RLS-политики настроены: чтение для authenticated, запись для service_role",
+        "Индексы: prototypes(task_number), video_resources(prototype_id)"
       ],
       "test_steps": [
-        "Шаг 1: npm run dev — приложение запускается на localhost",
-        "Шаг 2: Открыть браузер — видна страница с текстом 'Repeatify'",
-        "Шаг 3: npm run build — билд завершается без ошибок",
-        "Шаг 4: Проверить что Tailwind работает — добавить класс text-blue-500, убедиться что стиль применяется"
+        "Шаг 1: Применить миграцию к Supabase (supabase db push или вручную)",
+        "Шаг 2: Проверить CREATE TABLE через \\d prototypes и \\d video_resources",
+        "Шаг 3: INSERT тестовую строку в prototypes, убедиться что ограничения работают",
+        "Шаг 4: INSERT в video_resources с FK, проверить связь"
       ],
       "dependencies": [],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "TASK-002",
       "category": "infrastructure",
       "priority": "critical",
-      "description": "Инициализация backend-проекта: FastAPI + Python 3.11 + структура",
+      "description": "DB миграция: fsrs_cards, diagnostic_results, user_study_plan + обновление problems и users",
+      "details": "Создать миграцию 006_fsrs_and_plan.sql. Таблица fsrs_cards: id UUID PK, user_id UUID FK->users.id, problem_id UUID FK->problems.id NULLABLE, prototype_id UUID FK->prototypes.id NULLABLE, card_type VARCHAR(20) CHECK ('problem','concept','formula'), difficulty FLOAT, stability FLOAT, due TIMESTAMPTZ, last_review TIMESTAMPTZ, reps INTEGER DEFAULT 0, lapses INTEGER DEFAULT 0, state VARCHAR(20) CHECK ('new','learning','review','relearning'), scheduled_days INTEGER, elapsed_days INTEGER, created_at TIMESTAMPTZ DEFAULT now(). Таблица diagnostic_results: id UUID PK, user_id UUID FK, task_number INTEGER, is_correct BOOLEAN NULLABLE, self_assessment VARCHAR(20) NULLABLE, time_spent_seconds INTEGER, diagnosed_at TIMESTAMPTZ DEFAULT now(). Таблица user_study_plan: id UUID PK, user_id UUID FK, target_score INTEGER, exam_date DATE, hours_per_day FLOAT, plan_data JSONB, generated_at TIMESTAMPTZ DEFAULT now(), is_active BOOLEAN DEFAULT true. ALTER problems: ADD prototype_id UUID FK->prototypes.id NULLABLE, ADD source_url VARCHAR(500), ADD source_id VARCHAR(100), ADD content_hash VARCHAR(64). ALTER users: ADD hours_per_day FLOAT DEFAULT 1.0. RLS на все новые таблицы: пользователь видит только свои записи.",
       "acceptance_criteria": [
-        "Проект в папке backend/ с pyproject.toml или requirements.txt",
-        "FastAPI приложение с базовым health-check эндпоинтом GET /health",
-        "Структура: backend/app/main.py, backend/app/routers/, backend/app/models/, backend/app/services/, backend/app/core/",
-        "CORS настроен для localhost:5173 (dev) и будущего GitHub Pages домена",
-        "Uvicorn запускается: uvicorn app.main:app --reload"
+        "Миграция 006 применяется без ошибок поверх 005",
+        "fsrs_cards создана с корректными FK и CHECK-constraints",
+        "diagnostic_results и user_study_plan созданы",
+        "problems расширена новыми колонками (nullable, не ломает существующие данные)",
+        "users расширена колонкой hours_per_day",
+        "RLS: user_id = auth.uid() на fsrs_cards, diagnostic_results, user_study_plan"
       ],
       "test_steps": [
-        "Шаг 1: cd backend && pip install -r requirements.txt",
-        "Шаг 2: uvicorn app.main:app --reload — сервер запускается",
-        "Шаг 3: GET http://localhost:8000/health → {\"status\": \"ok\"}",
-        "Шаг 4: GET http://localhost:8000/docs → Swagger UI отображается"
+        "Шаг 1: Применить миграцию",
+        "Шаг 2: SELECT * FROM problems LIMIT 1 — убедиться старые данные на месте, новые колонки NULL",
+        "Шаг 3: INSERT в fsrs_cards с валидными данными — OK",
+        "Шаг 4: INSERT в fsrs_cards с невалидным state — ожидать ошибку CHECK"
       ],
-      "dependencies": [],
-      "status": "done"
+      "dependencies": ["TASK-001"],
+      "status": "pending"
     },
     {
       "id": "TASK-003",
       "category": "infrastructure",
       "priority": "critical",
-      "description": "Настройка Supabase: создание схемы БД (все таблицы, индексы, enum-типы)",
+      "description": "Pydantic-модели для всех новых таблиц",
+      "details": "Создать/обновить файлы в backend/app/models/: prototype.py (PrototypeBase, PrototypeResponse, PrototypeListResponse), video.py (VideoResourceResponse), fsrs_card.py (FSRSCardBase, FSRSCardResponse, FSRSReviewRequest с rating 1-4, FSRSSessionResponse), diagnostic.py (DiagnosticStartResponse, DiagnosticAnswer, DiagnosticSubmitRequest, DiagnosticResultResponse), study_plan.py (StudyPlanGenerateRequest с target_score/exam_date/hours_per_day, StudyPlanResponse, DailyTasksResponse). Обновить problem.py: добавить prototype_id, source_url, content_hash.",
       "acceptance_criteria": [
-        "SQL-миграция создаёт все 9 таблиц из PRD: users, topics, theory_content, problems, user_problem_attempts, srs_cards, user_topic_progress, user_sessions, user_daily_activity, topic_relationships",
-        "Все ENUM-типы созданы: difficulty_level, content_type, card_type, card_status, session_type, self_assessment, relationship_type",
-        "Все 4 индекса из PRD созданы",
-        "SQL-файл миграции сохранён в supabase/migrations/001_initial_schema.sql",
-        "Файл .env.example с переменными SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY"
+        "Все модели импортируются без ошибок",
+        "Валидация работает: FSRSReviewRequest принимает rating 1-4, отвергает 0 и 5",
+        "StudyPlanGenerateRequest валидирует target_score in [70,80,90,100]",
+        "DiagnosticSubmitRequest принимает список из 19 ответов"
       ],
       "test_steps": [
-        "Шаг 1: Проверить SQL-файл на синтаксические ошибки (можно через любой SQL-валидатор)",
-        "Шаг 2: Убедиться что все FK-связи корректны (topics.parent_topic_id → topics.id и т.д.)",
-        "Шаг 3: Убедиться что все default значения установлены (ease_factor=2.5, current_xp=0 и т.д.)",
-        "Шаг 4: .env.example содержит все необходимые переменные окружения"
+        "Шаг 1: python -c 'from app.models.prototype import PrototypeResponse'",
+        "Шаг 2: python -c 'from app.models.fsrs_card import FSRSReviewRequest; FSRSReviewRequest(card_id=\"...\", rating=3)'",
+        "Шаг 3: python -c 'from app.models.fsrs_card import FSRSReviewRequest; FSRSReviewRequest(card_id=\"...\", rating=5)' — ожидать ValidationError",
+        "Шаг 4: Запустить pytest — существующие тесты не должны сломаться"
       ],
-      "dependencies": [],
-      "status": "done"
+      "dependencies": ["TASK-001", "TASK-002"],
+      "status": "pending"
     },
     {
       "id": "TASK-004",
-      "category": "infrastructure",
+      "category": "functional",
       "priority": "critical",
-      "description": "Настройка RLS-политик и seed-данные для таблицы topics (19 типов заданий ЕГЭ)",
+      "description": "FSRS-сервис: обёртка над py-fsrs",
+      "details": "Создать backend/app/services/fsrs_service.py. Установить pip-пакет fsrs. Реализовать класс FSRSService с методами: create_card(problem_id, prototype_id, card_type) -> FSRSCard; review_card(card_id, rating: 1-4) -> обновлённая карточка; get_session(user_id, max_cards=20) -> список карточек отсортированных по retrievability (от низкого к высокому) с interleaving (не более 2 подряд из одной темы); get_retrievability(card) -> float; adjust_desired_retention(exam_date) -> float (0.90/0.85/0.80/0.75 по PRD 3.5). Использовать from fsrs import Scheduler, Card, Rating. Хранить FSRS-состояние в таблице fsrs_cards. НЕ удалять старый srs_engine.py — оба сосуществуют.",
       "acceptance_criteria": [
-        "RLS включён на всех таблицах с user_id",
-        "Политики: пользователь видит/редактирует только свои данные в user_* таблицах",
-        "Таблицы topics, theory_content, problems, topic_relationships доступны для чтения всем авторизованным",
-        "Seed-скрипт заполняет таблицу topics: 19 записей с task_number 1–19, title, description, max_points, difficulty_level",
-        "SQL-файл: supabase/migrations/002_rls_and_seeds.sql"
+        "py-fsrs установлен и импортируется",
+        "create_card создаёт запись в fsrs_cards с начальными FSRS-параметрами",
+        "review_card обновляет D, S, due, state через py-fsrs Scheduler",
+        "get_session возвращает карточки с due <= now, отсортированные по retrievability",
+        "Interleaving: не более 2 подряд с одинаковым task_number",
+        "adjust_desired_retention возвращает корректное значение по дням до экзамена"
       ],
       "test_steps": [
-        "Шаг 1: Проверить что seed-данные содержат все 19 типов заданий с корректными названиями из PRD",
-        "Шаг 2: Проверить что max_points корректны: 1 для заданий 1–12, 2–4 для заданий 13–19",
-        "Шаг 3: Проверить что RLS-политики покрывают SELECT, INSERT, UPDATE, DELETE",
-        "Шаг 4: SQL-синтаксис валиден"
+        "Шаг 1: Написать unit-тесты test_fsrs_service.py",
+        "Шаг 2: Тест create_card — проверить что D и S инициализированы",
+        "Шаг 3: Тест review_card — после review с rating=Good, due сдвигается в будущее",
+        "Шаг 4: Тест review_card с rating=Again — due остаётся близко к now",
+        "Шаг 5: Тест adjust_desired_retention — 100 дней -> 0.90, 50 дней -> 0.85, 20 дней -> 0.80, 7 дней -> 0.75",
+        "Шаг 6: pytest — все тесты (старые + новые) проходят"
       ],
-      "dependencies": ["TASK-003"],
-      "status": "done"
+      "dependencies": ["TASK-002", "TASK-003"],
+      "status": "pending"
     },
     {
       "id": "TASK-005",
-      "category": "infrastructure",
+      "category": "integration",
       "priority": "critical",
-      "description": "Подключение Supabase клиента к backend (Python) с конфигурацией из .env",
+      "description": "FSRS API: эндпоинты сессии и ревью",
+      "details": "Создать новый роутер backend/app/routers/fsrs.py (или обновить srs.py). Эндпоинты: GET /api/fsrs/session?max_cards=20 — вызывает FSRSService.get_session(); POST /api/fsrs/review — принимает FSRSReviewRequest (card_id, rating 1-4), вызывает FSRSService.review_card(), начисляет XP, обновляет стрик. Подключить роутер в main.py. Сохранить старые /api/srs/ эндпоинты для обратной совместимости (пока фронтенд не переключится).",
       "acceptance_criteria": [
-        "supabase-py установлен в зависимости",
-        "Модуль backend/app/db/supabase_client.py создаёт и экспортирует клиент Supabase",
-        "Конфигурация читается из переменных окружения через pydantic-settings",
-        "backend/app/core/config.py с классом Settings (SUPABASE_URL, SUPABASE_SERVICE_KEY, JWT_SECRET)",
-        "Подключение проверяется при старте приложения (lifespan event)"
+        "GET /api/fsrs/session возвращает список карточек с FSRS-полями (difficulty, stability, retrievability)",
+        "POST /api/fsrs/review принимает rating 1-4 и обновляет карточку",
+        "XP начисляется корректно при ревью",
+        "Старые /api/srs/ эндпоинты продолжают работать",
+        "Авторизация: только свои карточки"
       ],
       "test_steps": [
-        "Шаг 1: Создать .env с реальными Supabase credentials",
-        "Шаг 2: Запустить backend — нет ошибок подключения",
-        "Шаг 3: GET /health возвращает {\"status\": \"ok\", \"db\": \"connected\"}"
+        "Шаг 1: Написать test_fsrs_api.py",
+        "Шаг 2: Тест GET /api/fsrs/session — пустая сессия для нового пользователя",
+        "Шаг 3: Создать карточку, сделать review, проверить что due обновилась",
+        "Шаг 4: Проверить что GET /api/srs/session по-прежнему работает (обратная совместимость)",
+        "Шаг 5: pytest — все тесты проходят"
       ],
-      "dependencies": ["TASK-002", "TASK-003"],
-      "status": "done"
+      "dependencies": ["TASK-004"],
+      "status": "pending"
     },
     {
       "id": "TASK-006",
       "category": "functional",
-      "priority": "critical",
-      "description": "Backend: аутентификация — регистрация, вход, выход через Supabase Auth",
+      "priority": "high",
+      "description": "Prototype API: CRUD-эндпоинты для прототипов",
+      "details": "Создать backend/app/routers/prototypes.py. Эндпоинты: GET /api/prototypes — список всех прототипов с фильтрацией по task_number; GET /api/prototypes/{id} — детали прототипа с theory_markdown, key_formulas, solution_algorithm, common_mistakes; GET /api/prototypes/{id}/videos — видеоресурсы для прототипа; GET /api/prototypes/{id}/problems — задачи привязанные к прототипу. Подключить в main.py.",
       "acceptance_criteria": [
-        "POST /auth/register — регистрация по email + пароль, возвращает JWT",
-        "POST /auth/login — вход, возвращает access_token и refresh_token",
-        "POST /auth/logout — инвалидация сессии",
-        "Middleware для проверки JWT на защищённых роутах (dependency get_current_user)",
-        "При регистрации создаётся запись в таблице users с default значениями",
-        "Pydantic-схемы для request/response"
+        "GET /api/prototypes?task_number=6 возвращает прототипы для задания 6",
+        "GET /api/prototypes/{id} возвращает полные данные с theory_markdown",
+        "GET /api/prototypes/{id}/videos возвращает список видео",
+        "GET /api/prototypes/{id}/problems возвращает задачи с пагинацией",
+        "Авторизация: доступно для authenticated users"
       ],
       "test_steps": [
-        "Шаг 1: POST /auth/register с email/password → 201, получен access_token",
-        "Шаг 2: POST /auth/login с теми же credentials → 200, получен access_token",
-        "Шаг 3: GET /api/users/me с Bearer token → 200, данные пользователя",
-        "Шаг 4: GET /api/users/me без токена → 401",
-        "Шаг 5: POST /auth/logout → 200"
+        "Шаг 1: Добавить тестовые прототипы в фикстуры",
+        "Шаг 2: Тест GET /api/prototypes — получить список",
+        "Шаг 3: Тест GET /api/prototypes?task_number=6 — фильтрация работает",
+        "Шаг 4: Тест GET /api/prototypes/{id} — детальная информация",
+        "Шаг 5: pytest"
       ],
-      "dependencies": ["TASK-005"],
-      "status": "done"
+      "dependencies": ["TASK-001", "TASK-003"],
+      "status": "pending"
     },
     {
       "id": "TASK-007",
       "category": "functional",
-      "priority": "critical",
-      "description": "Backend: API профиля пользователя (GET/PATCH /api/users/me, GET /api/users/me/stats)",
+      "priority": "high",
+      "description": "Seed: прототипы для заданий 1-12 (Часть 1)",
+      "details": "Создать миграцию 007_seed_prototypes_part1.sql. Для каждого из заданий 1-12 создать 3-6 прототипов (по структуре из PRD 4.1). Каждый прототип: prototype_code (напр. '6.1'), title, theory_markdown с LaTeX-формулами, key_formulas как JSONB-массив, solution_algorithm как пошаговый JSONB, common_mistakes. Привязать существующие problems к прототипам через UPDATE problems SET prototype_id = ... WHERE task_number = ... Минимум: 4-5 прототипов для заданий 6, 7, 4 (высший ROI).",
       "acceptance_criteria": [
-        "GET /api/users/me — возвращает профиль: display_name, exam_date, target_score, current_xp, current_level, current_streak",
-        "PATCH /api/users/me — обновление display_name, exam_date (DATE), target_score (27–100)",
-        "GET /api/users/me/stats — XP, уровень, стрик, longest_streak, общее кол-во решённых задач",
-        "Валидация: target_score в диапазоне 27–100, exam_date не в прошлом"
+        "Минимум 40 прототипов для заданий 1-12",
+        "Каждый прототип имеет заполненные theory_markdown и key_formulas",
+        "Существующие problems привязаны к прототипам",
+        "Данные прошли валидацию: LaTeX-формулы корректны"
       ],
       "test_steps": [
-        "Шаг 1: GET /api/users/me → профиль с default значениями",
-        "Шаг 2: PATCH /api/users/me с {\"target_score\": 80, \"exam_date\": \"2026-06-19\"} → 200",
-        "Шаг 3: GET /api/users/me → target_score=80, exam_date='2026-06-19'",
-        "Шаг 4: PATCH с {\"target_score\": 150} → 422 (validation error)",
-        "Шаг 5: GET /api/users/me/stats → корректная статистика"
+        "Шаг 1: Применить миграцию",
+        "Шаг 2: SELECT count(*) FROM prototypes WHERE task_number <= 12 — ≥40",
+        "Шаг 3: SELECT count(*) FROM problems WHERE prototype_id IS NOT NULL — проверить привязку",
+        "Шаг 4: Выборочно проверить theory_markdown 3-4 прототипов на корректность LaTeX"
       ],
-      "dependencies": ["TASK-006"],
-      "status": "done"
+      "dependencies": ["TASK-001"],
+      "status": "pending"
     },
     {
       "id": "TASK-008",
       "category": "functional",
-      "priority": "critical",
-      "description": "Backend: API тем — GET /api/topics, GET /api/topics/{id}, GET /api/topics/{id}/relationships",
+      "priority": "medium",
+      "description": "Seed: прототипы для заданий 13-19 (Часть 2)",
+      "details": "Создать миграцию 008_seed_prototypes_part2.sql. Аналогично TASK-007, но для заданий 13-19. Каждое задание Части 2 содержит 2-4 прототипа. Особое внимание: theory_markdown для сложных тем (тригонометрия, стереометрия, параметры) должен содержать подробные пошаговые алгоритмы. Привязать существующие problems к прототипам.",
       "acceptance_criteria": [
-        "GET /api/topics — список всех тем, отсортированных по task_number, с прогрессом текущего пользователя (если авторизован)",
-        "GET /api/topics/{id} — детали темы включая description, max_points, estimated_study_hours",
-        "GET /api/topics/{id}/relationships — связи с другими темами из topic_relationships",
-        "Ответ включает user_topic_progress (strength_score, fire_completed) если пользователь авторизован"
+        "Минимум 20 прототипов для заданий 13-19",
+        "Каждый прототип заполнен theory_markdown и key_formulas",
+        "Problems для Части 2 привязаны к прототипам"
       ],
       "test_steps": [
-        "Шаг 1: GET /api/topics → массив из 19 тем с корректными task_number",
-        "Шаг 2: GET /api/topics/{id} конкретной темы → полные данные",
-        "Шаг 3: Проверить что прогресс пользователя включён в ответ (или null если нет прогресса)"
+        "Шаг 1: Применить миграцию",
+        "Шаг 2: SELECT count(*) FROM prototypes WHERE task_number >= 13 — ≥20",
+        "Шаг 3: Проверить theory_markdown для задания 13 (тригонометрия) — полнота алгоритма"
       ],
-      "dependencies": ["TASK-006", "TASK-004"],
-      "status": "done"
+      "dependencies": ["TASK-001"],
+      "status": "pending"
     },
     {
       "id": "TASK-009",
       "category": "functional",
-      "priority": "critical",
-      "description": "Backend: API заданий — CRUD для problems + POST /api/problems/{id}/attempt",
+      "priority": "medium",
+      "description": "Seed: YouTube-видео для прототипов (приоритет: задания 1-12)",
+      "details": "Создать миграцию 009_seed_videos.sql. Для каждого задания 1-12 подобрать 2-3 YouTube-видео от проверенных каналов (Школково, Борис Трушин, Профиматика, Математика ЕГЭ 100БАЛЛОВ). Каждое видео: youtube_video_id, title, channel_name, duration_seconds, timestamps JSONB с таймкодами ключевых моментов. Привязать к прототипам через prototype_id.",
       "acceptance_criteria": [
-        "GET /api/problems?topic_id=&difficulty=&task_number= — список с фильтрами и пагинацией",
-        "GET /api/problems/{id} — конкретное задание (без correct_answer до attempt!)",
-        "POST /api/problems/{id}/attempt — принимает {answer, time_spent_seconds, self_assessment}",
-        "Ответ attempt: {is_correct, correct_answer, solution_markdown, xp_earned}",
-        "Запись в user_problem_attempts при каждой попытке",
-        "XP начисление: +10 за правильный ответ Ч1, +25 за Ч2 (good/easy)"
+        "Минимум 25 видео для заданий 1-12",
+        "Каждое видео привязано к конкретному прототипу",
+        "Timestamps содержат хотя бы 2-3 таймкода на видео",
+        "YouTube video ID корректны (11 символов)"
       ],
       "test_steps": [
-        "Шаг 1: GET /api/problems?task_number=1 → список заданий по планиметрии",
-        "Шаг 2: GET /api/problems/{id} → условие задачи БЕЗ correct_answer",
-        "Шаг 3: POST attempt с правильным ответом → is_correct=true, xp_earned=10",
-        "Шаг 4: POST attempt с неправильным ответом → is_correct=false, correct_answer показан",
-        "Шаг 5: Проверить запись в user_problem_attempts"
+        "Шаг 1: Применить миграцию",
+        "Шаг 2: SELECT count(*) FROM video_resources — ≥25",
+        "Шаг 3: SELECT v.youtube_video_id, p.prototype_code FROM video_resources v JOIN prototypes p ON v.prototype_id = p.id — проверить привязку",
+        "Шаг 4: Выборочно проверить 3 youtube_video_id — открыть на YouTube, убедиться что видео существует"
       ],
-      "dependencies": ["TASK-006", "TASK-004"],
-      "status": "done"
+      "dependencies": ["TASK-007"],
+      "status": "pending"
     },
     {
       "id": "TASK-010",
-      "category": "ui",
-      "priority": "critical",
-      "description": "Frontend: базовый layout — Header (XP, уровень, стрик), Sidebar, routing между страницами",
+      "category": "functional",
+      "priority": "medium",
+      "description": "Парсер: скрипт для Школково (3.shkolkovo.online)",
+      "details": "Создать tools/parsers/shkolkovo_parser.py. Использовать requests + BeautifulSoup. Парсить задания по номерам (1-19) со страниц каталога. Извлекать: текст условия (с LaTeX), изображения, правильный ответ, номер задания, прототип. Генерировать content_hash (SHA-256 от текста условия). Выводить результат в JSON-файл или напрямую в Supabase. Добавить requirements: beautifulsoup4, requests. Скрипт НЕ является частью основного приложения — standalone.",
       "acceptance_criteria": [
-        "Layout компонент с Header и Sidebar",
-        "Header: логотип 'Repeatify', XP/уровень/стрик (заглушки), кнопка выхода",
-        "Sidebar: навигация — Dashboard, Темы, Тренировка, Прогресс, Профиль",
-        "HashRouter с маршрутами: /, /auth/login, /auth/register, /dashboard, /topics, /topics/:id, /topics/:id/fire, /practice, /practice/session, /practice/results, /progress, /profile",
-        "Страницы-заглушки для каждого маршрута",
-        "Защищённые маршруты (редирект на /auth/login если не авторизован)"
+        "Скрипт запускается: python tools/parsers/shkolkovo_parser.py --task-number 6",
+        "Парсит минимум 10 задач для указанного task_number",
+        "Каждая задача содержит: текст, ответ, task_number, source='shkolkovo'",
+        "LaTeX-формулы корректно извлечены",
+        "content_hash вычислен для дедупликации",
+        "Graceful handling при ошибках сети"
       ],
       "test_steps": [
-        "Шаг 1: Открыть / → редирект на /auth/login (если не авторизован)",
-        "Шаг 2: Проверить навигацию по Sidebar — все ссылки работают",
-        "Шаг 3: Header отображает заглушки XP/уровень",
-        "Шаг 4: Layout адекватно выглядит на экране ≥1024px"
+        "Шаг 1: pip install beautifulsoup4 requests",
+        "Шаг 2: python tools/parsers/shkolkovo_parser.py --task-number 7 --output test_output.json",
+        "Шаг 3: Проверить test_output.json: минимум 10 задач, каждая с text, answer, content_hash",
+        "Шаг 4: Повторный запуск — проверить что content_hash стабилен (одинаков для тех же задач)"
       ],
-      "dependencies": ["TASK-001"],
-      "status": "done"
+      "dependencies": ["TASK-002"],
+      "status": "pending"
     },
     {
       "id": "TASK-011",
-      "category": "ui",
-      "priority": "critical",
-      "description": "Frontend: страницы авторизации — регистрация и вход + Zustand auth store",
+      "category": "functional",
+      "priority": "medium",
+      "description": "Парсер: скрипт для math100.ru",
+      "details": "Создать tools/parsers/math100_parser.py. Аналогично TASK-010, но для math100.ru. Структура сайта другая — адаптировать под неё. Парсить прототипы и задания по номерам ЕГЭ. Тот же формат выхода что и shkolkovo_parser.",
       "acceptance_criteria": [
-        "Zustand store для auth: user, token, isAuthenticated, login(), register(), logout()",
-        "Страница /auth/login: форма email + пароль, кнопка 'Войти', ссылка на регистрацию",
-        "Страница /auth/register: форма email + пароль + подтверждение, кнопка 'Зарегистрироваться'",
-        "HTTP-клиент (axios или fetch wrapper) с автоматической подстановкой Bearer token",
-        "Ошибки валидации отображаются под полями",
-        "После успешного входа — редирект на /dashboard"
+        "Скрипт запускается: python tools/parsers/math100_parser.py --task-number 6",
+        "Парсит задачи с корректным извлечением текста и ответов",
+        "source='math100' в каждой задаче",
+        "content_hash для дедупликации"
       ],
       "test_steps": [
-        "Шаг 1: Открыть /auth/register, заполнить форму → запрос уходит на backend",
-        "Шаг 2: После регистрации — редирект на /dashboard",
-        "Шаг 3: Нажать 'Выйти' → редирект на /auth/login, токен удалён",
-        "Шаг 4: Открыть /auth/login, войти → редирект на /dashboard",
-        "Шаг 5: Ввести неправильный пароль → ошибка отображается"
+        "Шаг 1: python tools/parsers/math100_parser.py --task-number 4 --output test_output.json",
+        "Шаг 2: Проверить test_output.json",
+        "Шаг 3: Сравнить формат с выходом shkolkovo_parser — должны быть совместимы"
       ],
-      "dependencies": ["TASK-010", "TASK-006"],
-      "status": "done"
+      "dependencies": ["TASK-002"],
+      "status": "pending"
     },
     {
       "id": "TASK-012",
-      "category": "ui",
-      "priority": "critical",
-      "description": "Frontend: каталог тем — страница /topics со списком 19 типов заданий ЕГЭ",
+      "category": "functional",
+      "priority": "medium",
+      "description": "Normalizer: очистка, дедупликация и загрузка задач в БД",
+      "details": "Создать tools/parsers/normalizer.py. Принимает JSON-файлы от обоих парсеров. Выполняет: 1) очистку HTML-артефактов; 2) нормализацию LaTeX; 3) дедупликацию по content_hash (проверка в БД); 4) привязку к prototype_id по task_number и характеристикам задачи; 5) bulk INSERT в таблицу problems через Supabase client. Логирование: сколько добавлено, сколько дубликатов пропущено.",
       "acceptance_criteria": [
-        "Страница /topics загружает список тем через GET /api/topics",
-        "Каждая тема — карточка с: номер задания, название, макс. баллы, difficulty_level",
-        "Цветовая индикация: зелёный (изучено), жёлтый (в процессе), серый (не начато) — на основе user_topic_progress",
-        "Разделение на 'Часть 1' (задания 1–12) и 'Часть 2' (задания 13–19)",
-        "Клик на карточку → переход на /topics/:id"
+        "Скрипт принимает JSON: python tools/parsers/normalizer.py --input test_output.json",
+        "Дедупликация: повторный запуск с тем же файлом не создаёт дубликатов",
+        "LaTeX очищен от HTML-тегов",
+        "Задачи привязаны к prototype_id где возможно",
+        "Лог показывает: 'Added: 15, Skipped (duplicates): 3'"
       ],
       "test_steps": [
-        "Шаг 1: Открыть /topics → видны 19 карточек тем",
-        "Шаг 2: Проверить разделение на Часть 1 и Часть 2",
-        "Шаг 3: Кликнуть на тему → переход на /topics/:id",
-        "Шаг 4: Все 19 тем имеют корректные названия из seed-данных"
+        "Шаг 1: Запустить normalizer с выходом shkolkovo_parser",
+        "Шаг 2: SELECT count(*) FROM problems — проверить что задачи добавлены",
+        "Шаг 3: Повторный запуск — count не изменился (дедупликация)",
+        "Шаг 4: SELECT problem_text FROM problems WHERE source='shkolkovo' LIMIT 3 — проверить чистоту текста"
       ],
-      "dependencies": ["TASK-011", "TASK-008"],
-      "status": "done"
+      "dependencies": ["TASK-010", "TASK-011"],
+      "status": "pending"
     },
     {
       "id": "TASK-013",
-      "category": "ui",
+      "category": "functional",
       "priority": "critical",
-      "description": "Frontend: компонент MathRenderer — рендеринг Markdown с LaTeX через KaTeX",
+      "description": "Диагностический тест: бэкенд (подбор задач + приём ответов)",
+      "details": "Создать backend/app/routers/diagnostic.py и backend/app/services/diagnostic_service.py. Эндпоинты: POST /api/diagnostic/start — выбирает 19 задач (по одной на каждый task_number), средней сложности, возвращает DiagnosticStartResponse. POST /api/diagnostic/submit — принимает DiagnosticSubmitRequest (массив из 19 ответов: task_number, answer или self_assessment, time_spent_seconds), сохраняет в diagnostic_results. Для Части 1 (1-12): автопроверка (сравнение с correct_answer с учётом answer_tolerance). Для Части 2 (13-19): сохранение self_assessment. Подключить роутер в main.py.",
       "acceptance_criteria": [
-        "Компонент <MathRenderer content={markdownString} />",
-        "Парсит inline LaTeX: $...$ и \\\\(...\\\\)",
-        "Парсит block LaTeX: $$...$$ и \\\\[...\\\\]",
-        "Рендерит обычный Markdown (заголовки, списки, жирный, код)",
-        "KaTeX ошибки обрабатываются gracefully (показывается исходный текст)",
-        "KaTeX CSS подключён глобально"
+        "POST /api/diagnostic/start возвращает ровно 19 задач (по одной на task_number)",
+        "POST /api/diagnostic/submit корректно проверяет ответы Части 1",
+        "Self-assessment сохраняется для Части 2",
+        "time_spent_seconds записывается для каждого задания",
+        "Повторный start для пользователя с existing results — возвращает ошибку или предлагает пересдачу"
       ],
       "test_steps": [
-        "Шаг 1: Рендер строки 'Решите $x^2 + 2x + 1 = 0$' → формула отображается корректно",
-        "Шаг 2: Рендер блочной формулы $$\\\\frac{-b \\\\pm \\\\sqrt{b^2-4ac}}{2a}$$ → отображается по центру",
-        "Шаг 3: Рендер обычного Markdown: **жирный**, *курсив*, списки",
-        "Шаг 4: Невалидный LaTeX '$\\\\invalidcommand$' → отображается текст, а не крэш"
+        "Шаг 1: Написать test_diagnostic.py",
+        "Шаг 2: Тест POST /api/diagnostic/start — 19 задач в ответе",
+        "Шаг 3: Тест POST /api/diagnostic/submit с корректными ответами",
+        "Шаг 4: Тест автопроверки: правильный ответ = is_correct: true",
+        "Шаг 5: Тест self_assessment для задания 13: 'level_2' сохраняется",
+        "Шаг 6: pytest"
       ],
-      "dependencies": ["TASK-001"],
-      "status": "done"
+      "dependencies": ["TASK-002", "TASK-003"],
+      "status": "pending"
     },
     {
       "id": "TASK-014",
-      "category": "ui",
+      "category": "functional",
       "priority": "critical",
-      "description": "Frontend: страница темы /topics/:id — теория и список заданий",
+      "description": "Диагностика: инициализация FSRS-карточек из результатов теста",
+      "details": "В diagnostic_service.py добавить метод initialize_fsrs_from_diagnostic(user_id, diagnostic_results). Логика маппинга из PRD 5.3: Ч1 правильно < 1мин -> S=30, D=2, state=review; Ч1 правильно > 1мин -> S=7, D=4, state=review; Ч1 неправильно -> S=1, D=6, state=learning; Ч2 level_3 -> S=14, D=3, state=review; Ч2 level_2 -> S=3, D=5, state=learning; Ч2 level_1 -> S=1, D=7, state=learning; Ч2 level_0 -> state=new (требуется теория). Создавать fsrs_cards для всех prototype_id, связанных с каждым task_number. Вызывается автоматически после submit диагностики.",
       "acceptance_criteria": [
-        "Загружает данные темы через GET /api/topics/{id}",
-        "Отображает: название, описание, макс. баллы, difficulty",
-        "Секция 'Теория' — рендерит theory_content через MathRenderer",
-        "Секция 'Задания' — список заданий по этой теме (из GET /api/problems?topic_id=)",
-        "Кнопка 'Начать FIRe-flow' → переход на /topics/:id/fire",
-        "Кнопка 'Решать задания' → переход к первому заданию"
+        "После submit диагностики для каждого task_number создаются fsrs_cards",
+        "Правильный маппинг D и S по таблице из PRD 5.3",
+        "Для task_number с level_0: карточки в state='new'",
+        "Для правильно решённых < 1мин: S=30 дней",
+        "Карточки привязаны к prototype_id"
       ],
       "test_steps": [
-        "Шаг 1: Открыть /topics/:id → название и описание темы отображаются",
-        "Шаг 2: Теория рендерится с формулами через MathRenderer",
-        "Шаг 3: Список заданий отображается с difficulty-бейджами",
-        "Шаг 4: Кнопки навигации работают"
+        "Шаг 1: Создать диагностику с разными результатами",
+        "Шаг 2: Проверить fsrs_cards: count > 0 для пользователя",
+        "Шаг 3: Для task_number=7 (правильно, 30 сек): D≈2, S≈30",
+        "Шаг 4: Для task_number=13 (level_0): state='new'",
+        "Шаг 5: pytest"
       ],
-      "dependencies": ["TASK-012", "TASK-013"],
-      "status": "done"
+      "dependencies": ["TASK-004", "TASK-013"],
+      "status": "pending"
     },
     {
       "id": "TASK-015",
-      "category": "ui",
+      "category": "functional",
       "priority": "critical",
-      "description": "Frontend: экран решения задания — условие, ввод ответа, проверка, решение, SRS-кнопки",
+      "description": "Генерация персонального плана подготовки",
+      "details": "Создать backend/app/services/study_plan_service.py. Реализовать алгоритм из PRD 6.1: 1) По target_score определить required_tasks (70->[1-12], 80->+[13,15,16], 90->+[14,17], 100->+[18,19]); 2) Отфильтровать освоенные по диагностике (threshold по маппингу); 3) Отсортировать по ROI (баллы/часы из матрицы PRD 2.1); 4) Рассчитать total_hours = days_remaining * hours_per_day, study_hours = 70%, review_hours = 30%; 5) Распределить по неделям и дням; 6) Если не хватает времени — warning с рекомендацией снизить цель. Сохранить в user_study_plan.",
       "acceptance_criteria": [
-        "Компонент ProblemCard отображает условие через MathRenderer",
-        "Поле ввода числового ответа для Части 1",
-        "Кнопка 'Проверить' → POST /api/problems/{id}/attempt",
-        "После проверки: зелёный/красный индикатор, правильный ответ, разворачиваемое решение",
-        "Кнопки самооценки SRS: again / hard / good / easy (появляются после проверки)",
-        "Для Части 2: кнопка 'Показать решение' вместо поля ввода + самооценка",
-        "Таймер (опциональный, отключаемый)"
+        "Для target_score=70 план содержит только задания 1-12",
+        "Задания отсортированы по ROI (7->6->4->8->1->2->12->9->3->5->10->11)",
+        "70/30 split: 70% на новый материал, 30% на повторение",
+        "Warning генерируется если total_hours < needed_hours",
+        "План разбит по неделям с конкретными темами на каждый день",
+        "Освоенные темы (по диагностике) пропущены"
       ],
       "test_steps": [
-        "Шаг 1: Открыть задание Части 1 → условие отображается, поле ввода видно",
-        "Шаг 2: Ввести правильный ответ → 'Проверить' → зелёный индикатор",
-        "Шаг 3: Нажать 'Показать решение' → решение разворачивается с формулами",
-        "Шаг 4: Нажать SRS-кнопку 'good' → запрос отправляется",
-        "Шаг 5: Задание Части 2 → только кнопка 'Показать решение' и самооценка"
+        "Шаг 1: Написать test_study_plan_service.py",
+        "Шаг 2: Тест: target=70, 60 дней, 1.5ч/день — план для ~12 заданий",
+        "Шаг 3: Тест: target=80 — план включает задания 13, 15, 16",
+        "Шаг 4: Тест: target=70, 10 дней, 0.5ч/день — warning о нехватке времени",
+        "Шаг 5: Тест: с диагностикой где задания 7,6,4 освоены — они пропущены в плане",
+        "Шаг 6: pytest"
       ],
-      "dependencies": ["TASK-013", "TASK-009"],
-      "status": "done"
+      "dependencies": ["TASK-013"],
+      "status": "pending"
     },
     {
       "id": "TASK-016",
-      "category": "functional",
+      "category": "integration",
       "priority": "critical",
-      "description": "Backend: seed-данные — минимум 5 заданий на каждый из 19 типов (95 задач) с решениями",
+      "description": "Study Plan API: генерация, получение, пересчёт",
+      "details": "Создать backend/app/routers/study_plan.py. Эндпоинты: POST /api/study-plan/generate — вызывает StudyPlanService.generate(), сохраняет в user_study_plan; GET /api/study-plan/current — возвращает активный план пользователя; PUT /api/study-plan/recalculate — пересчитать план (при изменении target_score, exam_date, hours_per_day); GET /api/study-plan/today — задачи на сегодня: FSRS-карточки due + следующая тема по плану. Подключить в main.py.",
       "acceptance_criteria": [
-        "Скрипт/миграция supabase/migrations/003_seed_problems.sql + JSON-файлы в supabase/seed/problems/",
-        "Минимум 5 заданий на каждый task_number (1–19), итого >= 95 заданий",
-        "Каждое задание: problem_text с LaTeX, correct_answer, solution_markdown с пошаговым решением",
-        "Разнообразие difficulty: basic, medium, hard в каждом типе",
-        "Источники указаны (ФИПИ, Ященко и т.д.)"
+        "POST /api/study-plan/generate создаёт план и сохраняет в БД",
+        "GET /api/study-plan/current возвращает активный план",
+        "PUT /api/study-plan/recalculate пересчитывает при изменении параметров",
+        "GET /api/study-plan/today возвращает объединённый вид: ревью + новый материал",
+        "Авторизация: только свой план"
       ],
       "test_steps": [
-        "Шаг 1: Подсчитать задания — >= 95 штук",
-        "Шаг 2: Проверить что каждый task_number (1–19) имеет >= 5 заданий",
-        "Шаг 3: Проверить корректность LaTeX в problem_text (нет синтаксических ошибок)",
-        "Шаг 4: Проверить что correct_answer заполнен для заданий Части 1"
+        "Шаг 1: Написать test_study_plan_api.py",
+        "Шаг 2: POST /api/study-plan/generate с target_score=80 — 201",
+        "Шаг 3: GET /api/study-plan/current — план присутствует",
+        "Шаг 4: PUT /api/study-plan/recalculate с target_score=70 — план обновлён",
+        "Шаг 5: GET /api/study-plan/today — непустой ответ",
+        "Шаг 6: pytest"
       ],
-      "dependencies": ["TASK-004"],
-      "status": "done"
+      "dependencies": ["TASK-015"],
+      "status": "pending"
     },
     {
       "id": "TASK-017",
-      "category": "functional",
-      "priority": "critical",
-      "description": "Backend: SRS-движок — модифицированный алгоритм SM-2 с расчётом интервалов",
+      "category": "integration",
+      "priority": "high",
+      "description": "FSRS: автосоздание карточки при решении задачи + обновление attempt",
+      "details": "Обновить backend/app/routers/problems.py: POST /api/problems/{id}/attempt. После проверки ответа — создавать fsrs_card (вместо srs_card) через FSRSService.create_card(). Рейтинг определяется по результату: correct + fast -> Rating.Easy(4), correct -> Rating.Good(3), incorrect -> Rating.Again(1). Если fsrs_card уже существует для этой пары (user_id, problem_id) — не создавать дубликат, а сделать review.",
       "acceptance_criteria": [
-        "Модуль backend/app/services/srs_engine.py",
-        "Функция calculate_next_review(card, self_assessment, exam_date) → {next_review_date, new_interval, new_ease_factor}",
-        "Реализация SM-2: again → interval=1, ef-=0.2; hard → interval*=1.2, ef-=0.15; good → interval*=ef; easy → interval*=ef*1.3, ef+=0.15",
-        "ease_factor не падает ниже 1.3",
-        "Интеграция exam_countdown_factor: <14д → 60%, <30д → 75%, <90д → 100%, >=90д → 120%",
-        "Unit-тесты для всех 4 вариантов self_assessment и всех диапазонов exam_days"
+        "После attempt создаётся fsrs_card (не srs_card)",
+        "При повторном attempt той же задачи — review существующей карточки",
+        "XP по-прежнему начисляется корректно",
+        "Стрик обновляется",
+        "Старая логика srs_card не вызывается (но код не удалён)"
       ],
       "test_steps": [
-        "Шаг 1: again на карточку с interval=10 → interval=1, ef уменьшен",
-        "Шаг 2: good на карточку с ef=2.5, interval=5 → interval=12.5",
-        "Шаг 3: easy на карточку → interval увеличен сильнее чем good",
-        "Шаг 4: Проверить сжатие при exam_days < 30 → интервалы короче",
-        "Шаг 5: ef не падает ниже 1.3 при серии again"
+        "Шаг 1: POST /api/problems/{id}/attempt с правильным ответом",
+        "Шаг 2: SELECT * FROM fsrs_cards WHERE user_id=... AND problem_id=... — запись есть",
+        "Шаг 3: Повторный attempt — count fsrs_cards не увеличился (review, не создание)",
+        "Шаг 4: SELECT * FROM srs_cards — НЕ создано новых записей",
+        "Шаг 5: pytest — все тесты включая старые проходят"
       ],
-      "dependencies": ["TASK-005"],
-      "status": "done"
+      "dependencies": ["TASK-004"],
+      "status": "pending"
     },
     {
       "id": "TASK-018",
       "category": "functional",
-      "priority": "critical",
-      "description": "Backend: API SRS-сессий — формирование сессии с interleaving + POST review",
+      "priority": "medium",
+      "description": "Скрипт миграции данных: srs_cards -> fsrs_cards",
+      "details": "Создать tools/migrations/migrate_srs_to_fsrs.py. Для каждой записи в srs_cards: создать запись в fsrs_cards с конвертацией параметров. Маппинг: ease_factor -> difficulty (инвертировать шкалу: ease 2.5 -> D≈3, ease 1.3 -> D≈8); interval_days -> stability; next_review_date -> due; repetition_count -> reps; status маппинг: new->new, learning->learning, review->review, suspended->review. Скрипт идемпотентен: не создаёт дубликатов при повторном запуске.",
       "acceptance_criteria": [
-        "GET /api/srs/session?max_cards=20 — формирует сессию из карточек, готовых к повторению",
-        "Алгоритм: urgency_score = days_since_last / interval, фильтр >= 1.0, сортировка по urgency desc",
-        "Interleaving: не более 2 подряд из одной темы, приоритет смешивания родственных тем",
-        "POST /api/srs/review — записывает результат, обновляет srs_cards (interval, ef, next_review_date)",
-        "Начисляет XP и обновляет user_topic_progress.strength_score",
-        "Создание SRS-карточек при первом решении задания (если карточки ещё нет)"
+        "Все записи из srs_cards скопированы в fsrs_cards",
+        "Маппинг параметров корректен",
+        "Повторный запуск не создаёт дубликатов",
+        "Лог: 'Migrated: N, Skipped: M'"
       ],
       "test_steps": [
-        "Шаг 1: Решить несколько заданий → SRS-карточки созданы автоматически",
-        "Шаг 2: GET /api/srs/session → массив карточек, нет 3+ подряд из одной темы",
-        "Шаг 3: POST /api/srs/review с assessment='good' → next_review_date в будущем",
-        "Шаг 4: Повторно GET /api/srs/session → отработанная карточка не включена (если не просрочена)"
+        "Шаг 1: SELECT count(*) FROM srs_cards — запомнить N",
+        "Шаг 2: python tools/migrations/migrate_srs_to_fsrs.py",
+        "Шаг 3: SELECT count(*) FROM fsrs_cards — ≥N",
+        "Шаг 4: Повторный запуск — count не изменился",
+        "Шаг 5: Выборочная проверка: srs_card с ease=2.5 -> fsrs_card с D≈3"
       ],
-      "dependencies": ["TASK-017", "TASK-009"],
-      "status": "done"
+      "dependencies": ["TASK-004"],
+      "status": "pending"
     },
     {
       "id": "TASK-019",
       "category": "ui",
       "priority": "critical",
-      "description": "Frontend: интерфейс SRS-тренировочной сессии — последовательное решение карточек",
+      "description": "Фронтенд: Onboarding flow (целевой балл, часы/день, дата экзамена)",
+      "details": "Создать frontend/src/pages/Onboarding.tsx. Трёхшаговая форма: 1) Целевой балл — кнопки 70/80/90/100 с описанием ('Идеальная Часть 1' / 'Джентльменский набор' / '+ Геометрия' / 'Максимум'); 2) Часы в день — слайдер или кнопки 0.5/1/1.5/2/3; 3) Дата экзамена — date picker (по умолчанию дата ЕГЭ-2026). По завершении: PATCH /api/users/me с target_score, hours_per_day, exam_date. Redirect на /diagnostic. Добавить роут в App.tsx.",
       "acceptance_criteria": [
-        "Страница /practice — кнопка 'Начать тренировку', показывает кол-во карточек на сегодня",
-        "Страница /practice/session — карточки показываются одна за другой",
-        "Прогресс-бар сессии: 3/15 решено",
-        "Каждая карточка — ProblemCard с вводом ответа + SRS-кнопки",
-        "После последней карточки — автоматический переход на /practice/results",
-        "Zustand store для текущей сессии: cards[], currentIndex, results[]"
+        "Страница /onboarding отображается корректно",
+        "3 шага навигации с кнопками Далее/Назад",
+        "Выбор целевого балла сохраняется",
+        "Выбор часов/день сохраняется",
+        "Дата экзамена по умолчанию заполнена",
+        "После завершения — PATCH запрос к API и redirect на /diagnostic",
+        "Адаптивный дизайн (mobile + desktop)"
       ],
       "test_steps": [
-        "Шаг 1: Открыть /practice → видно кол-во карточек и кнопка старта",
-        "Шаг 2: Нажать 'Начать' → первая карточка сессии",
-        "Шаг 3: Решить → нажать SRS-кнопку → следующая карточка",
-        "Шаг 4: Прогресс-бар обновляется при каждом переходе",
-        "Шаг 5: После последней карточки → переход на results"
+        "Шаг 1: Открыть /onboarding в браузере",
+        "Шаг 2: Выбрать целевой балл 80, нажать Далее",
+        "Шаг 3: Выбрать 1.5 часа, нажать Далее",
+        "Шаг 4: Оставить дату по умолчанию, нажать Начать",
+        "Шаг 5: Проверить Network — PATCH /api/users/me отправлен с корректными данными",
+        "Шаг 6: Redirect на /diagnostic произошёл"
       ],
-      "dependencies": ["TASK-015", "TASK-018"],
-      "status": "done"
+      "dependencies": ["TASK-002"],
+      "status": "pending"
     },
     {
       "id": "TASK-020",
       "category": "ui",
-      "priority": "high",
-      "description": "Frontend: экран результатов SRS-сессии — сводка, XP, статистика по темам",
+      "priority": "critical",
+      "description": "Фронтенд: Диагностический тест UI",
+      "details": "Создать frontend/src/pages/Diagnostic.tsx. По загрузке: POST /api/diagnostic/start, получить 19 задач. UI: прогресс-бар (1/19), таймер на каждое задание (рекомендуемый, не блокирующий), для Ч1 (1-12) — input для числового ответа, для Ч2 (13-19) — 4 кнопки self-assessment ('Не знаю как подступиться' / 'Начал, но не довёл' / 'Решил, не уверен' / 'Решил уверенно'). MathRenderer для отображения задач с LaTeX. По завершении: POST /api/diagnostic/submit со всеми ответами. Redirect на /plan или /dashboard.",
       "acceptance_criteria": [
-        "Страница /practice/results показывает: решено N из M, правильных X%",
-        "Разбивка по темам: 'Планиметрия: 3/4 правильно'",
-        "Показан заработанный XP с анимацией",
-        "Кнопка 'Ещё одна сессия' → /practice",
-        "Кнопка 'На главную' → /dashboard",
-        "Данные сессии сохраняются через backend (POST или автоматически)"
+        "Страница /diagnostic загружает 19 задач",
+        "Прогресс-бар показывает текущее задание",
+        "Таймер тикает для каждого задания",
+        "Для заданий 1-12: input поле для ответа",
+        "Для заданий 13-19: кнопки самооценки (4 уровня)",
+        "LaTeX рендерится корректно (KaTeX)",
+        "По завершении: submit и redirect"
       ],
       "test_steps": [
-        "Шаг 1: Завершить SRS-сессию → переход на /practice/results",
-        "Шаг 2: Отображается корректное кол-во правильных/неправильных",
-        "Шаг 3: XP показан и совпадает с суммой за сессию",
-        "Шаг 4: Кнопки навигации работают"
+        "Шаг 1: Открыть /diagnostic",
+        "Шаг 2: Проверить что загружено 19 задач (прогресс 1/19)",
+        "Шаг 3: Ответить на задание 1 (число), нажать Далее",
+        "Шаг 4: Дойти до задания 13 — появляются кнопки самооценки",
+        "Шаг 5: Пройти все 19 заданий",
+        "Шаг 6: Проверить Network — POST /api/diagnostic/submit с 19 ответами"
       ],
-      "dependencies": ["TASK-019"],
-      "status": "done"
+      "dependencies": ["TASK-013"],
+      "status": "pending"
     },
     {
       "id": "TASK-021",
-      "category": "functional",
+      "category": "ui",
       "priority": "high",
-      "description": "Backend: система XP и уровней — начисление, уровни, обновление при каждом действии",
+      "description": "Фронтенд: Страница персонального плана",
+      "details": "Создать frontend/src/pages/StudyPlan.tsx. Загружает GET /api/study-plan/current. Показывает: 1) Таймлайн — горизонтальная шкала недель с цветными блоками по темам (Recharts); 2) Прогноз балла — текущий расчётный балл; 3) Предупреждения ('Вы отстаёте на 2 дня'); 4) Кнопка 'Пересчитать план' с модалкой изменения параметров (target_score, hours_per_day). Добавить роут /plan в App.tsx и ссылку в Sidebar.",
       "acceptance_criteria": [
-        "Модуль backend/app/services/xp_service.py",
-        "Начисление XP по правилам PRD: +10 Ч1, +25 Ч2, +50 FIRe, +30 сессия, +5 серия",
-        "Автоматический расчёт уровня по таблице: 0→Новичок, 100→Ученик, 300→Практикант и т.д.",
-        "Обновление users.current_xp и users.current_level при каждом начислении",
-        "API возвращает xp_earned и new_level_reached (если повысился) в ответах на attempt и review"
+        "Страница /plan отображает план по неделям",
+        "Таймлайн визуализирован с цветовым кодированием по темам",
+        "Прогноз балла отображается",
+        "Кнопка пересчёта вызывает PUT /api/study-plan/recalculate",
+        "Warning отображается если пользователь отстаёт",
+        "Ссылка в сайдбаре работает"
       ],
       "test_steps": [
-        "Шаг 1: Правильный ответ Ч1 → xp_earned=10",
-        "Шаг 2: Набрать 100 XP → уровень меняется на 2 (Ученик)",
-        "Шаг 3: Завершить SRS-сессию → бонус +30 XP",
-        "Шаг 4: GET /api/users/me/stats → корректный XP и уровень"
+        "Шаг 1: Сгенерировать план через API",
+        "Шаг 2: Открыть /plan",
+        "Шаг 3: Проверить таймлайн с неделями",
+        "Шаг 4: Нажать 'Пересчитать', изменить target_score на 70",
+        "Шаг 5: План обновился"
       ],
-      "dependencies": ["TASK-007", "TASK-009"],
-      "status": "done"
+      "dependencies": ["TASK-016"],
+      "status": "pending"
     },
     {
       "id": "TASK-022",
-      "category": "functional",
+      "category": "ui",
       "priority": "high",
-      "description": "Backend: система стриков — подсчёт ежедневной активности и streak",
+      "description": "Фронтенд: Ежедневный чек-лист на Dashboard",
+      "details": "Обновить frontend/src/pages/Dashboard.tsx. Добавить секцию 'Сегодня' на основе GET /api/study-plan/today. Два блока: 1) FSRS-повторение — кол-во карточек на ревью, кнопка 'Начать повторение' -> /practice; 2) Новый материал — название следующей темы/прототипа по плану, кнопка 'Изучить' -> /topics/:id/fire. Если плана нет — показать кнопку 'Создать план' -> /onboarding.",
       "acceptance_criteria": [
-        "При каждом завершении сессии/FIRe — запись в user_daily_activity",
-        "Если activity_date = сегодня и ещё нет записи — создать, streak_maintained = true",
-        "Обновление users.current_streak: если вчера была активность — streak+1, иначе — 1",
-        "Обновление users.longest_streak если current > longest",
-        "GET /api/progress/activity-calendar — данные для heatmap за последние 365 дней"
+        "На Dashboard отображается секция 'Сегодня'",
+        "Блок повторения показывает количество due-карточек",
+        "Блок нового материала показывает следующую тему",
+        "Кнопки ведут на корректные страницы",
+        "Без плана: CTA 'Создать план'"
       ],
       "test_steps": [
-        "Шаг 1: Решить задание → current_streak = 1 (первый день)",
-        "Шаг 2: На следующий день решить ещё → current_streak = 2",
-        "Шаг 3: Пропустить день → current_streak сброшен на 0",
-        "Шаг 4: GET /api/progress/activity-calendar → массив {date, sessions_completed, problems_solved}"
+        "Шаг 1: Открыть /dashboard с активным планом",
+        "Шаг 2: Секция 'Сегодня' отображается",
+        "Шаг 3: Нажать 'Начать повторение' — redirect на /practice",
+        "Шаг 4: Открыть /dashboard без плана — CTA 'Создать план'"
       ],
-      "dependencies": ["TASK-007"],
-      "status": "done"
+      "dependencies": ["TASK-016"],
+      "status": "pending"
     },
     {
       "id": "TASK-023",
-      "category": "functional",
+      "category": "ui",
       "priority": "high",
-      "description": "Backend: API теории и FIRe-flow — GET theory content, POST fire-progress",
+      "description": "Фронтенд: Prototype detail page с теорией",
+      "details": "Создать frontend/src/pages/PrototypeDetail.tsx или обновить TopicDetail. По загрузке: GET /api/prototypes/{id}. Показывает: theory_markdown (рендерится через MathRenderer с KaTeX), key_formulas (блок с формулами), solution_algorithm (пронумерованные шаги), common_mistakes (warning-блоки). Ниже: YouTube-видео (GET /api/prototypes/{id}/videos). Ещё ниже: кнопка 'Практика' -> задачи этого прототипа. Добавить роут /prototypes/:id в App.tsx.",
       "acceptance_criteria": [
-        "GET /api/topics/{id}/theory — массив theory_content по этапам: framework, inquiry, relationships, elaboration",
-        "POST /api/topics/{id}/fire-progress — обновляет user_topic_progress (fire_framework_completed и т.д.)",
-        "При завершении всех 4 этапов: fire_completed_at = now(), начисление +50 XP",
-        "Автоматическое создание SRS-карточек (card_type='concept') для ключевых концептов темы"
+        "Страница /prototypes/:id отображает теорию",
+        "LaTeX формулы рендерятся через KaTeX",
+        "Пошаговый алгоритм решения отображается",
+        "Типичные ошибки выделены визуально",
+        "YouTube-видео embedded и играет",
+        "Кнопка практики ведёт на задачи прототипа"
       ],
       "test_steps": [
-        "Шаг 1: GET /api/topics/{id}/theory → массив с content_type: framework, inquiry, relationships, elaboration",
-        "Шаг 2: POST fire-progress {stage: 'framework'} → fire_framework_completed = true",
-        "Шаг 3: Завершить все 4 этапа → fire_completed_at заполнен, +50 XP",
-        "Шаг 4: Проверить создание SRS-карточек для темы"
+        "Шаг 1: Открыть /prototypes/{id} для прототипа 6.3",
+        "Шаг 2: Проверить рендеринг LaTeX в theory_markdown",
+        "Шаг 3: Проверить формулы в key_formulas",
+        "Шаг 4: Проверить YouTube-видео — играет",
+        "Шаг 5: Нажать 'Практика' — список задач загружается"
       ],
-      "dependencies": ["TASK-008", "TASK-021"],
-      "status": "done"
+      "dependencies": ["TASK-006", "TASK-007"],
+      "status": "pending"
     },
     {
       "id": "TASK-024",
       "category": "ui",
       "priority": "high",
-      "description": "Frontend: FIRe-flow wizard — 4-этапный интерфейс изучения темы",
+      "description": "Компонент YouTube-плеер с таймкодами",
+      "details": "Создать frontend/src/components/YouTubePlayer.tsx. Props: videoId, timestamps (массив {time, label}). Использует YouTube IFrame API. Под видео — список таймкодов как кликабельные ссылки. Клик по таймкоду: seekTo(time). Компонент используется на PrototypeDetail page.",
       "acceptance_criteria": [
-        "Страница /topics/:id/fire — wizard с 4 шагами и прогресс-баром (F → I → R → E)",
-        "Этап F (Framework): карта темы с ключевыми концептами, формулы через MathRenderer",
-        "Этап I (Inquiry): исследовательские вопросы + текстовые поля для ответов, эталонные ответы после",
-        "Этап R (Relationships): список связей с другими темами, возможность добавления заметок",
-        "Этап E (Elaboration): текстовое поле 'объясни простым языком' + чек-лист ключевых пунктов",
-        "Навигация вперёд/назад между этапами, сохранение прогресса через API"
+        "Компонент рендерит YouTube iframe по videoId",
+        "Таймкоды отображаются под видео",
+        "Клик по таймкоду перематывает видео на указанное время",
+        "Responsive: подстраивается под ширину контейнера"
       ],
       "test_steps": [
-        "Шаг 1: Открыть /topics/:id/fire → первый этап Framework",
-        "Шаг 2: Просмотреть контент → кнопка 'Далее' → этап Inquiry",
-        "Шаг 3: Ответить на вопросы → 'Далее' → этап Relationships",
-        "Шаг 4: Пройти все 4 этапа → прогресс сохранён, появляется 'Тема изучена!'",
-        "Шаг 5: Вернуться на /topics/:id → индикатор 'FIRe пройден'"
+        "Шаг 1: Рендерить YouTubePlayer с тестовым videoId и 3 таймкодами",
+        "Шаг 2: Видео загружается и играет",
+        "Шаг 3: Клик по таймкоду — видео перематывается",
+        "Шаг 4: Проверить на мобильном viewport — корректный размер"
       ],
-      "dependencies": ["TASK-014", "TASK-023"],
-      "status": "done"
+      "dependencies": [],
+      "status": "pending"
     },
     {
       "id": "TASK-025",
-      "category": "functional",
+      "category": "ui",
       "priority": "high",
-      "description": "Backend: Dashboard API — GET /api/progress/dashboard с обратным отсчётом и рекомендациями",
+      "description": "Фронтенд: обновление SRS-сессии под FSRS",
+      "details": "Обновить frontend/src/pages/PracticeSession.tsx. Переключить с /api/srs/ на /api/fsrs/ эндпоинты. В sessionStore: обновить типы для FSRS-полей (difficulty, stability, retrievability вместо ease_factor, interval_days). На карточке: показывать retrievability (% вероятности вспомнить). Рейтинг: 4 кнопки (Again/Hard/Good/Easy) с маппингом на FSRS Rating 1-4. В PracticeResults: показать средний retrievability, прогноз следующей сессии.",
       "acceptance_criteria": [
-        "GET /api/progress/dashboard возвращает:",
-        "  - exam_countdown: дней до экзамена",
-        "  - topics_progress: массив {task_number, title, strength_score, fire_completed}",
-        "  - today_review_count: сколько карточек на повторение сегодня",
-        "  - weekly_stats: решено/правильно за 7 дней",
-        "  - recommendations: массив текстовых рекомендаций по темпу подготовки",
-        "  - current_xp, current_level, current_streak"
+        "PracticeSession использует /api/fsrs/ эндпоинты",
+        "Карточки отображают retrievability",
+        "4 кнопки рейтинга работают корректно",
+        "PracticeResults показывает FSRS-специфичную статистику",
+        "sessionStore обновлён под новые типы"
       ],
       "test_steps": [
-        "Шаг 1: GET /api/progress/dashboard → все поля присутствуют",
-        "Шаг 2: exam_countdown корректен (разница между exam_date и today)",
-        "Шаг 3: today_review_count совпадает с реальным кол-вом просроченных SRS-карточек",
-        "Шаг 4: Рекомендации адаптируются к оставшемуся времени"
+        "Шаг 1: Создать FSRS-карточки (через attempt или диагностику)",
+        "Шаг 2: Открыть /practice — сессия загружается из /api/fsrs/session",
+        "Шаг 3: Ответить на карточку, нажать Good — запрос к /api/fsrs/review",
+        "Шаг 4: Проверить Network — запросы идут к /api/fsrs/, не /api/srs/",
+        "Шаг 5: Дойти до конца сессии — PracticeResults с FSRS-статистикой"
       ],
-      "dependencies": ["TASK-007", "TASK-018", "TASK-022"],
-      "status": "done"
+      "dependencies": ["TASK-005"],
+      "status": "pending"
     },
     {
       "id": "TASK-026",
       "category": "ui",
-      "priority": "high",
-      "description": "Frontend: Dashboard — обратный отсчёт, прогресс по темам, виджет SRS, рекомендации",
+      "priority": "medium",
+      "description": "FIRe flow: обновление для работы с прототипами",
+      "details": "Обновить frontend/src/pages/TopicFire.tsx. Вместо одного FIRe flow на весь topic — показывать FIRe по прототипам. Загружать прототипы: GET /api/prototypes?task_number={N}. Навигация: список прототипов -> выбор прототипа -> FIRe wizard (F-I-R-E) с контентом из prototype.theory_markdown. На этапе R (Relationships): показать related_prototypes как карточки-ссылки. После завершения всех 4 этапов: POST fire-progress + создать FSRS-карточку.",
       "acceptance_criteria": [
-        "Страница /dashboard загружает данные через GET /api/progress/dashboard",
-        "Крупный обратный отсчёт до экзамена (дней)",
-        "XP / Уровень / Стрик в header (уже из TASK-010, но теперь с реальными данными)",
-        "Карта тем: 19 карточек с цветовой индикацией strength_score (красный→жёлтый→зелёный)",
-        "Виджет 'Сегодня на повторение: N карточек' с кнопкой быстрого старта",
-        "Блок рекомендаций по темпу"
+        "FIRe flow показывает прототипы внутри темы",
+        "Каждый прототип проходит через 4 этапа FIRe",
+        "Этап R показывает связанные прототипы",
+        "Завершение создаёт FSRS-карточку (не srs_card)",
+        "XP начисляется за завершение"
       ],
       "test_steps": [
-        "Шаг 1: Открыть /dashboard → обратный отсчёт отображается",
-        "Шаг 2: XP и уровень в header — реальные данные",
-        "Шаг 3: Карта тем показывает цвета по strength_score",
-        "Шаг 4: Кнопка 'Начать повторение' → переход на /practice"
+        "Шаг 1: Открыть /topics/:id/fire для задания 6",
+        "Шаг 2: Увидеть список прототипов (6.1, 6.2, ...)",
+        "Шаг 3: Выбрать прототип 6.3, пройти F-I-R-E этапы",
+        "Шаг 4: На этапе R — видны связанные прототипы",
+        "Шаг 5: Завершить — XP получен, FSRS-карточка создана"
       ],
-      "dependencies": ["TASK-025", "TASK-012"],
-      "status": "done"
+      "dependencies": ["TASK-006", "TASK-017"],
+      "status": "pending"
     },
     {
       "id": "TASK-027",
       "category": "functional",
       "priority": "high",
-      "description": "Backend: Карта пробелов (Gap Map) — GET /api/progress/gap-map",
+      "description": "Прогноз балла на основе FSRS-состояния карточек",
+      "details": "Добавить в backend/app/services/study_plan_service.py метод predict_score(user_id) -> dict. Логика: для каждого task_number получить все fsrs_cards пользователя, вычислить средний retrievability, считать задание 'освоенным' если avg_retrievability >= 0.8. Суммировать баллы освоенных заданий по матрице из PRD 2.1. Добавить эндпоинт GET /api/progress/predicted-score.",
       "acceptance_criteria": [
-        "GET /api/progress/gap-map возвращает массив записей:",
-        "  - task_number, topic (название), strength (0–100%)",
-        "  - error_count за последние 30 дней",
-        "  - last_error_date",
-        "  - recommended_action: 'Повторить теорию' / 'Решить 5 задач' / 'Пройти FIRe-flow заново'",
-        "Фильтрация по query params: ?task_number=&min_strength=&max_strength=",
-        "Сортировка по strength (слабые первыми)"
+        "GET /api/progress/predicted-score возвращает predicted_score и breakdown по заданиям",
+        "Задание считается освоенным при avg_retrievability >= 0.8",
+        "Баллы суммируются по матрице из PRD (задания 1-12 по 1б, 13-17 по 2-3б, 18-19 по 4б)",
+        "Тестовый балл конвертируется по шкале перевода"
       ],
       "test_steps": [
-        "Шаг 1: Решить задания с ошибками → GET /api/progress/gap-map → ошибки отражены",
-        "Шаг 2: Проверить что recommended_action зависит от strength и error_count",
-        "Шаг 3: Фильтрация по task_number работает"
+        "Шаг 1: Создать fsrs_cards для заданий 1-7 с high retrievability",
+        "Шаг 2: GET /api/progress/predicted-score — predicted >= 40",
+        "Шаг 3: Добавить fsrs_cards для заданий 8-12 — predicted ≈ 70",
+        "Шаг 4: Добавить задания 13, 15, 16 — predicted ≈ 82",
+        "Шаг 5: pytest"
       ],
-      "dependencies": ["TASK-009", "TASK-022"],
-      "status": "done"
+      "dependencies": ["TASK-004"],
+      "status": "pending"
     },
     {
       "id": "TASK-028",
       "category": "ui",
-      "priority": "high",
-      "description": "Frontend: страница Прогресс — Gap Map таблица, heatmap активности, графики",
+      "priority": "medium",
+      "description": "Dashboard: интеграция прогноза балла и предупреждений",
+      "details": "Обновить frontend/src/pages/Dashboard.tsx. Добавить виджет 'Прогноз балла' — число + прогресс-бар до целевого балла. Добавить блок предупреждений: 'Вы отстаёте от плана на N дней', 'Тема №X требует повторения' (по retrievability). Данные из GET /api/progress/predicted-score и GET /api/study-plan/today.",
       "acceptance_criteria": [
-        "Страница /progress с тремя секциями:",
-        "1. Карта пробелов: таблица с фильтрами по номеру задания, силе темы",
-        "2. Calendar heatmap (как на GitHub) — данные за последние 365 дней",
-        "3. График динамики правильных ответов за 7/30 дней (Recharts)",
-        "Фильтры работают без перезагрузки страницы"
+        "Виджет прогноза балла отображается на Dashboard",
+        "Прогресс-бар показывает текущий vs целевой балл",
+        "Предупреждения отображаются при отставании",
+        "Данные загружаются из API"
       ],
       "test_steps": [
-        "Шаг 1: Открыть /progress → три секции видны",
-        "Шаг 2: Карта пробелов показывает темы с ошибками",
-        "Шаг 3: Heatmap отображает дни активности",
-        "Шаг 4: График показывает динамику (или пустой если мало данных)",
-        "Шаг 5: Фильтры в Gap Map работают"
+        "Шаг 1: Открыть /dashboard с активным планом и карточками",
+        "Шаг 2: Виджет прогноза отображает число",
+        "Шаг 3: Прогресс-бар заполнен корректно",
+        "Шаг 4: При просроченных карточках — предупреждение видно"
       ],
-      "dependencies": ["TASK-027", "TASK-022"],
-      "status": "done"
+      "dependencies": ["TASK-022", "TASK-027"],
+      "status": "pending"
     },
     {
       "id": "TASK-029",
       "category": "ui",
-      "priority": "high",
-      "description": "Frontend: страница Профиль — настройки, дата экзамена, целевой балл, стрик-календарь",
+      "priority": "medium",
+      "description": "Progress page: heatmap активности и FSRS-аналитика",
+      "details": "Обновить frontend/src/pages/Progress.tsx. Добавить: 1) GitHub-style heatmap активности за 365 дней (данные из GET /api/progress/activity-calendar); 2) Breakdown по task_number: полоса с % retrievability для каждого из 19 заданий (Recharts BarChart); 3) FSRS-статистика: total cards, cards in review, average stability, cards due today. Данные из существующих + новых API.",
       "acceptance_criteria": [
-        "Страница /profile с формой: display_name, exam_date (date picker), target_score (27–100, slider или input)",
-        "Кнопка 'Сохранить' → PATCH /api/users/me",
-        "Отображение текущего уровня, XP, longest_streak",
-        "Календарь стриков (маленький heatmap)",
-        "Шкала перевода баллов из PRD для справки"
+        "Heatmap отображает 365 дней с цветовым кодированием интенсивности",
+        "Breakdown по заданиям: 19 полос с retrievability",
+        "FSRS-статистика отображается",
+        "Данные загружаются из API"
       ],
       "test_steps": [
-        "Шаг 1: Открыть /profile → текущие данные загружены",
-        "Шаг 2: Изменить target_score → 'Сохранить' → данные обновлены",
-        "Шаг 3: Обновить страницу → сохранённые данные отображаются",
-        "Шаг 4: Стрик-календарь отображает историю активности"
+        "Шаг 1: Открыть /progress с историей активности",
+        "Шаг 2: Heatmap отображается корректно",
+        "Шаг 3: Breakdown показывает 19 заданий",
+        "Шаг 4: Проверить на мобильном — responsive"
       ],
-      "dependencies": ["TASK-011", "TASK-007"],
-      "status": "done"
+      "dependencies": ["TASK-005"],
+      "status": "pending"
     },
     {
       "id": "TASK-030",
-      "category": "ui",
+      "category": "integration",
       "priority": "high",
-      "description": "Frontend: XP-анимации и уровневый прогресс-бар в header",
+      "description": "Routing: onboarding guard + новые маршруты",
+      "details": "Обновить frontend/src/App.tsx и components/ProtectedRoute.tsx. Логика: если user authenticated но нет diagnostic_results — redirect на /onboarding. Добавить роуты: /onboarding -> Onboarding.tsx, /diagnostic -> Diagnostic.tsx, /plan -> StudyPlan.tsx, /prototypes/:id -> PrototypeDetail.tsx. Обновить Sidebar: добавить ссылки на 'Мой план' и 'Прогресс'. Добавить проверку через GET /api/users/me (проверить наличие diagnostic/plan).",
       "acceptance_criteria": [
-        "При получении XP — всплывающая анимация '+10 XP' около header",
-        "Прогресс-бар XP до следующего уровня в header",
-        "При повышении уровня — модальное уведомление с названием нового уровня",
-        "Анимации не блокирующие (не мешают пользоваться приложением)"
+        "Новый пользователь после логина попадает на /onboarding",
+        "После прохождения onboarding+diagnostic — redirect на /dashboard",
+        "Пользователь с планом — прямой доступ к /dashboard",
+        "Все новые роуты работают",
+        "Sidebar содержит ссылки на Plan и Progress"
       ],
       "test_steps": [
-        "Шаг 1: Решить задание правильно → видна анимация '+10 XP'",
-        "Шаг 2: Прогресс-бар обновляется в реальном времени",
-        "Шаг 3: Набрать XP до следующего уровня → модалка с поздравлением",
-        "Шаг 4: Анимации исчезают через 2-3 секунды"
+        "Шаг 1: Зарегистрировать нового пользователя — redirect на /onboarding",
+        "Шаг 2: Пройти onboarding — redirect на /diagnostic",
+        "Шаг 3: Пройти diagnostic — redirect на /dashboard (или /plan)",
+        "Шаг 4: Открыть /plan — страница доступна",
+        "Шаг 5: Открыть /prototypes/:id — страница доступна",
+        "Шаг 6: Существующий пользователь с данными — /dashboard напрямую"
       ],
-      "dependencies": ["TASK-021", "TASK-011"],
-      "status": "done"
+      "dependencies": ["TASK-019", "TASK-020", "TASK-021"],
+      "status": "pending"
     },
     {
       "id": "TASK-031",
-      "category": "functional",
+      "category": "security",
       "priority": "high",
-      "description": "Backend: приоритизация тем по ROI для рекомендаций",
+      "description": "RLS и безопасность для новых таблиц",
+      "details": "Проверить и усилить RLS-политики: fsrs_cards — SELECT/INSERT/UPDATE только для owner (user_id = auth.uid()); diagnostic_results — SELECT/INSERT для owner, нет UPDATE/DELETE (результаты диагностики иммутабельны); user_study_plan — SELECT/INSERT/UPDATE для owner; problems — SELECT для authenticated, ответ (correct_answer) НЕ должен возвращаться в GET /api/problems (только после attempt). Добавить rate limiting на diagnostic/submit (1 req/min) и study-plan/generate (5 req/min).",
       "acceptance_criteria": [
-        "Функция calculate_topic_priority(topic, user_progress, exam_days_remaining) → priority_score",
-        "Формула: (max_points / estimated_study_hours) * weakness_score * exam_urgency",
-        "Используется в Dashboard рекомендациях и формировании SRS-сессий",
-        "GET /api/progress/exam-readiness — оценка готовности + топ-5 приоритетных тем"
+        "RLS: пользователь A не видит карточки пользователя B",
+        "diagnostic_results не могут быть удалены через API",
+        "correct_answer не возвращается в GET /api/problems",
+        "Rate limiting на diagnostic/submit и study-plan/generate",
+        "Тесты безопасности проходят"
       ],
       "test_steps": [
-        "Шаг 1: GET /api/progress/exam-readiness → список приоритетных тем",
-        "Шаг 2: Тема с высокими баллами и низким strength → высокий приоритет",
-        "Шаг 3: Тема с низкими баллами и высоким strength → низкий приоритет",
-        "Шаг 4: При малом exam_days_remaining → exam_urgency выше"
+        "Шаг 1: Создать двух пользователей A и B",
+        "Шаг 2: User A: GET /api/fsrs/session — только свои карточки",
+        "Шаг 3: User A: попытка SELECT fsrs_cards WHERE user_id=B — 0 результатов",
+        "Шаг 4: GET /api/problems/1 — correct_answer отсутствует в ответе",
+        "Шаг 5: POST /api/diagnostic/submit 3 раза за минуту — 429 на третий",
+        "Шаг 6: pytest test_security.py"
       ],
-      "dependencies": ["TASK-025"],
-      "status": "done"
+      "dependencies": ["TASK-002", "TASK-005", "TASK-013"],
+      "status": "pending"
     },
     {
       "id": "TASK-032",
-      "category": "functional",
-      "priority": "high",
-      "description": "Backend: seed-данные теории FIRe — контент для 5 приоритетных тем (№6, №7, №8, №9, №12)",
+      "category": "integration",
+      "priority": "medium",
+      "description": "FSRS: desired_retention адаптация в API",
+      "details": "Обновить FSRSService: при создании Scheduler передавать desired_retention на основе exam_date пользователя. В GET /api/fsrs/session: получить exam_date из users, вычислить days_remaining, установить retention (>90д: 0.90, 30-90д: 0.85, 14-30д: 0.80, <14д: 0.75). Это влияет на расчёт интервалов — ближе к экзамену повторения чаще.",
       "acceptance_criteria": [
-        "Миграция supabase/migrations/004_seed_theory.sql + JSON-файлы в supabase/seed/theory/",
-        "Для каждой из 5 тем: 4 записи theory_content (framework, inquiry, relationships, elaboration)",
-        "Framework: ключевые формулы, карта темы (markdown с LaTeX)",
-        "Inquiry: минимум 3 исследовательских вопроса + эталонные ответы (JSON)",
-        "Relationships: связи с 4+ другими темами (+ записи в topic_relationships)",
-        "Elaboration: чек-лист из 3–5 пунктов для объяснения"
+        "При exam_date через 100 дней — desired_retention = 0.90",
+        "При exam_date через 20 дней — desired_retention = 0.80",
+        "Интервалы реально сжимаются при низком retention",
+        "Если exam_date не задан — default 0.90"
       ],
       "test_steps": [
-        "Шаг 1: Подсчитать: 5 тем × 4 этапа = 20 записей theory_content",
-        "Шаг 2: Проверить LaTeX в framework-контенте — формулы корректны",
-        "Шаг 3: Inquiry содержит >= 3 вопросов на тему",
-        "Шаг 4: topic_relationships имеет записи для всех 5 тем"
+        "Шаг 1: Установить exam_date через 100 дней, review карточку — interval X",
+        "Шаг 2: Установить exam_date через 20 дней, review такую же карточку — interval < X",
+        "Шаг 3: Установить exam_date через 7 дней — interval ещё короче",
+        "Шаг 4: pytest"
       ],
-      "dependencies": ["TASK-004"],
-      "status": "done"
+      "dependencies": ["TASK-005"],
+      "status": "pending"
     },
     {
       "id": "TASK-033",
-      "category": "infrastructure",
+      "category": "ui",
       "priority": "medium",
-      "description": "CI/CD: GitHub Actions — автобилд frontend на GitHub Pages при push в main",
+      "description": "Фронтенд: обновление TopicDetail для отображения прототипов",
+      "details": "Обновить frontend/src/pages/TopicDetail.tsx. Добавить секцию 'Прототипы' — список прототипов для данного task_number (GET /api/prototypes?task_number=N). Каждый прототип: карточка с title, difficulty badge, estimated_study_minutes, кнопки 'Теория' -> /prototypes/:id и 'Практика' -> задачи прототипа. Показать прогресс по каждому прототипу если есть FSRS-карточки.",
       "acceptance_criteria": [
-        ".github/workflows/deploy-frontend.yml",
-        "Триггер: push в main, изменения в frontend/ (или корне если frontend в корне)",
-        "Шаги: checkout → setup node → npm ci → npm run build → deploy to gh-pages branch",
-        "Base URL в vite.config.ts настроен для GitHub Pages (repository name)",
-        "Билд проходит успешно"
+        "TopicDetail показывает список прототипов",
+        "Каждый прототип — карточка с title и difficulty",
+        "Кнопка 'Теория' ведёт на /prototypes/:id",
+        "Прогресс (retrievability) отображается если есть карточки"
       ],
       "test_steps": [
-        "Шаг 1: Push в main → GitHub Action запускается",
-        "Шаг 2: Action завершается успешно → gh-pages branch обновлён",
-        "Шаг 3: Открыть https://<username>.github.io/<repo>/ → приложение загружается",
-        "Шаг 4: Навигация работает (HashRouter)"
+        "Шаг 1: Открыть /topics/:id для задания 6",
+        "Шаг 2: Секция 'Прототипы' отображает 6.1, 6.2, 6.3...",
+        "Шаг 3: Нажать 'Теория' на прототипе 6.3 — redirect на /prototypes/:id",
+        "Шаг 4: Проверить difficulty badges (easy/medium/hard)"
       ],
-      "dependencies": ["TASK-001", "TASK-010"],
-      "status": "done"
+      "dependencies": ["TASK-006", "TASK-007"],
+      "status": "pending"
     },
     {
       "id": "TASK-034",
-      "category": "infrastructure",
-      "priority": "medium",
-      "description": "CI/CD: настройка деплоя backend на Render + render.yaml",
+      "category": "ui",
+      "priority": "low",
+      "description": "Фронтенд: SRS-карточка с контекстом прототипа и подсказками",
+      "details": "Обновить frontend/src/components/ProblemCard.tsx. Если problem привязан к prototype: показать badge с prototype_code и title. Добавить кнопку 'Подсказка' — progressive hints из problem.hints JSONB (показать первую, потом вторую по клику). Добавить ссылку 'К теории' -> /prototypes/:id для быстрого доступа к конспекту.",
       "acceptance_criteria": [
-        "render.yaml в корне проекта с конфигурацией Web Service",
-        "Build command: pip install -r requirements.txt",
-        "Start command: uvicorn app.main:app --host 0.0.0.0 --port $PORT",
-        "Переменные окружения: SUPABASE_URL, SUPABASE_SERVICE_KEY, JWT_SECRET",
-        "CORS обновлён для GitHub Pages домена"
+        "ProblemCard показывает prototype badge",
+        "Кнопка 'Подсказка' показывает hints прогрессивно",
+        "Ссылка 'К теории' ведёт на прототип",
+        "Если prototype не привязан — работает как раньше"
       ],
       "test_steps": [
-        "Шаг 1: render.yaml валиден",
-        "Шаг 2: Backend запускается с указанными командами",
-        "Шаг 3: CORS разрешает запросы с GitHub Pages домена"
+        "Шаг 1: Открыть карточку с привязанным прототипом",
+        "Шаг 2: Badge прототипа виден",
+        "Шаг 3: Нажать 'Подсказка' — первый hint",
+        "Шаг 4: Нажать ещё раз — второй hint",
+        "Шаг 5: Нажать 'К теории' — redirect на прототип"
       ],
-      "dependencies": ["TASK-002"],
-      "status": "done"
+      "dependencies": ["TASK-025"],
+      "status": "pending"
     },
     {
       "id": "TASK-035",
-      "category": "security",
+      "category": "functional",
       "priority": "medium",
-      "description": "Безопасность: rate limiting, CORS, валидация входных данных на всех эндпоинтах",
+      "description": "Seed: FIRe-теория для оставшихся 14 тем",
+      "details": "Создать миграцию 010_seed_theory_remaining.sql. Сейчас FIRe-контент есть для 5 тем (задания 6, 7, 8, 9, 12). Добавить theory_content для оставшихся заданий: 1-5, 10-11, 13-19. Каждая тема: 4 записи (framework, inquiry, relationships, elaboration) в theory_content. Контент в Markdown с LaTeX. Приоритет качества: задания 1-4 и 13 (часто встречаемые).",
       "acceptance_criteria": [
-        "Rate limiting на auth-эндпоинтах: 5 попыток/минута (через slowapi или middleware)",
-        "Rate limiting на API: 100 запросов/минута на пользователя",
-        "CORS: whitelist только frontend-домен (localhost:5173 для dev, GitHub Pages для prod)",
-        "Все Pydantic-модели имеют строгую валидацию (min/max значения, regex для email)",
-        "correct_answer НИКОГДА не возвращается в GET /api/problems/{id} до attempt"
+        "theory_content заполнен для всех 19 заданий",
+        "Каждое задание имеет 4 записи (F, I, R, E)",
+        "Markdown с LaTeX рендерится корректно",
+        "SELECT count(*) FROM theory_content — ≥76 (19×4)"
       ],
       "test_steps": [
-        "Шаг 1: 6 запросов POST /auth/login за минуту → 429 Too Many Requests",
-        "Шаг 2: Запрос с Origin не из whitelist → заблокирован CORS",
-        "Шаг 3: POST attempt с невалидным self_assessment → 422",
-        "Шаг 4: GET /api/problems/{id} → correct_answer отсутствует в ответе"
+        "Шаг 1: Применить миграцию",
+        "Шаг 2: SELECT count(DISTINCT topic_id) FROM theory_content — 19",
+        "Шаг 3: Для каждого topic_id: 4 записи (F, I, R, E)",
+        "Шаг 4: Выборочно проверить LaTeX для задания 13 (тригонометрия)"
       ],
-      "dependencies": ["TASK-006", "TASK-009"],
-      "status": "done"
+      "dependencies": [],
+      "status": "pending"
     },
     {
       "id": "TASK-036",
-      "category": "functional",
-      "priority": "medium",
-      "description": "Backend: админский скрипт для массового добавления заданий из JSON/CSV",
+      "category": "infrastructure",
+      "priority": "low",
+      "description": "Обновить PATCH /api/users/me для новых полей",
+      "details": "Обновить backend/app/routers/users.py. PATCH /api/users/me должен принимать и обновлять: hours_per_day (FLOAT, 0.5-5.0). При изменении target_score, exam_date, или hours_per_day — автоматически вызывать пересчёт плана (StudyPlanService.recalculate) если план существует.",
       "acceptance_criteria": [
-        "Скрипт backend/scripts/import_problems.py",
-        "Принимает JSON-файл с массивом заданий",
-        "Валидация: обязательные поля (problem_text, correct_answer, task_number, topic_id)",
-        "Дедупликация: не добавляет задания с идентичным problem_text",
-        "Отчёт: 'Добавлено: 15, Пропущено (дубликаты): 3, Ошибки: 0'"
+        "PATCH /api/users/me принимает hours_per_day",
+        "Валидация: hours_per_day 0.5-5.0",
+        "При изменении target_score — план пересчитывается",
+        "При изменении exam_date — план пересчитывается",
+        "Если плана нет — пересчёт не вызывается"
       ],
       "test_steps": [
-        "Шаг 1: Подготовить JSON с 5 заданиями → запустить скрипт → 'Добавлено: 5'",
-        "Шаг 2: Повторно запустить → 'Пропущено (дубликаты): 5'",
-        "Шаг 3: JSON с невалидным заданием (без correct_answer) → ошибка валидации"
+        "Шаг 1: PATCH /api/users/me с hours_per_day=2.0 — 200",
+        "Шаг 2: PATCH с hours_per_day=0.1 — 422 (валидация)",
+        "Шаг 3: Создать план, затем PATCH target_score=90 — план пересчитан",
+        "Шаг 4: GET /api/study-plan/current — план обновлён",
+        "Шаг 5: pytest"
       ],
-      "dependencies": ["TASK-005"],
-      "status": "done"
+      "dependencies": ["TASK-015"],
+      "status": "pending"
     },
     {
       "id": "TASK-037",
-      "category": "ui",
-      "priority": "medium",
-      "description": "Frontend: тёмная/светлая тема — переключатель и Tailwind dark mode",
+      "category": "integration",
+      "priority": "low",
+      "description": "E2E тест: полный путь нового пользователя (регистрация → диагностика → план → обучение)",
+      "details": "Создать backend/tests/test_e2e_v2_flow.py. Полный сценарий: 1) Регистрация; 2) Onboarding (PATCH users/me с target_score, hours_per_day, exam_date); 3) Diagnostic start + submit; 4) Проверка что fsrs_cards инициализированы; 5) Generate study plan; 6) GET study-plan/today; 7) FSRS session; 8) FSRS review; 9) Predicted score. Проверить что все данные консистентны.",
       "acceptance_criteria": [
-        "Tailwind dark mode через class strategy",
-        "Переключатель темы в header (иконка солнце/луна)",
-        "Предпочтение сохраняется в localStorage",
-        "Все страницы корректно выглядят в обеих темах",
-        "По умолчанию — светлая тема"
+        "Тест проходит end-to-end без ошибок",
+        "Все 9 шагов последовательно выполняются",
+        "Данные консистентны между шагами",
+        "Тест не зависит от seed data (создаёт свои данные)"
       ],
       "test_steps": [
-        "Шаг 1: По умолчанию — светлая тема",
-        "Шаг 2: Нажать переключатель → тёмная тема применяется",
-        "Шаг 3: Обновить страницу → тёмная тема сохранена",
-        "Шаг 4: Проверить все основные страницы в обеих темах — нет визуальных артефактов"
+        "Шаг 1: pytest backend/tests/test_e2e_v2_flow.py -v",
+        "Шаг 2: Все assertions проходят",
+        "Шаг 3: pytest — все тесты (включая старые) проходят"
       ],
-      "dependencies": ["TASK-010"],
-      "status": "done"
+      "dependencies": ["TASK-005", "TASK-014", "TASK-016", "TASK-027"],
+      "status": "pending"
     },
     {
       "id": "TASK-038",
-      "category": "ui",
-      "priority": "medium",
-      "description": "Frontend: обработка edge cases — пустые состояния, загрузка, ошибки",
+      "category": "infrastructure",
+      "priority": "low",
+      "description": "Очистка: удаление старого SM-2 кода после полного перехода на FSRS",
+      "details": "После того как все FSRS-задачи выполнены и протестированы: 1) Удалить backend/app/services/srs_engine.py; 2) Удалить роутер /api/srs/ (или redirect на /api/fsrs/); 3) Удалить тесты test_srs_engine.py; 4) Обновить фронтенд: убрать все ссылки на /api/srs/; 5) НЕ удалять таблицу srs_cards (данные могут понадобиться). Обновить документацию.",
       "acceptance_criteria": [
-        "Skeleton/loading states для всех страниц с API-запросами",
-        "Пустое состояние: 'Нет заданий на повторение — отличная работа!' (для SRS)",
-        "Пустое состояние: 'Начните с изучения первой темы' (для нового пользователя на dashboard)",
-        "Ошибка API: toast-уведомление с сообщением, не крэш приложения",
-        "Render cold start: индикатор 'Сервер просыпается...' при первом долгом запросе"
+        "srs_engine.py удалён",
+        "Роутер /api/srs/ удалён или редиректит",
+        "Фронтенд не содержит ссылок на /api/srs/",
+        "Таблица srs_cards остаётся в БД",
+        "Все тесты проходят",
+        "Приложение работает полностью на FSRS"
       ],
       "test_steps": [
-        "Шаг 1: Новый пользователь → dashboard показывает приветственное сообщение",
-        "Шаг 2: Нет карточек на повторение → /practice показывает пустое состояние",
-        "Шаг 3: Отключить backend → ошибка отображается как toast, не белый экран",
-        "Шаг 4: Skeleton видны при загрузке данных"
+        "Шаг 1: grep -r '/api/srs/' frontend/src/ — 0 результатов",
+        "Шаг 2: python -c 'from app.services import srs_engine' — ImportError",
+        "Шаг 3: pytest — все тесты проходят",
+        "Шаг 4: Полный user flow в браузере работает"
       ],
-      "dependencies": ["TASK-026", "TASK-019"],
-      "status": "done"
-    },
-    {
-      "id": "TASK-039",
-      "category": "integration",
-      "priority": "medium",
-      "description": "Интеграция: сквозной тест — регистрация → изучение темы → решение задач → SRS-сессия",
-      "acceptance_criteria": [
-        "Проверен полный пользовательский путь end-to-end:",
-        "1. Регистрация нового пользователя",
-        "2. Настройка профиля (exam_date, target_score)",
-        "3. Просмотр каталога тем → выбор темы",
-        "4. Прохождение FIRe-flow по теме",
-        "5. Решение 5 задач по этой теме",
-        "6. Запуск SRS-сессии → решение карточек",
-        "7. Просмотр результатов и dashboard",
-        "Все данные корректно сохраняются и отображаются"
-      ],
-      "test_steps": [
-        "Шаг 1: Зарегистрироваться → попасть на dashboard",
-        "Шаг 2: Настроить дату экзамена и целевой балл",
-        "Шаг 3: Перейти в темы → выбрать тему → пройти FIRe-flow",
-        "Шаг 4: Решить 5 задач по теме → XP начислен, прогресс обновлён",
-        "Шаг 5: Вернуться на /practice → начать SRS-сессию → решить карточки",
-        "Шаг 6: Просмотреть results → dashboard → progress → всё корректно"
-      ],
-      "dependencies": ["TASK-024", "TASK-020", "TASK-026", "TASK-028"],
-      "status": "done"
-    },
-    {
-      "id": "TASK-040",
-      "category": "integration",
-      "priority": "medium",
-      "description": "Интеграция: подключение frontend к production backend (Render) + финальная проверка деплоя",
-      "acceptance_criteria": [
-        "Frontend использует environment variable для API URL (localhost для dev, Render URL для prod)",
-        "vite.config.ts: define VITE_API_URL",
-        "GitHub Actions передаёт production API URL при билде",
-        "Продакшен-сборка работает на GitHub Pages с backend на Render",
-        "CORS на backend разрешает GitHub Pages домен"
-      ],
-      "test_steps": [
-        "Шаг 1: npm run build с VITE_API_URL=<render-url> → билд успешен",
-        "Шаг 2: Открыть GitHub Pages → приложение загружается",
-        "Шаг 3: Регистрация/вход работает через Render backend",
-        "Шаг 4: Решение заданий и SRS работают в production"
-      ],
-      "dependencies": ["TASK-033", "TASK-034", "TASK-039"],
-      "status": "done"
+      "dependencies": ["TASK-025", "TASK-026", "TASK-037"],
+      "status": "pending"
     }
   ]
 }
