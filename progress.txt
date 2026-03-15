@@ -595,10 +595,53 @@ Implementation:
     headers restricted
 - All 189 tests passing, ruff check clean
 
+TASK-038 DONE — Edge cases: empty states, loading, error handling
+
+Implementation:
+- Created frontend/src/stores/toastStore.ts — Zustand store for toast notifications:
+  - addToast(message, type) — adds toast to queue (error/success/info types)
+  - Auto-removes after 5 seconds
+  - removeToast(id) — manual dismiss
+- Created frontend/src/components/ToastContainer.tsx — fixed-position toast renderer:
+  - Bottom-right corner, stacked, color-coded by type (red/green/blue)
+  - Dismiss button on each toast
+  - Renders globally in App.tsx (available on auth pages too)
+- Created frontend/src/components/ErrorBoundary.tsx — React error boundary:
+  - Catches render errors, shows friendly fallback UI
+  - "Что-то пошло не так" message with error details and retry button
+  - Wraps page content in Layout.tsx
+- Updated frontend/src/lib/api.ts — automatic toast on API errors:
+  - All non-silent API errors auto-show toast notification
+  - Network errors (fetch failure): "Не удалось подключиться к серверу"
+  - Cold start detection: if first request takes >3s, shows info toast
+    "Сервер просыпается... Первый запрос может занять до 30 секунд."
+  - Added `silent` option to suppress toasts for specific calls
+- Updated frontend/src/stores/authStore.ts — auth calls use silent: true
+  - login/register show inline errors (already handled), not duplicate toasts
+  - loadUser/logout fail silently by design, no toast spam
+- Updated frontend/src/pages/Dashboard.tsx — new user welcome state:
+  - Detects new user: 0 XP, 0 weekly activity, all topics at 0% strength
+  - Shows welcome banner: "Добро пожаловать в Repeatify!" with link to topics
+- Updated frontend/src/components/Layout.tsx — added ErrorBoundary around Outlet
+- Updated frontend/src/App.tsx — added global ToastContainer
+
+Pre-existing coverage (already implemented in earlier tasks):
+- Skeleton loading states on all async pages (Dashboard, Topics, TopicDetail, etc.)
+- Empty state on Practice: "Нет карточек на повторение — отличная работа!"
+- Empty state on PracticeSession, TopicPractice, TopicFire
+- Loading/error states on all pages with API calls
+
+All acceptance criteria met:
+1. ✅ Skeleton/loading states for all pages with API requests (pre-existing)
+2. ✅ Empty state for SRS: "Нет карточек на повторение" (pre-existing)
+3. ✅ Empty state for new user on dashboard: welcome banner with "Начните с изучения первой темы"
+4. ✅ API error: toast notification, no white screen crash
+5. ✅ Render cold start: info toast "Сервер просыпается..." after 3s delay
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 189 tests pass
+
 Next priorities (medium, all deps met):
 - TASK-033: GitHub Actions CI/CD (deps: TASK-001 ✅, TASK-010 ✅)
 - TASK-034: Render deploy config (deps: TASK-002 ✅)
 - TASK-036: Admin import script (deps: TASK-005 ✅)
 - TASK-037: Dark/light theme (deps: TASK-010 ✅)
-- TASK-038: Edge cases / empty states (deps: TASK-026 ✅, TASK-019 ✅)
 - TASK-039: E2E integration test (deps: TASK-024 ✅, TASK-020 ✅, TASK-026 ✅, TASK-028 ✅)

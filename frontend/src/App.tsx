@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import ToastContainer from './components/ToastContainer'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -17,6 +18,7 @@ import Profile from './pages/Profile'
 function App() {
   return (
     <HashRouter>
+      <ToastContainer />
       <Routes>
         {/* Public routes — no layout */}
         <Route path="/auth/login" element={<Login />} />

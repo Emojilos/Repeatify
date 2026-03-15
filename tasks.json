@@ -832,7 +832,7 @@
         "Шаг 4: Skeleton видны при загрузке данных"
       ],
       "dependencies": ["TASK-026", "TASK-019"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-039",

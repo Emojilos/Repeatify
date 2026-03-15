@@ -107,8 +107,30 @@ export default function Dashboard() {
     ? Math.round((data.weekly_stats.problems_correct / data.weekly_stats.problems_solved) * 100)
     : 0
 
+  const isNewUser = data.current_xp === 0
+    && data.weekly_stats.problems_solved === 0
+    && data.topics_progress.every((t) => t.strength_score === 0 && !t.fire_completed)
+
   return (
     <div className="p-8">
+      {/* New user welcome */}
+      {isNewUser && (
+        <div className="mb-8 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50 p-6">
+          <h2 className="mb-2 text-lg font-bold text-indigo-900">
+            Добро пожаловать в Repeatify!
+          </h2>
+          <p className="mb-4 text-sm text-indigo-700">
+            Начните с изучения первой темы. Пройдите FIRe-flow, чтобы разобрать теорию, а затем закрепите знания на практике.
+          </p>
+          <Link
+            to="/topics"
+            className="inline-block rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+          >
+            Перейти к темам
+          </Link>
+        </div>
+      )}
+
       {/* Exam countdown */}
       {data.exam_countdown !== null ? (
         <div className="mb-8 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white shadow-lg">

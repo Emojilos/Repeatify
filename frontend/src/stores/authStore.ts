@@ -46,6 +46,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         method: 'POST',
         body: JSON.stringify({ email, password }),
         skipAuth: true,
+        silent: true,
       })
       localStorage.setItem('access_token', data.access_token)
       localStorage.setItem('refresh_token', data.refresh_token)
@@ -65,6 +66,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         method: 'POST',
         body: JSON.stringify({ email, password }),
         skipAuth: true,
+        silent: true,
       })
       localStorage.setItem('access_token', data.access_token)
       localStorage.setItem('refresh_token', data.refresh_token)
@@ -79,7 +81,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: async () => {
     try {
-      await api('/auth/logout', { method: 'POST' })
+      await api('/auth/logout', { method: 'POST', silent: true })
     } catch {
       // Ignore errors — clear local state regardless
     }
@@ -90,7 +92,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   loadUser: async () => {
     try {
-      const user = await api<User>('/api/users/me')
+      const user = await api<User>('/api/users/me', { silent: true })
       set({ user })
     } catch {
       // Token might be invalid
