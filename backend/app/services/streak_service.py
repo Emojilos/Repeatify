@@ -32,12 +32,11 @@ def record_activity(
         .select("*")
         .eq("user_id", user_id)
         .eq("activity_date", today_str)
-        .maybe_single()
         .execute()
     )
 
     if existing.data:
-        row = existing.data
+        row = existing.data[0]
         old_sessions = row.get("sessions_completed") or 0
         client.table("user_daily_activity").update({
             "problems_solved": (row.get("problems_solved") or 0) + problems_solved,
@@ -73,7 +72,6 @@ def _update_streak(client, user_id: str, today: date) -> None:
         .select("id")
         .eq("user_id", user_id)
         .eq("activity_date", yesterday_str)
-        .maybe_single()
         .execute()
     )
 
@@ -82,14 +80,13 @@ def _update_streak(client, user_id: str, today: date) -> None:
         client.table("users")
         .select("current_streak,longest_streak")
         .eq("id", user_id)
-        .maybe_single()
         .execute()
     )
     if not user_result.data:
         return
 
-    old_streak = user_result.data.get("current_streak") or 0
-    longest = user_result.data.get("longest_streak") or 0
+    old_streak = user_result.data[0].get("current_streak") or 0
+    longest = user_result.data[0].get("longest_streak") or 0
 
     if yesterday_row.data:
         # Continuing a streak

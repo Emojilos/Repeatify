@@ -63,10 +63,9 @@ async def activity_calendar(
         client.table("users")
         .select("current_streak,longest_streak")
         .eq("id", user["id"])
-        .maybe_single()
         .execute()
     )
-    streak_data = user_result.data or {}
+    streak_data = user_result.data[0] if user_result.data else {}
 
     return ActivityCalendarResponse(
         activities=activities,
@@ -264,10 +263,9 @@ async def dashboard(
             "exam_date,current_xp,current_level,current_streak"
         )
         .eq("id", user["id"])
-        .maybe_single()
         .execute()
     )
-    user_data = user_result.data or {}
+    user_data = user_result.data[0] if user_result.data else {}
 
     exam_countdown: int | None = None
     exam_date_str = user_data.get("exam_date")
@@ -390,10 +388,9 @@ async def exam_readiness(
         client.table("users")
         .select("exam_date")
         .eq("id", user["id"])
-        .maybe_single()
         .execute()
     )
-    user_data = user_result.data or {}
+    user_data = user_result.data[0] if user_result.data else {}
 
     exam_countdown: int | None = None
     exam_date_str = user_data.get("exam_date")

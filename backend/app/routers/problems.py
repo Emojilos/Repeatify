@@ -111,16 +111,15 @@ async def get_problem(
         client.table("problems")
         .select("*")
         .eq("id", problem_id)
-        .maybe_single()
         .execute()
     )
-    if result.data is None:
+    if not result.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Problem not found",
         )
 
-    return _row_to_detail(result.data)
+    return _row_to_detail(result.data[0])
 
 
 @router.post("/{problem_id}/attempt", response_model=AttemptResponse)
@@ -137,16 +136,15 @@ async def submit_attempt(
         client.table("problems")
         .select("*")
         .eq("id", problem_id)
-        .maybe_single()
         .execute()
     )
-    if result.data is None:
+    if not result.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Problem not found",
         )
 
-    problem = result.data
+    problem = result.data[0]
     correct_answer = (problem.get("correct_answer") or "").strip()
     user_answer = body.answer.strip()
 

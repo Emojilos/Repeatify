@@ -167,16 +167,15 @@ async def submit_review(
         .select("*")
         .eq("id", body.card_id)
         .eq("user_id", user["id"])
-        .maybe_single()
         .execute()
     )
-    if card_result.data is None:
+    if not card_result.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="SRS card not found",
         )
 
-    card_row = card_result.data
+    card_row = card_result.data[0]
     problem_id = card_row.get("problem_id")
     topic_id = card_row.get("topic_id", "")
 
@@ -191,13 +190,12 @@ async def submit_review(
             client.table("problems")
             .select("correct_answer,solution_markdown,task_number")
             .eq("id", problem_id)
-            .maybe_single()
             .execute()
         )
         if prob_result.data:
-            correct_answer = (prob_result.data.get("correct_answer") or "").strip()
-            solution_markdown = prob_result.data.get("solution_markdown")
-            task_number = prob_result.data.get("task_number", 0)
+            correct_answer = (prob_result.data[0].get("correct_answer") or "").strip()
+            solution_markdown = prob_result.data[0].get("solution_markdown")
+            task_number = prob_result.data[0].get("task_number", 0)
 
             # Check answer if provided
             user_answer = body.answer.strip()
@@ -209,12 +207,11 @@ async def submit_review(
         client.table("users")
         .select("exam_date")
         .eq("id", user["id"])
-        .maybe_single()
         .execute()
     )
     exam_date: date | None = None
     if user_result.data:
-        ed = user_result.data.get("exam_date")
+        ed = user_result.data[0].get("exam_date")
         if ed:
             exam_date = date.fromisoformat(ed) if isinstance(ed, str) else ed
 
@@ -322,7 +319,6 @@ def _update_topic_progress(client, user_id: str, topic_id: str) -> None:
         .select("id")
         .eq("user_id", user_id)
         .eq("topic_id", topic_id)
-        .maybe_single()
         .execute()
     )
 
@@ -332,7 +328,7 @@ def _update_topic_progress(client, user_id: str, topic_id: str) -> None:
             "total_attempts": total,
             "correct_attempts": correct,
             "last_practiced_at": now_str,
-        }).eq("id", existing.data["id"]).execute()
+        }).eq("id", existing.data[0]["id"]).execute()
     else:
         client.table("user_topic_progress").insert({
             "id": str(uuid.uuid4()),
@@ -354,11 +350,10 @@ def _ensure_srs_card(
         .select("id")
         .eq("user_id", user_id)
         .eq("problem_id", problem_id)
-        .maybe_single()
         .execute()
     )
     if existing.data:
-        return existing.data["id"]
+        return existing.data[0]["id"]
 
     card_id = str(uuid.uuid4())
     today_str = date.today().isoformat()

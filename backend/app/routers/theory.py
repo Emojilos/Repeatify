@@ -47,10 +47,9 @@ async def get_topic_theory(
         client.table("topics")
         .select("id,title")
         .eq("id", topic_id)
-        .maybe_single()
         .execute()
     )
-    if topic_result.data is None:
+    if not topic_result.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Topic not found",
@@ -84,29 +83,28 @@ async def get_topic_theory(
         .select("*")
         .eq("user_id", user["id"])
         .eq("topic_id", topic_id)
-        .maybe_single()
         .execute()
     )
     if prog_result.data:
         fire_progress = FireProgress(
-            fire_framework_completed=prog_result.data.get(
+            fire_framework_completed=prog_result.data[0].get(
                 "fire_framework_completed", False
             ),
-            fire_inquiry_completed=prog_result.data.get(
+            fire_inquiry_completed=prog_result.data[0].get(
                 "fire_inquiry_completed", False
             ),
-            fire_relationships_completed=prog_result.data.get(
+            fire_relationships_completed=prog_result.data[0].get(
                 "fire_relationships_completed", False
             ),
-            fire_elaboration_completed=prog_result.data.get(
+            fire_elaboration_completed=prog_result.data[0].get(
                 "fire_elaboration_completed", False
             ),
-            fire_completed_at=prog_result.data.get("fire_completed_at"),
+            fire_completed_at=prog_result.data[0].get("fire_completed_at"),
         )
 
     return TheoryResponse(
         topic_id=topic_id,
-        topic_title=topic_result.data["title"],
+        topic_title=topic_result.data[0]["title"],
         items=items,
         fire_progress=fire_progress,
     )
@@ -136,10 +134,9 @@ async def update_fire_progress(
         client.table("topics")
         .select("id")
         .eq("id", topic_id)
-        .maybe_single()
         .execute()
     )
-    if topic_result.data is None:
+    if not topic_result.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Topic not found",
@@ -151,7 +148,6 @@ async def update_fire_progress(
         .select("*")
         .eq("user_id", user["id"])
         .eq("topic_id", topic_id)
-        .maybe_single()
         .execute()
     )
 
@@ -161,10 +157,10 @@ async def update_fire_progress(
         # Update the stage column
         client.table("user_topic_progress").update(
             {col: True}
-        ).eq("id", existing.data["id"]).execute()
+        ).eq("id", existing.data[0]["id"]).execute()
 
         # Re-read to check all stages
-        progress_row = dict(existing.data)
+        progress_row = dict(existing.data[0])
         progress_row[col] = True
     else:
         # Create new progress row

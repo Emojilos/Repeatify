@@ -80,10 +80,9 @@ def award_xp(
             client.table("users")
             .select("current_xp,current_level")
             .eq("id", user_id)
-            .maybe_single()
             .execute()
         )
-        current_xp = (row.data or {}).get("current_xp", 0)
+        current_xp = (row.data[0] if row.data else {}).get("current_xp", 0)
         return current_xp, None
 
     # Fetch current state
@@ -91,14 +90,13 @@ def award_xp(
         client.table("users")
         .select("current_xp,current_level")
         .eq("id", user_id)
-        .maybe_single()
         .execute()
     )
     if not user_result.data:
         return 0, None
 
-    old_xp = user_result.data.get("current_xp") or 0
-    old_level = user_result.data.get("current_level") or 1
+    old_xp = user_result.data[0].get("current_xp") or 0
+    old_level = user_result.data[0].get("current_level") or 1
     new_xp = old_xp + xp_amount
     new_level, _ = calculate_level(new_xp)
 

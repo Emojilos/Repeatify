@@ -112,10 +112,9 @@ async def get_topic(
         client.table("topics")
         .select("*")
         .eq("id", topic_id)
-        .maybe_single()
         .execute()
     )
-    if result.data is None:
+    if not result.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Topic not found",
@@ -128,13 +127,12 @@ async def get_topic(
             .select("*")
             .eq("user_id", user["id"])
             .eq("topic_id", topic_id)
-            .maybe_single()
             .execute()
         )
-        if prog_result.data is not None:
-            progress = _build_progress(prog_result.data)
+        if prog_result.data:
+            progress = _build_progress(prog_result.data[0])
 
-    return _row_to_detail(result.data, progress)
+    return _row_to_detail(result.data[0], progress)
 
 
 @router.get("/{topic_id}/relationships", response_model=list[TopicRelationship])
@@ -149,10 +147,9 @@ async def get_topic_relationships(
         client.table("topics")
         .select("id")
         .eq("id", topic_id)
-        .maybe_single()
         .execute()
     )
-    if topic_result.data is None:
+    if not topic_result.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Topic not found",
