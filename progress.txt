@@ -869,3 +869,41 @@ Implementation:
 - ruff check clean, all pre-existing tests unaffected (57 pre-existing failures, 0 new)
 
 Next: TASK-004 (FSRS service: py-fsrs wrapper) depends on TASK-002 + TASK-003.
+
+TASK-004 DONE — FSRS-сервис: обёртка над py-fsrs
+
+Implementation:
+- Installed fsrs==6.3.1 via `uv add fsrs`
+- Created backend/app/services/fsrs_service.py — full FSRS wrapper:
+  - create_card(client, user_id, card_type, problem_id, prototype_id) — inserts new card into fsrs_cards with initial state="new"
+  - review_card(client, card_id, rating, user_id, exam_date) — reviews a card using py-fsrs Scheduler:
+    - Reconstructs FSRSCard from DB row, handles new cards (stability=0) by using fresh Card()
+    - Computes new difficulty, stability, due, state via scheduler.review_card()
+    - Persists updated values + increments reps/lapses to DB
+  - get_session(client, user_id, max_cards, exam_date) — builds study session:
+    - Fetches due cards (due <= now, state != "new")
+    - Computes retrievability for each card, sorts low→high
+    - Enriches with problem_text, topic_title, task_number from related tables
+    - Applies interleaving (no more than 2 consecutive same task_number)
+  - get_retrievability(row, exam_date) — computes current retrievability using py-fsrs
+  - adjust_desired_retention(exam_date) — returns retention based on days to exam:
+    - >90d → 0.90, 30-90d → 0.85, 14-30d → 0.80, <14d → 0.75, None → 0.90
+- Helper functions:
+  - _map_state_to_db/_map_db_to_state — convert between py-fsrs State enum and DB strings
+  - _map_rating — convert 1-4 integer to py-fsrs Rating enum
+  - _build_scheduler — creates Scheduler with exam-aware desired_retention
+  - _db_row_to_fsrs_card — reconstructs py-fsrs Card from DB row
+  - _enrich_cards — batch-fetches problem/prototype/topic data for session cards
+  - _interleave — reorders cards to prevent 3+ consecutive same-topic
+- Old srs_engine.py preserved (both coexist)
+- 34 unit tests in tests/test_fsrs_service.py covering:
+  - adjust_desired_retention: all 4 ranges + boundaries (10 tests)
+  - create_card: problem, concept, return value (3 tests)
+  - review_card: Good/Again ratings, due in future, lapses, not found, DB persistence (6 tests)
+  - get_retrievability: new card, no stability, high/low (4 tests)
+  - _interleave: empty, single, no-triple, all-same, preserves count (5 tests)
+  - get_session: empty, enriched cards, max_cards, sorted by retrievability (4 tests)
+  - mappings: rating + state (2 tests)
+- All 34 new tests passing, ruff check clean, 57 pre-existing failures unchanged
+
+Next: TASK-005 (FSRS API endpoints) depends on TASK-004. TASK-013 (Diagnostic backend) also now unblocked.
