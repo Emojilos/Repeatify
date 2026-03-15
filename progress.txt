@@ -933,4 +933,29 @@ Implementation:
   - Backward compatibility: GET /api/srs/session still works
 - All 45 FSRS tests passing (34 service + 11 API), ruff check clean, 57 pre-existing failures unchanged
 
-Next: TASK-013 (Diagnostic backend) is now the highest priority unblocked critical task. It unblocks TASK-014, TASK-015, TASK-020.
+TASK-013 DONE — Диагностический тест: бэкенд (подбор задач + приём ответов)
+
+Implementation:
+- Created backend/app/services/diagnostic_service.py:
+  - select_problems_for_diagnostic(client, user_id) — selects 19 problems (1 per task_number), prefers medium difficulty
+  - check_diagnostic_answer(user_answer, correct_answer, tolerance) — checks answer correctness, returns None for Part 2
+  - grade_and_persist(client, user_id, answers) — grades all 19 answers and bulk-inserts into diagnostic_results
+  - has_existing_diagnostic(client, user_id) — checks if user already has diagnostic results
+- Created backend/app/routers/diagnostic.py with 4 endpoints:
+  - POST /api/diagnostic/start — selects 19 problems (one per task_number), 409 if already taken
+  - POST /api/diagnostic/submit — accepts 19 answers, auto-checks Part 1 (1-12), stores self_assessment for Part 2 (13-19)
+  - POST /api/diagnostic/retake — allows retake without conflict check
+  - GET /api/diagnostic/results — returns latest diagnostic results, 404 if none
+- Validation: exactly 19 answers required (min_length=19, max_length=19), all task_numbers must be unique
+- Part 1 auto-check: case-insensitive exact match + numeric tolerance
+- Part 2: self_assessment stored as-is (level_0/level_1/level_2/level_3)
+- Registered diagnostic router in app/main.py
+- 22 tests in tests/test_diagnostic.py covering:
+  - Service: check_answer (exact, case-insensitive, tolerance, no answer, no correct), select_problems (one per task, prefers medium), has_existing (true/false)
+  - POST /start: 19 problems returned, 409 conflict if already taken, auth required
+  - POST /submit: correct grading, auto-check Part 1, self_assessment Part 2, auth required, duplicate task_numbers rejected
+  - POST /retake: works even with existing results
+  - GET /results: returns results, 404 if none, auth required
+- All 218 tests passing (22 new + 196 existing), 57 pre-existing failures unchanged, ruff check clean
+
+Next: TASK-014 (FSRS initialization from diagnostic) and TASK-015 (Study plan generation) are now unblocked. TASK-014 depends on TASK-004 + TASK-013 (both done). TASK-015 depends on TASK-013 (done).
