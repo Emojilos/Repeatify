@@ -25,10 +25,12 @@ async def get_current_user(
             detail="Token has expired",
         )
     except jwt.InvalidTokenError as e:
+        header = jwt.get_unverified_header(token)
         print(f"JWT decode error: {type(e).__name__}: {e}")
+        print(f"JWT header: {header}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token: {type(e).__name__}",
+            detail=f"Invalid token: {type(e).__name__}, alg={header.get('alg')}",
         )
 
     user_id = payload.get("sub")
