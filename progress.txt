@@ -906,4 +906,31 @@ Implementation:
   - mappings: rating + state (2 tests)
 - All 34 new tests passing, ruff check clean, 57 pre-existing failures unchanged
 
-Next: TASK-005 (FSRS API endpoints) depends on TASK-004. TASK-013 (Diagnostic backend) also now unblocked.
+TASK-005 DONE — FSRS API: эндпоинты сессии и ревью
+
+Implementation:
+- Created backend/app/routers/fsrs.py — new FSRS router at /api/fsrs:
+  - GET /api/fsrs/session?max_cards=20 — builds review session via FSRSService.get_session()
+    - Returns FSRSSessionResponse with cards (difficulty, stability, retrievability, problem_text, etc.)
+    - Passes user's exam_date for retention tuning
+    - total_due reflects all due cards, not just session subset
+  - POST /api/fsrs/review — accepts FSRSReviewRequest (card_id, rating 1-4, answer, time_spent_seconds)
+    - Reviews card via FSRSService.review_card()
+    - Checks answer correctness (case-insensitive comparison)
+    - Records attempt in user_problem_attempts
+    - Awards XP via xp_service (rating mapped to self_assessment: 1→again, 2→hard, 3→good, 4→easy)
+    - Updates user_topic_progress strength_score
+    - Records daily activity via streak_service
+    - Returns FSRSReviewResponse with FSRS-specific fields (new_due, new_difficulty, new_stability, new_state, retrievability)
+- Updated app/models/fsrs_card.py:
+  - FSRSReviewRequest: added answer (str, max_length=50) and time_spent_seconds (int, 0-36000)
+  - Added FSRSReviewResponse model: is_correct, correct_answer, solution_markdown, xp_earned, new_level_reached, new_due, new_difficulty, new_stability, new_state, retrievability
+- Registered FSRS router in app/main.py (after SRS router)
+- Old /api/srs/ endpoints preserved for backward compatibility
+- 11 tests in tests/test_fsrs_api.py covering:
+  - GET /api/fsrs/session: due cards with FSRS fields, empty session, auth required, exam_date passed to service
+  - POST /api/fsrs/review: correct answer (XP=10 Part1), wrong answer (XP=0), card not found (404), auth required, invalid rating (422), Part 2 XP (25 for good/easy)
+  - Backward compatibility: GET /api/srs/session still works
+- All 45 FSRS tests passing (34 service + 11 API), ruff check clean, 57 pre-existing failures unchanged
+
+Next: TASK-013 (Diagnostic backend) is now the highest priority unblocked critical task. It unblocks TASK-014, TASK-015, TASK-020.

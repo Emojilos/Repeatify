@@ -9,7 +9,7 @@ from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.db.supabase_client import verify_connection
-from app.routers import auth, problems, progress, srs, theory, topics, users
+from app.routers import auth, fsrs, problems, progress, srs, theory, topics, users
 
 _db_connected = False
 
@@ -62,6 +62,7 @@ app.include_router(topics.router)
 app.include_router(theory.router)
 app.include_router(problems.router)
 app.include_router(srs.router)
+app.include_router(fsrs.router)
 app.include_router(progress.router)
 
 
