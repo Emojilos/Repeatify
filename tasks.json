@@ -749,7 +749,7 @@
         "Шаг 3: CORS разрешает запросы с GitHub Pages домена"
       ],
       "dependencies": ["TASK-002"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-035",

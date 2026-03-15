@@ -656,9 +656,22 @@ Implementation:
 - HashRouter already in use (TASK-001) — no client-side routing issues on GitHub Pages
 - All 189 backend tests passing, ruff check clean
 
+TASK-034 DONE — Render deploy config (render.yaml + requirements.txt fix)
+
+Implementation:
+- Created render.yaml in project root with Web Service configuration:
+  - Runtime: Python, region: Frankfurt, rootDir: backend/
+  - Build command: pip install -r requirements.txt
+  - Start command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+  - Environment variables: SUPABASE_URL, SUPABASE_SERVICE_KEY, JWT_SECRET, CORS_ORIGINS, PYTHON_VERSION
+  - PYTHON_VERSION pinned to 3.11.11 for stability
+  - sync: false on secrets (must be set manually in Render dashboard)
+- Fixed backend/requirements.txt — added missing slowapi>=0.1.9 (was in pyproject.toml but not requirements.txt since TASK-035)
+- CORS already configurable via CORS_ORIGINS env var (set on Render to include GitHub Pages domain)
+- All 189 tests passing, ruff check clean
+
 Next priorities (medium, all deps met):
-- TASK-034: Render deploy config (deps: TASK-002 ✅)
 - TASK-036: Admin import script (deps: TASK-005 ✅)
 - TASK-037: Dark/light theme (deps: TASK-010 ✅)
 - TASK-039: E2E integration test (deps: TASK-024 ✅, TASK-020 ✅, TASK-026 ✅, TASK-028 ✅)
-- TASK-040: Production integration (deps: TASK-033 ✅, TASK-034 pending, TASK-039 pending)
+- TASK-040: Production integration (deps: TASK-033 ✅, TASK-034 ✅, TASK-039 pending)
