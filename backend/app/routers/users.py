@@ -30,9 +30,18 @@ def _get_user_row(client, user_id: str, auto_create: bool = True) -> dict:
         .eq("id", user_id)
         .execute()
     )
+    print(f"[users] select user_id={user_id}, data={result.data}")
     if not result.data:
         if auto_create:
-            client.table("users").insert({"id": user_id}).execute()
+            try:
+                insert_result = client.table("users").insert({"id": user_id}).execute()
+                print(f"[users] insert result: {insert_result.data}")
+            except Exception as e:
+                print(f"[users] insert error: {type(e).__name__}: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to create user profile: {e}",
+                )
             return _get_user_row(client, user_id, auto_create=False)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
