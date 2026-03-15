@@ -783,4 +783,25 @@ Implementation:
   - Import: add new problems, skip duplicates, validation error exits, missing topic exits, insert error counting, empty file, repeat import idempotency
 - All 208 tests passing, ruff check clean
 
-All tasks complete. No pending tasks remain.
+--- V2 TASKS ---
+
+TASK-001 DONE — DB миграция: таблицы prototypes и video_resources
+
+Implementation:
+- Created supabase/migrations/005_prototypes_and_videos.sql
+- Table prototypes: id UUID PK, task_number INTEGER (1-19) with CHECK, prototype_code VARCHAR(10),
+  title VARCHAR(200), description TEXT, difficulty_within_task VARCHAR(10) CHECK ('easy','medium','hard'),
+  estimated_study_minutes INTEGER, theory_markdown TEXT, key_formulas JSONB, solution_algorithm JSONB,
+  common_mistakes JSONB, related_prototypes JSONB, order_index INTEGER
+- Table video_resources: id UUID PK, prototype_id UUID FK→prototypes.id ON DELETE CASCADE,
+  youtube_video_id VARCHAR(20), title VARCHAR(300), channel_name VARCHAR(100),
+  duration_seconds INTEGER, timestamps JSONB, order_index INTEGER
+- Indexes: idx_prototypes_task_number, idx_video_resources_prototype
+- RLS enabled on both tables:
+  - SELECT for authenticated role (read access)
+  - INSERT/UPDATE/DELETE for service_role only (admin write access)
+- 8 RLS policies total (4 per table)
+- SQL validated: balanced parentheses, correct syntax
+- ruff check clean, existing tests unaffected (migration is SQL only)
+
+Next: TASK-002 (fsrs_cards, diagnostic_results, user_study_plan + ALTER problems/users) depends on this.

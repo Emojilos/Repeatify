@@ -38,7 +38,7 @@
         "Шаг 4: INSERT в video_resources с FK, проверить связь"
       ],
       "dependencies": [],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-002",
