@@ -16,6 +16,7 @@ from app.models.diagnostic import (
 from app.services.diagnostic_service import (
     grade_and_persist,
     has_existing_diagnostic,
+    initialize_fsrs_from_diagnostic,
     select_problems_for_diagnostic,
 )
 
@@ -88,6 +89,9 @@ async def submit_diagnostic(
     ]
 
     results = grade_and_persist(client, user["id"], answers_dicts)
+
+    # Initialize FSRS cards from diagnostic results (PRD 5.3)
+    initialize_fsrs_from_diagnostic(client, user["id"], results)
 
     total_correct = sum(1 for r in results if r["is_correct"] is True)
     total_answered = sum(

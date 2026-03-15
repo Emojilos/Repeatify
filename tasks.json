@@ -326,7 +326,7 @@
         "Шаг 5: pytest"
       ],
       "dependencies": ["TASK-004", "TASK-013"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-015",

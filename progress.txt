@@ -959,3 +959,32 @@ Implementation:
 - All 218 tests passing (22 new + 196 existing), 57 pre-existing failures unchanged, ruff check clean
 
 Next: TASK-014 (FSRS initialization from diagnostic) and TASK-015 (Study plan generation) are now unblocked. TASK-014 depends on TASK-004 + TASK-013 (both done). TASK-015 depends on TASK-013 (done).
+
+TASK-014 DONE — Диагностика: инициализация FSRS-карточек из результатов теста
+
+Implementation:
+- Added `_diagnostic_to_fsrs_params(result)` to diagnostic_service.py — maps diagnostic results to initial FSRS parameters:
+  - Part 1 correct < 60s → state=review, D=2, S=30 days
+  - Part 1 correct >= 60s → state=review, D=4, S=7 days
+  - Part 1 incorrect → state=learning, D=6, S=1 day
+  - Part 2 level_3 → state=review, D=3, S=14 days
+  - Part 2 level_2 → state=learning, D=5, S=3 days
+  - Part 2 level_1 → state=learning, D=7, S=1 day
+  - Part 2 level_0 → state=new, D=0, S=0 (requires theory first)
+- Added `initialize_fsrs_from_diagnostic(client, user_id, results)` to diagnostic_service.py:
+  - Fetches all prototypes and problems grouped by task_number
+  - Creates fsrs_cards for each prototype linked to the task_number (concept cards)
+  - Falls back to creating problem cards if no prototypes exist for a task_number
+  - Sets initial difficulty, stability, due date, and state per mapping table
+  - Cards with state != "new" get last_review set to now and due = now + stability_days
+  - Cards with state == "new" get no last_review and due = now
+  - Bulk inserts all cards in a single DB call
+- Updated POST /api/diagnostic/submit in diagnostic.py to call initialize_fsrs_from_diagnostic after grade_and_persist
+- 12 new tests in tests/test_diagnostic.py (TestInitializeFsrsFromDiagnostic):
+  - Mapping tests: all 7 PRD 5.3 scenarios (Part 1 fast/slow/wrong, Part 2 level_3/2/1/0)
+  - Boundary test: exactly 60s is "slow" path
+  - Integration: cards created for prototypes, fallback to problems, level_0 new state
+  - Submit endpoint: verifies initialize_fsrs_from_diagnostic is called with correct args
+- All 230 tests passing (12 new), 57 pre-existing failures unchanged, ruff check clean
+
+Next: TASK-015 (Study plan generation) is now unblocked (depends on TASK-013 done). TASK-037 E2E test depends on TASK-014 (now done) + TASK-005, TASK-016, TASK-027.
