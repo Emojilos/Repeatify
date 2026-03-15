@@ -10,7 +10,8 @@ class Settings(BaseSettings):
 
     SUPABASE_URL: str
     SUPABASE_SERVICE_KEY: str
-    JWT_SECRET: str
+    JWT_SECRET: str = ""
+    JWT_PUBLIC_KEY: str = ""
 
     # CORS: comma-separated allowed origins
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"

@@ -7,6 +7,13 @@ from app.core.config import settings
 security = HTTPBearer()
 
 
+def _get_jwt_key() -> str:
+    """Return the appropriate key for JWT verification."""
+    if settings.JWT_PUBLIC_KEY:
+        return settings.JWT_PUBLIC_KEY
+    return settings.JWT_SECRET
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict:
@@ -15,8 +22,8 @@ async def get_current_user(
     try:
         payload = jwt.decode(
             token,
-            settings.JWT_SECRET,
-            algorithms=["HS256", "HS384", "HS512"],
+            _get_jwt_key(),
+            algorithms=["ES256", "HS256"],
             audience="authenticated",
         )
     except jwt.ExpiredSignatureError:
@@ -25,12 +32,10 @@ async def get_current_user(
             detail="Token has expired",
         )
     except jwt.InvalidTokenError as e:
-        header = jwt.get_unverified_header(token)
         print(f"JWT decode error: {type(e).__name__}: {e}")
-        print(f"JWT header: {header}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token: {type(e).__name__}, alg={header.get('alg')}",
+            detail="Invalid token",
         )
 
     user_id = payload.get("sub")
