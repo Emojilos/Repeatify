@@ -118,10 +118,10 @@ async def gap_map(
     # --- Error attempts in last 30 days ---
     attempts_result = (
         client.table("user_problem_attempts")
-        .select("problem_id,is_correct,created_at")
+        .select("problem_id,is_correct,attempted_at")
         .eq("user_id", user["id"])
         .eq("is_correct", False)
-        .gte("created_at", thirty_days_ago)
+        .gte("attempted_at", thirty_days_ago)
         .execute()
     )
     error_attempts = attempts_result.data or []
@@ -148,7 +148,7 @@ async def gap_map(
         tid = problem_topic_map.get(attempt["problem_id"])
         if tid:
             topic_errors[tid] = topic_errors.get(tid, 0) + 1
-            err_date = attempt.get("created_at", "")
+            err_date = attempt.get("attempted_at", "")
             if err_date > topic_last_error.get(tid, ""):
                 topic_last_error[tid] = err_date
 
@@ -323,7 +323,7 @@ async def dashboard(
         client.table("user_problem_attempts")
         .select("is_correct")
         .eq("user_id", user["id"])
-        .gte("created_at", week_ago)
+        .gte("attempted_at", week_ago)
         .execute()
     )
     attempts_rows = attempts_result.data or []

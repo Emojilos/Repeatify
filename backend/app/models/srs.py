@@ -10,7 +10,7 @@ class SRSCardResponse(BaseModel):
 
     card_id: str
     problem_id: str
-    topic_id: str
+    topic_id: str | None = None
     topic_title: str | None = None
     task_number: int
     card_type: str
