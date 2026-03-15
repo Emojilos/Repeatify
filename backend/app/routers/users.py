@@ -28,15 +28,14 @@ def _get_user_row(client, user_id: str) -> dict:
         client.table("users")
         .select("*")
         .eq("id", user_id)
-        .maybe_single()
         .execute()
     )
-    if result.data is None:
+    if not result.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User profile not found",
         )
-    return result.data
+    return result.data[0]
 
 
 @router.get("/me", response_model=UserProfile)
