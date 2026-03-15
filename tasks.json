@@ -729,7 +729,7 @@
         "Шаг 4: Навигация работает (HashRouter)"
       ],
       "dependencies": ["TASK-001", "TASK-010"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-034",

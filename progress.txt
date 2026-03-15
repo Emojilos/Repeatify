@@ -639,9 +639,26 @@ All acceptance criteria met:
 5. ✅ Render cold start: info toast "Сервер просыпается..." after 3s delay
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 189 tests pass
 
+TASK-033 DONE — GitHub Actions CI/CD for frontend deployment to GitHub Pages
+
+Implementation:
+- Created .github/workflows/deploy-frontend.yml — GitHub Actions workflow:
+  - Trigger: push to main with changes in frontend/ or workflow file, plus manual workflow_dispatch
+  - Permissions: contents read, pages write, id-token write (for Pages deployment)
+  - Concurrency: cancels in-progress deploys for same group
+  - Build job: checkout → setup Node 20 (with npm cache) → npm ci → npm run build → upload pages artifact
+  - Deploy job: uses actions/deploy-pages@v4 to deploy to GitHub Pages environment
+  - VITE_API_URL passed as env var from repository variables (for production backend URL)
+  - Working directory set to frontend/ for all build steps
+- Updated frontend/vite.config.ts — added base: '/Repeatify/' for GitHub Pages URL path
+- Frontend build passes successfully with new base URL config
+- Uses modern GitHub Pages deployment (actions/deploy-pages) instead of legacy gh-pages branch
+- HashRouter already in use (TASK-001) — no client-side routing issues on GitHub Pages
+- All 189 backend tests passing, ruff check clean
+
 Next priorities (medium, all deps met):
-- TASK-033: GitHub Actions CI/CD (deps: TASK-001 ✅, TASK-010 ✅)
 - TASK-034: Render deploy config (deps: TASK-002 ✅)
 - TASK-036: Admin import script (deps: TASK-005 ✅)
 - TASK-037: Dark/light theme (deps: TASK-010 ✅)
 - TASK-039: E2E integration test (deps: TASK-024 ✅, TASK-020 ✅, TASK-026 ✅, TASK-028 ✅)
+- TASK-040: Production integration (deps: TASK-033 ✅, TASK-034 pending, TASK-039 pending)
