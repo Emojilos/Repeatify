@@ -65,7 +65,6 @@ export default function TopicPractice() {
     if (result.is_correct) setCorrectCount((c) => c + 1)
     setTotalXp((x) => x + result.xp_earned)
 
-    // Move to next problem after a short delay
     setTimeout(() => {
       if (currentIndex < problems.length - 1) {
         setCurrentIndex((i) => i + 1)
@@ -78,8 +77,8 @@ export default function TopicPractice() {
   if (loading) {
     return (
       <div className="p-8">
-        <div className="mb-4 h-8 w-64 animate-pulse rounded bg-gray-200" />
-        <div className="h-64 animate-pulse rounded-xl border border-gray-200 bg-gray-50" />
+        <div className="mb-4 h-8 w-64 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        <div className="h-64 animate-pulse rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800" />
       </div>
     )
   }
@@ -102,7 +101,7 @@ export default function TopicPractice() {
           &larr; Назад к теме
         </Link>
         <div className="mt-8 text-center">
-          <p className="text-lg text-gray-500">Задания по этой теме пока не добавлены.</p>
+          <p className="text-lg text-gray-500 dark:text-gray-400">Задания по этой теме пока не добавлены.</p>
         </div>
       </div>
     )
@@ -114,28 +113,28 @@ export default function TopicPractice() {
       <div className="p-8">
         <div className="mx-auto max-w-lg text-center">
           <div className="mb-6 text-5xl">🎉</div>
-          <h1 className="mb-2 text-2xl font-bold text-gray-900">Все задания решены!</h1>
-          <p className="mb-8 text-gray-500">Тема: {topic.title}</p>
+          <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Все задания решены!</h1>
+          <p className="mb-8 text-gray-500 dark:text-gray-400">Тема: {topic.title}</p>
 
           <div className="mb-8 grid grid-cols-3 gap-4">
-            <div className="rounded-lg border border-gray-200 bg-white p-4 text-center">
+            <div className="rounded-lg border border-gray-200 bg-white p-4 text-center dark:border-gray-700 dark:bg-gray-800">
               <div className="text-2xl font-bold text-blue-600">{completed}</div>
-              <div className="text-xs text-gray-500">Решено</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Решено</div>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4 text-center">
+            <div className="rounded-lg border border-gray-200 bg-white p-4 text-center dark:border-gray-700 dark:bg-gray-800">
               <div className="text-2xl font-bold text-green-600">{accuracy}%</div>
-              <div className="text-xs text-gray-500">Точность</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Точность</div>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4 text-center">
+            <div className="rounded-lg border border-gray-200 bg-white p-4 text-center dark:border-gray-700 dark:bg-gray-800">
               <div className="text-2xl font-bold text-purple-600">+{totalXp}</div>
-              <div className="text-xs text-gray-500">XP</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">XP</div>
             </div>
           </div>
 
           <div className="flex justify-center gap-3">
             <Link
               to={`/topics/${id}`}
-              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               К теме
             </Link>
@@ -158,7 +157,7 @@ export default function TopicPractice() {
         <Link to={`/topics/${id}`} className="inline-flex items-center text-sm text-blue-600 hover:underline">
           &larr; Назад к теме
         </Link>
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 dark:text-gray-400">
           {topic.title}
         </div>
       </div>
@@ -166,14 +165,14 @@ export default function TopicPractice() {
       {/* Progress bar */}
       <div className="mb-6">
         <div className="mb-1.5 flex items-center justify-between text-sm">
-          <span className="text-gray-600">
+          <span className="text-gray-600 dark:text-gray-400">
             Задание {currentIndex + 1} из {problems.length}
           </span>
-          <span className="text-gray-400">
-            {completed} решено {totalXp > 0 && `• +${totalXp} XP`}
+          <span className="text-gray-400 dark:text-gray-500">
+            {completed} решено {totalXp > 0 && `\u2022 +${totalXp} XP`}
           </span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+        <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
           <div
             className="h-full rounded-full bg-blue-500 transition-all duration-300"
             style={{ width: `${(completed / problems.length) * 100}%` }}

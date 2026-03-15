@@ -42,10 +42,10 @@ const assessmentButtons: { value: SelfAssessment; label: string; color: string }
 
 function difficultyBadge(level: string) {
   const styles: Record<string, string> = {
-    basic: 'bg-green-100 text-green-700',
-    medium: 'bg-yellow-100 text-yellow-700',
-    hard: 'bg-red-100 text-red-700',
-    olympiad: 'bg-purple-100 text-purple-700',
+    basic: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+    medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+    hard: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    olympiad: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
   }
   const labels: Record<string, string> = {
     basic: 'Базовый',
@@ -54,7 +54,7 @@ function difficultyBadge(level: string) {
     olympiad: 'Олимпиадный',
   }
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${styles[level] || 'bg-gray-100 text-gray-600'}`}>
+    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${styles[level] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
       {labels[level] || level}
     </span>
   )
@@ -136,17 +136,14 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
   // Part 1: Check answer first, then show SRS buttons
   const handleCheck = async () => {
     if (!answer.trim()) return
-    // Submit with 'good' as default — will be replaced by SRS button choice
     const res = await submitAttempt('good')
     if (res) {
-      setSelectedAssessment(null) // Reset so user can pick
+      setSelectedAssessment(null)
     }
   }
 
   // Part 2: Show solution, then let user self-assess
   const handleShowSolution = async () => {
-    // For Part 2, we need to submit with an assessment to get the solution
-    // Show a "reveal" state first, then let user pick assessment
     setShowSolution(true)
   }
 
@@ -175,25 +172,25 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
   const checked = result !== null
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white">
+    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-700">
         <div className="flex items-center gap-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
             {problem.task_number}
           </span>
           {difficultyBadge(problem.difficulty)}
           {problem.source && (
-            <span className="text-xs text-gray-400">{problem.source}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">{problem.source}</span>
           )}
         </div>
         {showTimer && (
           <button
             onClick={() => setTimerActive(!timerActive)}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50"
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"
           >
             <span>{formatTime(elapsedSeconds)}</span>
-            <span className="text-xs">{timerActive ? '⏸' : '▶'}</span>
+            <span className="text-xs">{timerActive ? '\u23F8' : '\u25B6'}</span>
           </button>
         )}
       </div>
@@ -204,7 +201,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
       </div>
 
       {/* Answer section */}
-      <div className="border-t border-gray-100 px-6 py-4">
+      <div className="border-t border-gray-100 px-6 py-4 dark:border-gray-700">
         {!isPart2 ? (
           /* Part 1: numeric answer input */
           <>
@@ -216,7 +213,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
                   onChange={(e) => setAnswer(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
                   placeholder="Введите ответ..."
-                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                   disabled={submitting}
                   autoFocus
                 />
@@ -231,16 +228,16 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
             ) : (
               /* Result display */
               <div>
-                <div className={`mb-4 flex items-center gap-3 rounded-lg p-3 ${result.is_correct ? 'bg-green-50' : 'bg-red-50'}`}>
+                <div className={`mb-4 flex items-center gap-3 rounded-lg p-3 ${result.is_correct ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/30'}`}>
                   <span className={`text-2xl ${result.is_correct ? 'text-green-500' : 'text-red-500'}`}>
-                    {result.is_correct ? '✓' : '✗'}
+                    {result.is_correct ? '\u2713' : '\u2717'}
                   </span>
                   <div>
-                    <div className={`font-semibold ${result.is_correct ? 'text-green-700' : 'text-red-700'}`}>
+                    <div className={`font-semibold ${result.is_correct ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
                       {result.is_correct ? 'Правильно!' : 'Неправильно'}
                     </div>
                     {!result.is_correct && (
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
                         Правильный ответ: <span className="font-medium">{result.correct_answer}</span>
                       </div>
                     )}
@@ -260,7 +257,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
                       {showSolution ? 'Скрыть решение' : 'Показать решение'}
                     </button>
                     {showSolution && (
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
                         <MathRenderer content={result.solution_markdown} />
                       </div>
                     )}
@@ -270,7 +267,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
                 {/* SRS assessment buttons */}
                 {!selectedAssessment && (
                   <div>
-                    <div className="mb-2 text-sm text-gray-500">Оцените сложность:</div>
+                    <div className="mb-2 text-sm text-gray-500 dark:text-gray-400">Оцените сложность:</div>
                     <div className="flex gap-2">
                       {assessmentButtons.map((btn) => (
                         <button
@@ -285,7 +282,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
                   </div>
                 )}
                 {selectedAssessment && (
-                  <div className="text-sm text-gray-400">
+                  <div className="text-sm text-gray-400 dark:text-gray-500">
                     Оценка: {assessmentButtons.find((b) => b.value === selectedAssessment)?.label}
                   </div>
                 )}
@@ -305,12 +302,11 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
             ) : !checked ? (
               /* Solution revealed, awaiting self-assessment */
               <div>
-                <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <div className="mb-2 text-sm font-medium text-gray-500">Решение:</div>
-                  {/* We need to fetch the solution. For Part 2, we submit attempt to get it */}
-                  <p className="text-sm text-gray-500">Оцените, насколько вы смогли решить эту задачу:</p>
+                <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+                  <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Решение:</div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Оцените, насколько вы смогли решить эту задачу:</p>
                 </div>
-                <div className="mb-2 text-sm text-gray-500">Как вы справились?</div>
+                <div className="mb-2 text-sm text-gray-500 dark:text-gray-400">Как вы справились?</div>
                 <div className="flex gap-2">
                   {assessmentButtons.map((btn) => (
                     <button
@@ -328,8 +324,8 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
               /* Part 2 result */
               <div>
                 {result.solution_markdown && (
-                  <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <div className="mb-2 text-sm font-medium text-gray-500">Решение:</div>
+                  <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+                    <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Решение:</div>
                     <MathRenderer content={result.solution_markdown} />
                   </div>
                 )}
@@ -337,7 +333,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
                   <div className="mb-4 text-sm font-medium text-blue-600">+{result.xp_earned} XP</div>
                 )}
                 {selectedAssessment && (
-                  <div className="text-sm text-gray-400">
+                  <div className="text-sm text-gray-400 dark:text-gray-500">
                     Оценка: {assessmentButtons.find((b) => b.value === selectedAssessment)?.label}
                   </div>
                 )}
@@ -349,7 +345,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
 
       {/* Error display */}
       {error && (
-        <div className="border-t border-red-100 bg-red-50 px-6 py-3 text-sm text-red-600">
+        <div className="border-t border-red-100 bg-red-50 px-6 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/30 dark:text-red-400">
           {error}
         </div>
       )}

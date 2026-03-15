@@ -61,7 +61,6 @@ export default function PracticeSession() {
       if (!currentCard) return null
       const review = await submitReview(currentCard.card_id, answer, timeSpent, assessment)
       if (!review) return null
-      // Map SRS review response to AttemptResponse shape for ProblemCard
       return {
         is_correct: review.is_correct,
         correct_answer: review.correct_answer || '',
@@ -101,8 +100,8 @@ export default function PracticeSession() {
   if (loading) {
     return (
       <div className="p-8">
-        <div className="mb-6 h-8 w-64 animate-pulse rounded bg-gray-200" />
-        <div className="h-64 animate-pulse rounded-xl border border-gray-200 bg-gray-50" />
+        <div className="mb-6 h-8 w-64 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        <div className="h-64 animate-pulse rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800" />
       </div>
     )
   }
@@ -122,7 +121,7 @@ export default function PracticeSession() {
     return (
       <div className="p-8 text-center">
         <div className="mb-2 text-5xl">🎉</div>
-        <p className="mb-4 text-lg text-gray-500">Нет карточек на повторение</p>
+        <p className="mb-4 text-lg text-gray-500 dark:text-gray-400">Нет карточек на повторение</p>
         <Link
           to="/practice"
           className="inline-block rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
@@ -146,7 +145,7 @@ export default function PracticeSession() {
           &larr; Назад к тренировке
         </Link>
         {currentCard.topic_title && (
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
             {currentCard.topic_title}
           </div>
         )}
@@ -155,16 +154,16 @@ export default function PracticeSession() {
       {/* Progress bar */}
       <div className="mb-6">
         <div className="mb-1.5 flex items-center justify-between text-sm">
-          <span className="text-gray-600">
+          <span className="text-gray-600 dark:text-gray-400">
             Карточка {currentIndex + 1} из {cards.length}
           </span>
-          <span className="text-gray-400">
+          <span className="text-gray-400 dark:text-gray-500">
             {completed} решено
             {results.reduce((sum, r) => sum + r.review.xp_earned, 0) > 0 &&
-              ` • +${results.reduce((sum, r) => sum + r.review.xp_earned, 0)} XP`}
+              ` \u2022 +${results.reduce((sum, r) => sum + r.review.xp_earned, 0)} XP`}
           </span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+        <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
           <div
             className="h-full rounded-full bg-blue-500 transition-all duration-300"
             style={{ width: `${(completed / cards.length) * 100}%` }}

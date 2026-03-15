@@ -22,9 +22,9 @@ interface Topic {
 
 function difficultyBadge(level: string) {
   const styles: Record<string, string> = {
-    basic: 'bg-green-100 text-green-700',
-    medium: 'bg-yellow-100 text-yellow-700',
-    hard: 'bg-red-100 text-red-700',
+    basic: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+    medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+    hard: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
   }
   const labels: Record<string, string> = {
     basic: 'Базовый',
@@ -32,7 +32,7 @@ function difficultyBadge(level: string) {
     hard: 'Сложный',
   }
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${styles[level] || 'bg-gray-100 text-gray-600'}`}>
+    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${styles[level] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
       {labels[level] || level}
     </span>
   )
@@ -40,13 +40,13 @@ function difficultyBadge(level: string) {
 
 function progressColor(progress: TopicProgress | null): { bg: string; border: string; label: string } {
   if (!progress || progress.total_attempts === 0) {
-    return { bg: 'bg-white', border: 'border-gray-200', label: 'Не начато' }
+    return { bg: 'bg-white dark:bg-gray-800', border: 'border-gray-200 dark:border-gray-700', label: 'Не начато' }
   }
   const strength = progress.strength_score
   if (strength >= 0.7) {
-    return { bg: 'bg-green-50', border: 'border-green-300', label: 'Изучено' }
+    return { bg: 'bg-green-50 dark:bg-green-900/30', border: 'border-green-300 dark:border-green-700', label: 'Изучено' }
   }
-  return { bg: 'bg-yellow-50', border: 'border-yellow-300', label: 'В процессе' }
+  return { bg: 'bg-yellow-50 dark:bg-yellow-900/30', border: 'border-yellow-300 dark:border-yellow-700', label: 'В процессе' }
 }
 
 function TopicCard({ topic }: { topic: Topic }) {
@@ -63,20 +63,20 @@ function TopicCard({ topic }: { topic: Topic }) {
         </span>
         <div className="flex items-center gap-2">
           {difficultyBadge(topic.difficulty_level)}
-          <span className="text-xs font-medium text-gray-500">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
             {topic.max_points} {topic.max_points === 1 ? 'балл' : topic.max_points < 5 ? 'балла' : 'баллов'}
           </span>
         </div>
       </div>
-      <h3 className="mb-1 text-sm font-semibold text-gray-900">{topic.title}</h3>
+      <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{topic.title}</h3>
       {topic.description && (
-        <p className="mb-2 line-clamp-2 text-xs text-gray-500">{topic.description}</p>
+        <p className="mb-2 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">{topic.description}</p>
       )}
       <div className="flex items-center justify-between">
         <span className={`text-xs font-medium ${
           label === 'Изучено' ? 'text-green-600' :
           label === 'В процессе' ? 'text-yellow-600' :
-          'text-gray-400'
+          'text-gray-400 dark:text-gray-500'
         }`}>
           {label}
         </span>
@@ -103,10 +103,10 @@ export default function Topics() {
   if (loading) {
     return (
       <div className="p-8">
-        <h1 className="mb-6 text-2xl font-bold">Темы</h1>
+        <h1 className="mb-6 text-2xl font-bold dark:text-gray-100">Темы</h1>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-36 animate-pulse rounded-xl border border-gray-200 bg-gray-100" />
+            <div key={i} className="h-36 animate-pulse rounded-xl border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800" />
           ))}
         </div>
       </div>
@@ -116,7 +116,7 @@ export default function Topics() {
   if (error) {
     return (
       <div className="p-8">
-        <h1 className="mb-4 text-2xl font-bold">Темы</h1>
+        <h1 className="mb-4 text-2xl font-bold dark:text-gray-100">Темы</h1>
         <p className="text-red-600">Ошибка загрузки: {error}</p>
       </div>
     )
@@ -127,11 +127,11 @@ export default function Topics() {
 
   return (
     <div className="p-8">
-      <h1 className="mb-6 text-2xl font-bold">Темы ЕГЭ по математике</h1>
+      <h1 className="mb-6 text-2xl font-bold dark:text-gray-100">Темы ЕГЭ по математике</h1>
 
       <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-gray-700">
-          Часть 1 <span className="text-sm font-normal text-gray-400">— задания 1–12, по 1 баллу</span>
+        <h2 className="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-300">
+          Часть 1 <span className="text-sm font-normal text-gray-400 dark:text-gray-500">— задания 1–12, по 1 баллу</span>
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {part1.map((topic) => (
@@ -141,8 +141,8 @@ export default function Topics() {
       </section>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-gray-700">
-          Часть 2 <span className="text-sm font-normal text-gray-400">— задания 13–19, 2–4 балла</span>
+        <h2 className="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-300">
+          Часть 2 <span className="text-sm font-normal text-gray-400 dark:text-gray-500">— задания 13–19, 2–4 балла</span>
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {part2.map((topic) => (

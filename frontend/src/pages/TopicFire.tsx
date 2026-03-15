@@ -94,11 +94,8 @@ export default function TopicFire() {
   const [xpEarned, setXpEarned] = useState(0)
   const [newLevel, setNewLevel] = useState<number | null>(null)
 
-  // Inquiry answers (local state, not persisted)
   const [inquiryAnswers, setInquiryAnswers] = useState<Record<number, string>>({})
   const [showInquiryAnswers, setShowInquiryAnswers] = useState(false)
-
-  // Elaboration
   const [elaborationText, setElaborationText] = useState('')
   const [elaborationChecks, setElaborationChecks] = useState<Record<number, boolean>>({})
 
@@ -114,7 +111,6 @@ export default function TopicFire() {
       .then(([theoryData, relData]) => {
         setTheory(theoryData)
         setRelationships(relData)
-        // Start at first incomplete stage
         const firstIncomplete = STAGES.findIndex(
           (s) => !isStageCompleted(theoryData.fire_progress, s)
         )
@@ -143,7 +139,6 @@ export default function TopicFire() {
         body: JSON.stringify({ stage: currentStage }),
       })
 
-      // Update local progress
       setTheory((prev) => {
         if (!prev) return prev
         const updated: FireProgress = {
@@ -174,10 +169,8 @@ export default function TopicFire() {
           useXpStore.getState().showLevelUp(res.new_level_reached, getLevelName(res.new_level_reached))
         }
       } else {
-        // Advance to next stage
         if (currentStageIdx < STAGES.length - 1) {
           setCurrentStageIdx(currentStageIdx + 1)
-          // Reset stage-specific state
           setShowInquiryAnswers(false)
           setInquiryAnswers({})
           setElaborationText('')
@@ -198,9 +191,7 @@ export default function TopicFire() {
     }
   }
 
-  // Parse inquiry questions from content (expects numbered list in markdown or JSON visual_assets)
   const parseInquiryQuestions = (content: TheoryContentItem): { question: string; answer: string }[] => {
-    // Try visual_assets first (structured data)
     if (content.visual_assets && Array.isArray(content.visual_assets) && content.visual_assets.length > 0) {
       const questions = content.visual_assets as { question?: string; answer?: string }[]
       if (questions[0]?.question) {
@@ -210,11 +201,9 @@ export default function TopicFire() {
         }))
       }
     }
-    // Fallback: parse markdown content for Q&A pairs
     return []
   }
 
-  // Parse elaboration checklist from visual_assets or content
   const parseElaborationChecklist = (content: TheoryContentItem): string[] => {
     if (content.visual_assets && Array.isArray(content.visual_assets) && content.visual_assets.length > 0) {
       const items = content.visual_assets as (string | { item?: string; text?: string })[]
@@ -232,13 +221,13 @@ export default function TopicFire() {
   if (loading) {
     return (
       <div className="p-8">
-        <div className="mb-4 h-8 w-64 animate-pulse rounded bg-gray-200" />
+        <div className="mb-4 h-8 w-64 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
         <div className="mb-6 flex gap-2">
           {STAGES.map((_, i) => (
-            <div key={i} className="h-10 w-20 animate-pulse rounded-lg bg-gray-200" />
+            <div key={i} className="h-10 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
           ))}
         </div>
-        <div className="h-64 animate-pulse rounded-xl border border-gray-200 bg-gray-50" />
+        <div className="h-64 animate-pulse rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800" />
       </div>
     )
   }
@@ -259,14 +248,14 @@ export default function TopicFire() {
       <div className="p-8">
         <div className="mx-auto max-w-lg text-center">
           <div className="mb-4 text-6xl">🔥</div>
-          <h1 className="mb-2 text-2xl font-bold text-gray-900">Тема изучена!</h1>
-          <p className="mb-2 text-gray-500">{theory.topic_title}</p>
-          <p className="mb-6 text-sm text-gray-400">
+          <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Тема изучена!</h1>
+          <p className="mb-2 text-gray-500 dark:text-gray-400">{theory.topic_title}</p>
+          <p className="mb-6 text-sm text-gray-400 dark:text-gray-500">
             FIRe-flow пройден. SRS-карточки созданы для повторения.
           </p>
 
           {xpEarned > 0 && (
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-purple-100 px-4 py-2 text-lg font-bold text-purple-700">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-purple-100 px-4 py-2 text-lg font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
               +{xpEarned} XP
             </div>
           )}
@@ -279,7 +268,7 @@ export default function TopicFire() {
           <div className="flex justify-center gap-3">
             <Link
               to={`/topics/${id}`}
-              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               К теме
             </Link>
@@ -311,7 +300,7 @@ export default function TopicFire() {
         <Link to={`/topics/${id}`} className="inline-flex items-center text-sm text-blue-600 hover:underline">
           &larr; Назад к теме
         </Link>
-        <div className="text-sm text-gray-500">{theory.topic_title}</div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">{theory.topic_title}</div>
       </div>
 
       {/* Stage progress bar */}
@@ -328,8 +317,8 @@ export default function TopicFire() {
                     isCurrent
                       ? 'bg-orange-500 text-white shadow-md'
                       : done
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60'
+                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-500 dark:hover:bg-gray-700'
                   }`}
                 >
                   <span className="mr-1.5">{STAGE_SHORT[stage]}</span>
@@ -340,8 +329,7 @@ export default function TopicFire() {
             )
           })}
         </div>
-        {/* Overall progress */}
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200">
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
           <div
             className="h-full rounded-full bg-orange-500 transition-all duration-300"
             style={{
@@ -353,25 +341,23 @@ export default function TopicFire() {
 
       {/* Stage header */}
       <div className="mb-6">
-        <h2 className="mb-1 text-xl font-bold text-gray-900">
+        <h2 className="mb-1 text-xl font-bold text-gray-900 dark:text-gray-100">
           {STAGE_LABELS[currentStage]}
         </h2>
-        <p className="text-sm text-gray-500">{STAGE_DESCRIPTIONS[currentStage]}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{STAGE_DESCRIPTIONS[currentStage]}</p>
       </div>
 
       {/* Stage content */}
-      <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6">
+      <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         {!stageContent ? (
-          <p className="text-gray-400">
+          <p className="text-gray-400 dark:text-gray-500">
             Контент для этого этапа пока не добавлен. Вы можете отметить этап как пройденный и продолжить.
           </p>
         ) : currentStage === 'framework' ? (
-          /* Framework: display theory with formulas */
           <div>
             <MathRenderer content={stageContent.content_markdown} />
           </div>
         ) : currentStage === 'inquiry' ? (
-          /* Inquiry: questions + answer fields */
           <div>
             {stageContent.content_markdown && (
               <div className="mb-6">
@@ -384,8 +370,8 @@ export default function TopicFire() {
               return (
                 <div className="space-y-6">
                   {questions.map((q, idx) => (
-                    <div key={idx} className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-                      <p className="mb-3 font-medium text-gray-800">
+                    <div key={idx} className="rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+                      <p className="mb-3 font-medium text-gray-800 dark:text-gray-200">
                         {idx + 1}. {q.question}
                       </p>
                       <textarea
@@ -395,12 +381,12 @@ export default function TopicFire() {
                         }
                         placeholder="Ваш ответ..."
                         rows={3}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                       />
                       {showInquiryAnswers && q.answer && (
-                        <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3">
-                          <p className="mb-1 text-xs font-semibold text-green-700">Эталонный ответ:</p>
-                          <div className="text-sm text-green-800">
+                        <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/30">
+                          <p className="mb-1 text-xs font-semibold text-green-700 dark:text-green-300">Эталонный ответ:</p>
+                          <div className="text-sm text-green-800 dark:text-green-200">
                             <MathRenderer content={q.answer} />
                           </div>
                         </div>
@@ -410,7 +396,7 @@ export default function TopicFire() {
                   {!showInquiryAnswers && (
                     <button
                       onClick={() => setShowInquiryAnswers(true)}
-                      className="rounded-lg border border-orange-300 px-4 py-2 text-sm font-medium text-orange-600 transition-colors hover:bg-orange-50"
+                      className="rounded-lg border border-orange-300 px-4 py-2 text-sm font-medium text-orange-600 transition-colors hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-900/30"
                     >
                       Показать эталонные ответы
                     </button>
@@ -420,7 +406,6 @@ export default function TopicFire() {
             })()}
           </div>
         ) : currentStage === 'relationships' ? (
-          /* Relationships: related topics list + notes */
           <div>
             {stageContent.content_markdown && (
               <div className="mb-6">
@@ -429,21 +414,21 @@ export default function TopicFire() {
             )}
             {relationships.length > 0 && (
               <div>
-                <h3 className="mb-3 text-sm font-semibold text-gray-700">Связанные темы:</h3>
+                <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Связанные темы:</h3>
                 <div className="space-y-2">
                   {relationships.map((rel) =>
                     rel.related_topic ? (
                       <div
                         key={rel.id}
-                        className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+                        className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900"
                       >
                         <div>
                           <span className="mr-2 font-semibold text-blue-600">
                             #{rel.related_topic.task_number}
                           </span>
-                          <span className="text-gray-700">{rel.related_topic.title}</span>
+                          <span className="text-gray-700 dark:text-gray-300">{rel.related_topic.title}</span>
                           {rel.relationship_type && (
-                            <span className="ml-2 text-xs text-gray-400">
+                            <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
                               ({rel.relationship_type === 'prerequisite' ? 'пререквизит' : rel.relationship_type})
                             </span>
                           )}
@@ -462,7 +447,6 @@ export default function TopicFire() {
             )}
           </div>
         ) : currentStage === 'elaboration' ? (
-          /* Elaboration: explain in your own words + checklist */
           <div>
             {stageContent.content_markdown && (
               <div className="mb-6">
@@ -470,7 +454,7 @@ export default function TopicFire() {
               </div>
             )}
             <div className="mb-6">
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Объясните тему простым языком:
               </label>
               <textarea
@@ -478,7 +462,7 @@ export default function TopicFire() {
                 onChange={(e) => setElaborationText(e.target.value)}
                 placeholder="Представьте, что объясняете другу, который не знает математику..."
                 rows={5}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
               />
             </div>
             {(() => {
@@ -486,14 +470,14 @@ export default function TopicFire() {
               if (checklist.length === 0) return null
               return (
                 <div>
-                  <h3 className="mb-3 text-sm font-semibold text-gray-700">
+                  <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                     Чек-лист ключевых пунктов:
                   </h3>
                   <div className="space-y-2">
                     {checklist.map((item, idx) => (
                       <label
                         key={idx}
-                        className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 transition-colors hover:bg-gray-100"
+                        className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
                       >
                         <input
                           type="checkbox"
@@ -506,7 +490,7 @@ export default function TopicFire() {
                           }
                           className="mt-0.5 h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400"
                         />
-                        <span className="text-sm text-gray-700">{item}</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{item}</span>
                       </label>
                     ))}
                   </div>
@@ -524,8 +508,8 @@ export default function TopicFire() {
           disabled={currentStageIdx === 0}
           className={`rounded-lg border px-5 py-2.5 text-sm font-semibold transition-colors ${
             currentStageIdx === 0
-              ? 'cursor-not-allowed border-gray-200 text-gray-300'
-              : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              ? 'cursor-not-allowed border-gray-200 text-gray-300 dark:border-gray-700 dark:text-gray-600'
+              : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
           }`}
         >
           &larr; Назад
@@ -541,12 +525,11 @@ export default function TopicFire() {
             : currentStageIdx === STAGES.length - 1
               ? 'Завершить FIRe-flow'
               : stageCompleted
-                ? 'Далее →'
-                : 'Завершить этап и далее →'}
+                ? 'Далее \u2192'
+                : 'Завершить этап и далее \u2192'}
         </button>
       </div>
 
-      {/* Stage completed indicator */}
       {stageCompleted && (
         <p className="mt-4 text-center text-sm text-green-600">
           &#10003; Этот этап уже пройден

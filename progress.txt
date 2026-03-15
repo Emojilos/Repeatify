@@ -726,6 +726,40 @@ Setup instructions for production:
 4. Push to main → GitHub Actions builds and deploys frontend to GitHub Pages
 5. Render auto-deploys backend from main branch
 
+TASK-037 DONE — Dark/light theme (toggle + Tailwind dark mode on all pages)
+
+Implementation:
+- Created frontend/src/stores/themeStore.ts — Zustand store for theme state:
+  - Theme type: 'light' | 'dark', default 'light'
+  - toggle() — switches theme, persists to localStorage ('repeatify-theme' key)
+  - applyTheme() — adds/removes 'dark' class on document.documentElement
+  - getInitialTheme() — reads from localStorage, falls back to 'light'
+- Configured Tailwind dark mode via class strategy:
+  - @custom-variant dark (&:where(.dark, .dark *)); in index.css
+- Added theme toggle button in Header.tsx:
+  - Moon icon (light → dark), Sun icon (dark → light)
+  - Tooltip shows target theme name
+- Applied dark: variants across ALL pages and components:
+  - Layout: dark:bg-gray-900 for main content area
+  - Header: dark:bg-gray-800, dark:border-gray-700, dark text/badge colors
+  - Sidebar: dark:bg-gray-800, dark active/hover states
+  - Dashboard: dark cards, dark countdown banner, dark topic grid
+  - Topics: dark cards, dark section headers, dark badges
+  - TopicDetail: dark sections, dark problem cards, dark stats
+  - TopicFire: dark wizard steps, dark stage content
+  - TopicPractice: dark progress bar, dark cards
+  - Practice: dark landing, dark empty state
+  - PracticeSession: dark card display, dark progress
+  - PracticeResults: dark summary, dark topic breakdown
+  - Progress: dark gap map table, dark heatmap, dark chart
+  - Profile: dark settings form, dark heatmap, dark score table
+  - Login/Register: dark auth forms, dark backgrounds
+  - ErrorBoundary: dark error display
+  - LevelUpModal: dark overlay and modal
+  - ProblemCard: dark inputs, dark result indicators, dark SRS buttons
+  - XpPopup: dark popup bubbles
+  - ToastContainer: dark toast styling
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 190 tests pass
+
 Next priorities (medium, all deps met):
 - TASK-036: Admin import script (deps: TASK-005 ✅)
-- TASK-037: Dark/light theme (deps: TASK-010 ✅)

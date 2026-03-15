@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --animate-xp-popup: xp-popup 2.5s ease-out forwards;
   --animate-level-up: level-up 0.4s ease-out;

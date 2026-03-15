@@ -17,11 +17,11 @@ export default function LevelUpModal() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={dismiss}>
       <div
-        className="animate-level-up rounded-2xl bg-white px-10 py-8 text-center shadow-2xl"
+        className="animate-level-up rounded-2xl bg-white px-10 py-8 text-center shadow-2xl dark:bg-gray-800"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-2 text-4xl">&#127942;</div>
-        <h2 className="mb-1 text-xl font-bold text-gray-900">Новый уровень!</h2>
+        <h2 className="mb-1 text-xl font-bold text-gray-900 dark:text-gray-100">Новый уровень!</h2>
         <p className="text-3xl font-extrabold text-purple-600">
           {level}. {name}
         </p>

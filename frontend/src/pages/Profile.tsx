@@ -107,11 +107,11 @@ function buildMiniHeatmap(activities: DailyActivity[]) {
 }
 
 function heatmapCellColor(count: number): string {
-  if (count === 0) return 'bg-gray-100'
-  if (count <= 2) return 'bg-green-200'
-  if (count <= 5) return 'bg-green-400'
-  if (count <= 10) return 'bg-green-500'
-  return 'bg-green-700'
+  if (count === 0) return 'bg-gray-100 dark:bg-gray-700'
+  if (count <= 2) return 'bg-green-200 dark:bg-green-800'
+  if (count <= 5) return 'bg-green-400 dark:bg-green-600'
+  if (count <= 10) return 'bg-green-500 dark:bg-green-500'
+  return 'bg-green-700 dark:bg-green-400'
 }
 
 /* ------------------------------------------------------------------ */
@@ -203,11 +203,11 @@ export default function Profile() {
   if (loading) {
     return (
       <div className="p-8">
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">Профиль</h1>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Профиль</h1>
         <div className="space-y-6">
-          <div className="h-48 animate-pulse rounded-xl bg-gray-100" />
-          <div className="h-64 animate-pulse rounded-xl bg-gray-100" />
-          <div className="h-40 animate-pulse rounded-xl bg-gray-100" />
+          <div className="h-48 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+          <div className="h-64 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+          <div className="h-40 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
         </div>
       </div>
     )
@@ -216,7 +216,7 @@ export default function Profile() {
   if (error) {
     return (
       <div className="p-8">
-        <h1 className="mb-4 text-2xl font-bold text-gray-900">Профиль</h1>
+        <h1 className="mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">Профиль</h1>
         <p className="text-red-600">Ошибка загрузки: {error}</p>
       </div>
     )
@@ -234,82 +234,82 @@ export default function Profile() {
 
   return (
     <div className="mx-auto max-w-3xl p-8">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Профиль</h1>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Профиль</h1>
 
       {/* ====== Stats cards ====== */}
       <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm">
-          <div className="text-2xl font-bold text-blue-600">{currentXp}</div>
-          <div className="text-xs text-gray-500">XP</div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="text-2xl font-bold text-blue-600">{ currentXp}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">XP</div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="text-2xl font-bold text-purple-600">
             {levelName(currentLevel)}
           </div>
-          <div className="text-xs text-gray-500">Уровень {currentLevel}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Уровень {currentLevel}</div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="text-2xl font-bold text-orange-600">{stats?.current_streak ?? 0}</div>
-          <div className="text-xs text-gray-500">Серия</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Серия</div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="text-2xl font-bold text-green-600">{stats?.longest_streak ?? 0}</div>
-          <div className="text-xs text-gray-500">Макс. серия</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Макс. серия</div>
         </div>
       </section>
 
       {/* XP progress to next level */}
-      <section className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <section className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="text-gray-600">
+          <span className="text-gray-600 dark:text-gray-400">
             Ур. {currentLevel} — {levelName(currentLevel)}
           </span>
-          <span className="text-gray-500">
+          <span className="text-gray-500 dark:text-gray-400">
             {nextLevelXp ? `${currentXp} / ${nextLevelXp} XP` : 'Максимальный уровень'}
           </span>
         </div>
-        <div className="h-3 overflow-hidden rounded-full bg-gray-200">
+        <div className="h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
           <div
             className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all"
             style={{ width: `${xpProgress}%` }}
           />
         </div>
         {nextLevelXp && (
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
             До уровня {currentLevel + 1} ({levelName(currentLevel + 1)}): ещё {nextLevelXp - currentXp} XP
           </p>
         )}
       </section>
 
       {/* ====== Settings form ====== */}
-      <section className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Настройки</h2>
+      <section className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Настройки</h2>
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Имя</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Имя</label>
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Ваше имя"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Дата экзамена</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Дата экзамена</label>
             <input
               type="date"
               value={examDate}
               onChange={(e) => setExamDate(e.target.value)}
               min={new Date().toISOString().slice(0, 10)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Целевой балл (27–100)
             </label>
             <input
@@ -319,7 +319,7 @@ export default function Profile() {
               value={targetScore}
               onChange={(e) => setTargetScore(e.target.value)}
               placeholder="80"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
             />
             {targetScore && (Number(targetScore) < 27 || Number(targetScore) > 100) && (
               <p className="mt-1 text-xs text-red-500">Допустимый диапазон: 27–100</p>
@@ -341,13 +341,13 @@ export default function Profile() {
       </section>
 
       {/* ====== Streak heatmap (mini) ====== */}
-      <section className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <section className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Календарь стриков</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Календарь стриков</h2>
           {calendar && (
-            <div className="flex gap-4 text-sm text-gray-500">
-              <span>Серия: <strong className="text-gray-900">{calendar.current_streak}</strong></span>
-              <span>Макс: <strong className="text-gray-900">{calendar.longest_streak}</strong></span>
+            <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
+              <span>Серия: <strong className="text-gray-900 dark:text-gray-100">{calendar.current_streak}</strong></span>
+              <span>Макс: <strong className="text-gray-900 dark:text-gray-100">{calendar.longest_streak}</strong></span>
             </div>
           )}
         </div>
@@ -355,7 +355,7 @@ export default function Profile() {
         <div className="overflow-x-auto">
           {['Пн', '', 'Ср', '', 'Пт', '', ''].map((dayLabel, dayIdx) => (
             <div key={dayIdx} className="flex items-center">
-              <div className="w-6 shrink-0 text-[10px] text-gray-400">{dayLabel}</div>
+              <div className="w-6 shrink-0 text-[10px] text-gray-400 dark:text-gray-500">{dayLabel}</div>
               {heatmapWeeks.map((week, wi) => {
                 const cell = week[dayIdx]
                 if (!cell) return <div key={wi} style={{ width: 12, height: 12, margin: 1 }} />
@@ -373,34 +373,34 @@ export default function Profile() {
           ))}
 
           {/* Legend */}
-          <div className="mt-2 flex items-center justify-end gap-1 text-[10px] text-gray-400">
+          <div className="mt-2 flex items-center justify-end gap-1 text-[10px] text-gray-400 dark:text-gray-500">
             <span>Меньше</span>
-            <div className="h-2.5 w-2.5 rounded-sm bg-gray-100" />
-            <div className="h-2.5 w-2.5 rounded-sm bg-green-200" />
-            <div className="h-2.5 w-2.5 rounded-sm bg-green-400" />
+            <div className="h-2.5 w-2.5 rounded-sm bg-gray-100 dark:bg-gray-700" />
+            <div className="h-2.5 w-2.5 rounded-sm bg-green-200 dark:bg-green-800" />
+            <div className="h-2.5 w-2.5 rounded-sm bg-green-400 dark:bg-green-600" />
             <div className="h-2.5 w-2.5 rounded-sm bg-green-500" />
-            <div className="h-2.5 w-2.5 rounded-sm bg-green-700" />
+            <div className="h-2.5 w-2.5 rounded-sm bg-green-700 dark:bg-green-400" />
             <span>Больше</span>
           </div>
         </div>
       </section>
 
       {/* ====== Score conversion table ====== */}
-      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">Шкала перевода баллов</h2>
+      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Шкала перевода баллов</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50">
+            <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
               <tr>
-                <th className="px-4 py-2 font-medium text-gray-600">Первичный балл</th>
-                <th className="px-4 py-2 font-medium text-gray-600">Тестовый балл</th>
+                <th className="px-4 py-2 font-medium text-gray-600 dark:text-gray-400">Первичный балл</th>
+                <th className="px-4 py-2 font-medium text-gray-600 dark:text-gray-400">Тестовый балл</th>
               </tr>
             </thead>
             <tbody>
               {SCORE_TABLE.map((row) => (
-                <tr key={row.primary} className="border-b border-gray-100">
-                  <td className="px-4 py-2 text-gray-900">{row.primary}</td>
-                  <td className="px-4 py-2 text-gray-700">{row.score100}</td>
+                <tr key={row.primary} className="border-b border-gray-100 dark:border-gray-700">
+                  <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{row.primary}</td>
+                  <td className="px-4 py-2 text-gray-700 dark:text-gray-300">{row.score100}</td>
                 </tr>
               ))}
             </tbody>

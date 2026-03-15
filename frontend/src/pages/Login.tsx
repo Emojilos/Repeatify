@@ -31,14 +31,14 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-900">
       <div className="w-full max-w-sm">
         <h1 className="mb-2 text-center text-2xl font-bold text-blue-600">Repeatify</h1>
-        <p className="mb-8 text-center text-sm text-gray-500">Войдите в аккаунт</p>
+        <p className="mb-8 text-center text-sm text-gray-500 dark:text-gray-400">Войдите в аккаунт</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Email
             </label>
             <input
@@ -46,7 +46,7 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               placeholder="example@mail.ru"
             />
             {fieldErrors.email && (
@@ -55,7 +55,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Пароль
             </label>
             <input
@@ -63,7 +63,7 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               placeholder="Введите пароль"
             />
             {fieldErrors.password && (
@@ -72,7 +72,7 @@ export default function Login() {
           </div>
 
           {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>
+            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/30 dark:text-red-400">{error}</div>
           )}
 
           <button
@@ -84,7 +84,7 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
           Нет аккаунта?{' '}
           <Link to="/auth/register" className="font-medium text-blue-600 hover:text-blue-500">
             Зарегистрироваться
