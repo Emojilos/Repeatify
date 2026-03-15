@@ -832,3 +832,40 @@ Implementation:
 - SQL validated, ruff check clean, existing tests unaffected (migration is SQL only)
 
 Next: TASK-003 (Pydantic models for all new tables) depends on TASK-001 + TASK-002.
+
+TASK-003 DONE — Pydantic-модели для всех новых таблиц
+
+Implementation:
+- Created backend/app/models/prototype.py:
+  - PrototypeBase: core fields for create/update
+  - PrototypeResponse: full prototype with theory_markdown, key_formulas, solution_algorithm, common_mistakes, related_prototypes
+  - PrototypeListItem: lightweight for list views
+  - PrototypeListResponse: paginated list wrapper
+- Created backend/app/models/video.py:
+  - VideoResourceResponse: youtube_video_id, title, channel_name, duration_seconds, timestamps JSONB
+- Created backend/app/models/fsrs_card.py:
+  - FSRSCardType enum: problem, concept, formula
+  - FSRSCardState enum: new, learning, review, relearning
+  - FSRSCardBase: create request fields
+  - FSRSCardResponse: full card with FSRS fields (difficulty, stability, due, state, reps, lapses) + enriched session fields (problem_text, topic_title, retrievability)
+  - FSRSReviewRequest: card_id + rating (1-4 validated via Field(ge=1, le=4))
+  - FSRSSessionResponse: cards list + total_due
+- Created backend/app/models/diagnostic.py:
+  - DiagnosticProblem: problem in diagnostic test
+  - DiagnosticStartResponse: list of 19 problems
+  - DiagnosticAnswer: task_number (1-19), answer/self_assessment, time_spent_seconds
+  - DiagnosticSubmitRequest: exactly 19 answers (min_length=19, max_length=19)
+  - DiagnosticResultItem, DiagnosticResultResponse: results with correct/answered counts
+- Created backend/app/models/study_plan.py:
+  - StudyPlanGenerateRequest: target_score validated to {70,80,90,100} via model_validator, exam_date, hours_per_day (gt=0, le=10)
+  - StudyPlanResponse: full plan with plan_data JSONB
+  - DailyTask, DailyTasksResponse: daily tasks with review_cards_due + new_material
+- Updated backend/app/models/problems.py:
+  - Added prototype_id, source_url, content_hash to ProblemListItem and ProblemDetail
+- All models import without errors
+- Validation works: FSRSReviewRequest accepts rating 1-4, rejects 0 and 5
+- StudyPlanGenerateRequest validates target_score in {70,80,90,100}
+- DiagnosticSubmitRequest accepts exactly 19 answers, rejects 18 or 20
+- ruff check clean, all pre-existing tests unaffected (57 pre-existing failures, 0 new)
+
+Next: TASK-004 (FSRS service: py-fsrs wrapper) depends on TASK-002 + TASK-003.

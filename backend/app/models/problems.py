@@ -27,6 +27,9 @@ class ProblemListItem(BaseModel):
     hints: list[str] | None = None
     source: str | None = None
     max_points: int | None = None
+    prototype_id: str | None = None
+    source_url: str | None = None
+    content_hash: str | None = None
 
 
 class ProblemDetail(BaseModel):
@@ -40,6 +43,9 @@ class ProblemDetail(BaseModel):
     problem_images: list[str] | None = None
     hints: list[str] | None = None
     source: str | None = None
+    prototype_id: str | None = None
+    source_url: str | None = None
+    content_hash: str | None = None
 
 
 class AttemptRequest(BaseModel):

@@ -1,0 +1,57 @@
+from enum import Enum
+
+from pydantic import BaseModel, Field
+
+
+class FSRSCardType(str, Enum):
+    problem = "problem"
+    concept = "concept"
+    formula = "formula"
+
+
+class FSRSCardState(str, Enum):
+    new = "new"
+    learning = "learning"
+    review = "review"
+    relearning = "relearning"
+
+
+class FSRSCardBase(BaseModel):
+    problem_id: str | None = None
+    prototype_id: str | None = None
+    card_type: FSRSCardType
+
+
+class FSRSCardResponse(BaseModel):
+    id: str
+    user_id: str
+    problem_id: str | None = None
+    prototype_id: str | None = None
+    card_type: str
+    difficulty: float
+    stability: float
+    due: str
+    last_review: str | None = None
+    reps: int
+    lapses: int
+    state: str
+    scheduled_days: int | None = None
+    elapsed_days: int | None = None
+    created_at: str | None = None
+    # Enriched fields for session display
+    problem_text: str | None = None
+    problem_images: list[str] | None = None
+    hints: list[str] | None = None
+    topic_title: str | None = None
+    task_number: int | None = None
+    retrievability: float | None = None
+
+
+class FSRSReviewRequest(BaseModel):
+    card_id: str
+    rating: int = Field(..., ge=1, le=4)
+
+
+class FSRSSessionResponse(BaseModel):
+    cards: list[FSRSCardResponse]
+    total_due: int
