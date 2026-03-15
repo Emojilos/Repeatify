@@ -383,7 +383,7 @@ class TestGapMap:
                 {
                     "topic_id": "t1",
                     "strength_score": 0.8,
-                    "fire_completed_at": "2026-01-01T00:00:00Z",
+                    "fire_completed_at": "2026-01-01",
                 },
                 {"topic_id": "t2", "strength_score": 0.3, "fire_completed_at": None},
             ],
@@ -452,12 +452,12 @@ class TestGapMap:
                 {
                     "topic_id": "t2",
                     "strength_score": 0.4,
-                    "fire_completed_at": "2026-01-01T00:00:00Z",
+                    "fire_completed_at": "2026-01-01",
                 },
                 {
                     "topic_id": "t3",
                     "strength_score": 0.7,
-                    "fire_completed_at": "2026-01-01T00:00:00Z",
+                    "fire_completed_at": "2026-01-01",
                 },
             ],
             attempts_data=[
@@ -570,4 +570,205 @@ class TestGapMap:
 
     def test_requires_auth(self, client):
         resp = client.get("/api/progress/gap-map")
+        assert resp.status_code in (401, 403)
+
+
+def _mock_readiness_client(
+    *,
+    user_data=None,
+    topics_data=None,
+    progress_data=None,
+):
+    """Create a mock Supabase client for the exam-readiness endpoint."""
+    mock_client = MagicMock()
+
+    if user_data is None:
+        user_data = {"exam_date": "2026-06-19"}
+    if topics_data is None:
+        topics_data = [
+            {
+                "id": "t1", "task_number": 1,
+                "title": "Планиметрия",
+                "max_points": 1, "estimated_study_hours": 1.0,
+            },
+            {
+                "id": "t2", "task_number": 2,
+                "title": "Вычисления",
+                "max_points": 1, "estimated_study_hours": 1.0,
+            },
+            {
+                "id": "t3", "task_number": 13,
+                "title": "Стереометрия Ч2",
+                "max_points": 3, "estimated_study_hours": 4.0,
+            },
+        ]
+    if progress_data is None:
+        progress_data = []
+
+    users_result = MagicMock(data=user_data)
+    topics_result = MagicMock(data=topics_data)
+    progress_result = MagicMock(data=progress_data)
+
+    def table_effect(name):
+        t = MagicMock()
+        if name == "users":
+            (
+                t.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value
+            ) = users_result
+        elif name == "topics":
+            (
+                t.select.return_value.order.return_value.execute.return_value
+            ) = topics_result
+        elif name == "user_topic_progress":
+            (
+                t.select.return_value.eq.return_value.execute.return_value
+            ) = progress_result
+        return t
+
+    mock_client.table.side_effect = table_effect
+    return mock_client
+
+
+class TestExamReadiness:
+    def test_returns_all_fields(self, client):
+        exam_date = (date.today() + timedelta(days=60)).isoformat()
+        mc = _mock_readiness_client(
+            user_data={"exam_date": exam_date},
+        )
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/exam-readiness",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "readiness_percent" in data
+        assert "exam_countdown" in data
+        assert data["exam_countdown"] == 60
+        assert "priority_topics" in data
+        assert "summary" in data
+        assert len(data["priority_topics"]) <= 5
+
+    def test_high_points_low_strength_is_top_priority(self, client):
+        """A high-points weak topic should appear first in priority list."""
+        fc = "2026-01-01"
+        mc = _mock_readiness_client(
+            progress_data=[
+                {"topic_id": "t1", "strength_score": 0.9, "fire_completed_at": fc},
+                {"topic_id": "t2", "strength_score": 0.9, "fire_completed_at": fc},
+            ],
+        )
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/exam-readiness",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        # t3 (Стереометрия Ч2, 3 points, strength=0) should be first
+        assert data["priority_topics"][0]["task_number"] == 13
+        assert data["priority_topics"][0]["priority_score"] > 0
+
+    def test_low_points_high_strength_is_low_priority(self, client):
+        """A mastered low-points topic should rank last."""
+        mc = _mock_readiness_client(
+            progress_data=[
+                {
+                    "topic_id": "t1",
+                    "strength_score": 0.9,
+                    "fire_completed_at": "2026-01-01",
+                },
+                {
+                    "topic_id": "t3",
+                    "strength_score": 0.1,
+                    "fire_completed_at": None,
+                },
+            ],
+        )
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/exam-readiness",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        topics = {t["task_number"]: t for t in resp.json()["priority_topics"]}
+        # t1 (1pt, strength=0.9) should have lower priority than t3 (3pt, strength=0.1)
+        assert topics[1]["priority_score"] < topics[13]["priority_score"]
+
+    def test_no_exam_date(self, client):
+        mc = _mock_readiness_client(user_data={"exam_date": None})
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/exam-readiness",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["exam_countdown"] is None
+        assert data["readiness_percent"] == 0.0
+
+    def test_readiness_weighted_by_points(self, client):
+        """Readiness should be weighted by max_points."""
+        mc = _mock_readiness_client(
+            progress_data=[
+                {
+                    "topic_id": "t1",
+                    "strength_score": 1.0,
+                    "fire_completed_at": "2026-01-01",
+                },
+            ],
+        )
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/exam-readiness",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        # (1*1.0 + 1*0.0 + 3*0.0) / 5 = 20%
+        assert data["readiness_percent"] == 20.0
+
+    def test_exam_urgency_affects_priority(self, client):
+        """Topics should have higher priority when exam is closer."""
+        exam_soon = (date.today() + timedelta(days=10)).isoformat()
+        mc_soon = _mock_readiness_client(user_data={"exam_date": exam_soon})
+
+        exam_far = (date.today() + timedelta(days=120)).isoformat()
+        mc_far = _mock_readiness_client(user_data={"exam_date": exam_far})
+
+        with patch(PATCH_TARGET, return_value=mc_soon):
+            token = _make_token()
+            resp_soon = client.get(
+                "/api/progress/exam-readiness",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        with patch(PATCH_TARGET, return_value=mc_far):
+            token = _make_token()
+            resp_far = client.get(
+                "/api/progress/exam-readiness",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        soon_top = resp_soon.json()["priority_topics"][0]["priority_score"]
+        far_top = resp_far.json()["priority_topics"][0]["priority_score"]
+        assert soon_top > far_top
+
+    def test_requires_auth(self, client):
+        resp = client.get("/api/progress/exam-readiness")
         assert resp.status_code in (401, 403)

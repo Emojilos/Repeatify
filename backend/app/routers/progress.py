@@ -12,10 +12,18 @@ from app.models.progress import (
     ActivityCalendarResponse,
     DailyActivity,
     DashboardResponse,
+    ExamReadinessResponse,
     GapMapEntry,
     GapMapResponse,
+    PriorityTopic,
     TopicProgress,
     WeeklyStats,
+)
+from app.services.topic_priority_service import (
+    TopicInfo,
+    UserTopicState,
+    calculate_topic_priority,
+    estimate_readiness,
 )
 
 router = APIRouter(prefix="/api/progress", tags=["progress"])
@@ -346,4 +354,118 @@ async def dashboard(
         current_xp=user_data.get("current_xp", 0),
         current_level=user_data.get("current_level", 1),
         current_streak=user_data.get("current_streak", 0),
+    )
+
+
+def _readiness_summary(readiness: float, exam_days: int | None) -> str:
+    """Generate a human-readable readiness summary."""
+    if exam_days is not None and exam_days <= 0:
+        return "Экзамен уже состоялся или проходит сегодня."
+
+    level = (
+        "Отличная подготовка!"
+        if readiness >= 80
+        else "Хорошая подготовка, но есть над чем поработать."
+        if readiness >= 60
+        else "Средний уровень — усильте слабые темы."
+        if readiness >= 40
+        else "Подготовка на начальном этапе — сфокусируйтесь на приоритетных темах."
+    )
+
+    if exam_days is not None:
+        return f"Готовность {readiness}%. {level} До экзамена {exam_days} дн."
+    return f"Готовность {readiness}%. {level}"
+
+
+@router.get("/exam-readiness", response_model=ExamReadinessResponse)
+async def exam_readiness(
+    user: dict = Depends(get_current_user),
+) -> ExamReadinessResponse:
+    """Return exam readiness assessment with top-5 priority topics."""
+    client = get_supabase_client()
+    today = date.today()
+
+    # --- User data (exam_date) ---
+    user_result = (
+        client.table("users")
+        .select("exam_date")
+        .eq("id", user["id"])
+        .maybe_single()
+        .execute()
+    )
+    user_data = user_result.data or {}
+
+    exam_countdown: int | None = None
+    exam_date_str = user_data.get("exam_date")
+    if exam_date_str:
+        exam_date_val = date.fromisoformat(str(exam_date_str))
+        exam_countdown = (exam_date_val - today).days
+
+    # --- All topics with max_points and estimated_study_hours ---
+    topics_result = (
+        client.table("topics")
+        .select("id,task_number,title,max_points,estimated_study_hours")
+        .order("task_number")
+        .execute()
+    )
+    topics_rows = topics_result.data or []
+
+    # --- User progress ---
+    progress_result = (
+        client.table("user_topic_progress")
+        .select("topic_id,strength_score,fire_completed_at")
+        .eq("user_id", user["id"])
+        .execute()
+    )
+    progress_map: dict[str, dict] = {
+        row["topic_id"]: row for row in (progress_result.data or [])
+    }
+
+    # --- Calculate priorities ---
+    scored: list[tuple[float, TopicInfo, UserTopicState, dict]] = []
+    all_pairs: list[tuple[TopicInfo, UserTopicState]] = []
+
+    for t in topics_rows:
+        prog = progress_map.get(t["id"], {})
+        topic_info = TopicInfo(
+            task_number=t["task_number"],
+            title=t["title"],
+            max_points=t["max_points"],
+            estimated_study_hours=t.get("estimated_study_hours") or 1.0,
+        )
+        user_state = UserTopicState(
+            strength_score=prog.get("strength_score", 0.0),
+            fire_completed=prog.get("fire_completed_at") is not None,
+        )
+        priority = calculate_topic_priority(topic_info, user_state, exam_countdown)
+        scored.append((priority, topic_info, user_state, t))
+        all_pairs.append((topic_info, user_state))
+
+    # Sort by priority descending, take top 5
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top5 = scored[:5]
+
+    priority_topics = [
+        PriorityTopic(
+            task_number=info.task_number,
+            title=info.title,
+            max_points=info.max_points,
+            strength_score=state.strength_score,
+            fire_completed=state.fire_completed,
+            priority_score=score,
+            recommended_action=_recommend_action(
+                state.strength_score, 0, state.fire_completed
+            ),
+        )
+        for score, info, state, _ in top5
+    ]
+
+    readiness = estimate_readiness(all_pairs)
+    summary = _readiness_summary(readiness, exam_countdown)
+
+    return ExamReadinessResponse(
+        readiness_percent=readiness,
+        exam_countdown=exam_countdown,
+        priority_topics=priority_topics,
+        summary=summary,
     )

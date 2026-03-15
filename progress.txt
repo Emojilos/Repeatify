@@ -479,6 +479,46 @@ Implementation:
 - SQL validated: 288 balanced quotes, all content_type and relationship_type enums correct
 - All 154 backend tests passing, ruff check clean
 
+TASK-031 DONE — Topic priority ROI for recommendations
+
+Implementation:
+- Created app/services/topic_priority_service.py — pure priority scoring module:
+  - TopicInfo dataclass: task_number, title, max_points, estimated_study_hours
+  - UserTopicState dataclass: strength_score, fire_completed
+  - calculate_topic_priority(topic, progress, exam_days_remaining) → priority_score
+  - Formula: (max_points / study_hours) * weakness_score * exam_urgency
+  - _exam_urgency(): <14d→2.0, <30d→1.5, <90d→1.0, >=90d→0.8, None→1.0
+  - estimate_readiness(topics) → weighted average by max_points (0-100%)
+- Added models to app/models/progress.py:
+  - PriorityTopic: task_number, title, max_points, strength, fire, priority_score, action
+  - ExamReadinessResponse: readiness_percent, exam_countdown, priority_topics[], summary
+- Added GET /api/progress/exam-readiness endpoint to app/routers/progress.py:
+  - Fetches all topics with max_points + estimated_study_hours
+  - Fetches user progress per topic
+  - Calculates priority score for each topic using topic_priority_service
+  - Returns top-5 priority topics sorted by score descending
+  - Returns readiness_percent (weighted by max_points)
+  - Returns human-readable summary with readiness level + exam countdown
+  - Uses existing _recommend_action() for per-topic recommended_action
+- _readiness_summary() helper: generates contextual summary text
+  - Levels: ≥80% excellent, ≥60% good, ≥40% average, <40% beginner
+  - Includes exam countdown if set
+- 14 unit tests in tests/test_topic_priority_service.py covering:
+  - Priority: high points + low strength → high, low points + high strength → low
+  - Fully mastered → priority 0
+  - All 4 exam urgency ranges + no exam
+  - Zero study hours → defaults to 1.0
+  - Ordering: high-value weak beats low-value weak
+  - Readiness: empty, fully mastered, no progress, weighted by points, partial
+- 7 tests in tests/test_progress.py (TestExamReadiness) covering:
+  - All fields returned, exam countdown correct
+  - High points + low strength → top priority
+  - Low points + high strength → low priority
+  - No exam date → countdown null
+  - Readiness weighted by max_points (20% test)
+  - Exam urgency affects priority scores
+  - Auth required (401/403)
+- All 175 tests passing, ruff check clean
+
 Next priorities (high, all deps met):
 - TASK-030: XP animations (deps: TASK-021 ✅, TASK-011 ✅) — all deps met
-- TASK-031: Topic priority ROI (deps: TASK-025 ✅) — all deps met

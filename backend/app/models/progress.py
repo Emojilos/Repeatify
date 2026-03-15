@@ -51,3 +51,20 @@ class DashboardResponse(BaseModel):
     current_xp: int = 0
     current_level: int = 1
     current_streak: int = 0
+
+
+class PriorityTopic(BaseModel):
+    task_number: int
+    title: str
+    max_points: int
+    strength_score: float = 0.0
+    fire_completed: bool = False
+    priority_score: float = 0.0
+    recommended_action: str
+
+
+class ExamReadinessResponse(BaseModel):
+    readiness_percent: float = 0.0
+    exam_countdown: int | None = None
+    priority_topics: list[PriorityTopic]
+    summary: str

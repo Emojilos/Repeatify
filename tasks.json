@@ -686,7 +686,7 @@
         "Шаг 4: При малом exam_days_remaining → exam_urgency выше"
       ],
       "dependencies": ["TASK-025"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-032",
