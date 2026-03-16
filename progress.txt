@@ -1195,3 +1195,37 @@ All acceptance criteria met:
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 305 tests pass, 48 pre-existing failures unchanged
 
 Next: High priority eligible tasks with all deps met: TASK-021 (Study Plan page, unblocks TASK-030 routing guard), TASK-027 (Score prediction, unblocks TASK-028 + TASK-037), TASK-024 (YouTube player), TASK-031 (RLS security). TASK-034 (SRS card with prototype context) is now unblocked by TASK-025.
+
+TASK-021 DONE — Фронтенд: Страница персонального плана
+
+Implementation:
+- Created frontend/src/pages/StudyPlan.tsx — full study plan page with API integration:
+  - Loads plan via GET /api/study-plan/current (handles 404 gracefully)
+  - Stats summary row: target score, days to exam, hours/day, mastered/total points
+  - Warning banner: displays backend warning if insufficient time
+  - Mastered tasks: green badges for tasks skipped from plan
+  - Weekly timeline: weeks with colored task blocks per day
+    - Color-coded by task_number (19 unique colors)
+    - Today highlighted with blue background + "СЕГОДНЯ" label
+    - Past days shown at reduced opacity
+    - Each day shows study blocks (proportional width) + study/review minutes
+  - Legend: color key for all task numbers in the plan
+  - No-plan state: CTA to start onboarding flow
+  - Recalculate modal: target score (4 buttons), hours/day (5 buttons), exam date picker
+    - Calls PUT /api/study-plan/recalculate (or POST /generate if no plan exists)
+    - Pre-filled with current plan values
+- Updated frontend/src/App.tsx: added /plan route with StudyPlan component
+- Updated frontend/src/components/Sidebar.tsx: added "Мой план" nav link with calendar icon between Dashboard and Темы
+- Dark mode: full dark: variant support throughout
+- Loading skeleton, error state, empty state
+
+All acceptance criteria met:
+1. /plan displays plan by weeks with colored timeline
+2. Timeline visualized with color coding by task_number
+3. Mastered points displayed (forecast score proxy)
+4. Recalculate button opens modal, calls PUT /api/study-plan/recalculate
+5. Warning displayed when user is behind schedule (insufficient time)
+6. "Мой план" link added to sidebar
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 305 tests pass, 48 pre-existing failures unchanged
+
+Next: TASK-030 (Routing guard) is now unblocked (deps: TASK-019 done, TASK-020 done, TASK-021 now done). Other high priority eligible: TASK-027 (Score prediction), TASK-024 (YouTube player), TASK-022 (Daily checklist), TASK-031 (RLS security).

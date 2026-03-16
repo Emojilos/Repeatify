@@ -496,7 +496,7 @@
         "Шаг 5: План обновился"
       ],
       "dependencies": ["TASK-016"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-022",

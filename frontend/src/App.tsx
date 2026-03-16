@@ -16,6 +16,7 @@ import Progress from './pages/Progress'
 import Profile from './pages/Profile'
 import Onboarding from './pages/Onboarding'
 import Diagnostic from './pages/Diagnostic'
+import StudyPlan from './pages/StudyPlan'
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
             <Route path="/practice" element={<Practice />} />
             <Route path="/practice/session" element={<PracticeSession />} />
             <Route path="/practice/results" element={<PracticeResults />} />
+            <Route path="/plan" element={<StudyPlan />} />
             <Route path="/progress" element={<Progress />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
