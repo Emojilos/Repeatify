@@ -1126,3 +1126,41 @@ Implementation:
 Note: hours_per_day is sent in PATCH body but backend UpdateProfileRequest doesn't accept it yet (TASK-036 will add it). The field is silently ignored by the backend for now.
 
 Next: TASK-020 (Diagnostic test UI) and TASK-030 (Routing guard) are closer to being unblocked. TASK-020 depends only on TASK-013 (done). TASK-030 depends on TASK-019 (now done) + TASK-020 + TASK-021.
+
+TASK-020 DONE — Фронтенд: Диагностический тест UI
+
+Implementation:
+- Created frontend/src/pages/Diagnostic.tsx — standalone diagnostic test page (no Layout wrapper):
+  - On mount: POST /api/diagnostic/start → fetches 19 problems sorted by task_number
+  - Progress bar at top showing "Задание X из 19" with percentage fill
+  - Per-problem timer that resets on each navigation, displays elapsed time (mm:ss)
+  - Recommended time hint per task type (~3-5мин Part 1, ~10-15мин Part 2)
+  - Part 1 (tasks 1-12): text input for answer, Enter key support
+  - Part 2 (tasks 13-19): 4 self-assessment buttons with color coding:
+    - level_0: "Не знаю как подступиться" (red)
+    - level_1: "Начал, но не довёл" (orange)
+    - level_2: "Решил, не уверен" (yellow)
+    - level_3: "Решил уверенно" (green)
+  - MathRenderer for LaTeX problem text rendering
+  - Task number badge with Part 2 indicator
+  - Back/Next navigation between problems (preserves previous answers)
+  - Quick navigation dots at bottom showing answered status (green) vs pending (gray)
+  - On last problem: "Завершить" button → POST /api/diagnostic/submit with all 19 answers
+  - Results screen: summary grid (correct count, Part 1 score, Part 2 count),
+    Part 1 grid with green/red per-task results, Part 2 list with self-assessment labels
+  - "Перейти к плану" button → navigate to /dashboard
+  - Loading spinner, error states, dark mode support throughout
+- Updated frontend/src/App.tsx:
+  - Added Diagnostic import and /diagnostic route as protected standalone (no Layout)
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 305 tests pass, 48 pre-existing failures unchanged
+
+All acceptance criteria met:
+1. /diagnostic loads 19 problems from POST /api/diagnostic/start
+2. Progress bar shows current task number and completion percentage
+3. Timer ticks per problem, resets on navigation
+4. Tasks 1-12: text input field with Enter key support
+5. Tasks 13-19: 4 self-assessment buttons (level_0 through level_3)
+6. LaTeX rendered via MathRenderer + KaTeX
+7. On completion: POST /api/diagnostic/submit with 19 answers, results screen shown
+
+Next: TASK-030 (Routing guard) depends on TASK-019 (done) + TASK-020 (now done) + TASK-021 (pending). TASK-021 (Study Plan page) and TASK-025 (FSRS session UI) are high priority eligible tasks.

@@ -15,6 +15,7 @@ import PracticeResults from './pages/PracticeResults'
 import Progress from './pages/Progress'
 import Profile from './pages/Profile'
 import Onboarding from './pages/Onboarding'
+import Diagnostic from './pages/Diagnostic'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         {/* Protected routes — without layout (standalone flows) */}
         <Route element={<ProtectedRoute />}>
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/diagnostic" element={<Diagnostic />} />
         </Route>
 
         {/* Protected routes — with layout */}

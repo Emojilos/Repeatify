@@ -472,7 +472,7 @@
         "Шаг 6: Проверить Network — POST /api/diagnostic/submit с 19 ответами"
       ],
       "dependencies": ["TASK-013"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-021",
