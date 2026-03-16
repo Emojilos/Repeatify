@@ -1,24 +1,36 @@
 import { create } from 'zustand'
 import { api } from '../lib/api'
 
-export interface SRSCard {
-  card_id: string
-  problem_id: string
-  topic_id: string
-  topic_title: string | null
-  task_number: number
+export interface FSRSCard {
+  id: string
+  user_id: string
+  problem_id: string | null
+  prototype_id: string | null
   card_type: string
-  problem_text: string
+  difficulty: number
+  stability: number
+  due: string
+  last_review: string | null
+  reps: number
+  lapses: number
+  state: string
+  scheduled_days: number | null
+  elapsed_days: number | null
+  created_at: string | null
+  // Enriched fields for session display
+  problem_text: string | null
   problem_images: string[] | null
   hints: string[] | null
-  difficulty: string | null
-  ease_factor: number
-  interval_days: number
-  repetition_count: number
+  topic_title: string | null
+  task_number: number | null
+  retrievability: number | null
 }
 
-interface SRSSessionResponse {
-  cards: SRSCard[]
+/** @deprecated Use FSRSCard instead */
+export type SRSCard = FSRSCard & { card_id: string; topic_id: string }
+
+interface FSRSSessionResponse {
+  cards: FSRSCard[]
   total_due: number
 }
 
@@ -27,20 +39,23 @@ export interface ReviewResult {
   correct_answer: string | null
   solution_markdown: string | null
   xp_earned: number
-  next_review_date: string
-  new_interval: number
-  new_ease_factor: number
   new_level_reached: number | null
+  // FSRS-specific fields
+  new_due: string
+  new_difficulty: number
+  new_stability: number
+  new_state: string
+  retrievability: number | null
 }
 
 export interface CardResult {
-  card: SRSCard
+  card: FSRSCard
   review: ReviewResult
   assessment: string
 }
 
 interface SessionState {
-  cards: SRSCard[]
+  cards: FSRSCard[]
   totalDue: number
   currentIndex: number
   results: CardResult[]
@@ -55,6 +70,13 @@ interface SessionState {
   isFinished: () => boolean
 }
 
+const ASSESSMENT_TO_RATING: Record<string, number> = {
+  again: 1,
+  hard: 2,
+  good: 3,
+  easy: 4,
+}
+
 export const useSessionStore = create<SessionState>((set, get) => ({
   cards: [],
   totalDue: 0,
@@ -66,7 +88,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   fetchSession: async (maxCards = 20) => {
     set({ loading: true, error: null })
     try {
-      const res = await api<SRSSessionResponse>(`/api/srs/session?max_cards=${maxCards}`)
+      const res = await api<FSRSSessionResponse>(`/api/fsrs/session?max_cards=${maxCards}`)
       set({ cards: res.cards, totalDue: res.total_due, currentIndex: 0, results: [], loading: false })
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Ошибка загрузки сессии', loading: false })
@@ -75,13 +97,14 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   submitReview: async (cardId, answer, timeSpent, assessment) => {
     try {
-      const res = await api<ReviewResult>('/api/srs/review', {
+      const rating = ASSESSMENT_TO_RATING[assessment] ?? 3
+      const res = await api<ReviewResult>('/api/fsrs/review', {
         method: 'POST',
         body: JSON.stringify({
           card_id: cardId,
+          rating,
           answer,
           time_spent_seconds: timeSpent,
-          self_assessment: assessment,
         }),
       })
       return res

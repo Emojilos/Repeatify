@@ -11,18 +11,29 @@ export default function PracticeResults() {
     const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0
     const totalXp = results.reduce((sum, r) => sum + r.review.xp_earned, 0)
 
+    // FSRS stats
+    const retrievabilities = results
+      .map((r) => r.card.retrievability)
+      .filter((v): v is number => v != null)
+    const avgRetrievability = retrievabilities.length > 0
+      ? Math.round((retrievabilities.reduce((a, b) => a + b, 0) / retrievabilities.length) * 100)
+      : null
+
+    const avgStability = results.length > 0
+      ? Math.round(results.reduce((sum, r) => sum + (r.review.new_stability || r.card.stability || 0), 0) / results.length * 10) / 10
+      : null
+
     // Group by topic
     const byTopic = new Map<string, { title: string; correct: number; total: number }>()
     for (const r of results) {
-      const topicId = r.card.topic_id
-      const title = r.card.topic_title || `Задание ${r.card.task_number}`
-      const entry = byTopic.get(topicId) || { title, correct: 0, total: 0 }
+      const key = r.card.topic_title || `Задание ${r.card.task_number}`
+      const entry = byTopic.get(key) || { title: key, correct: 0, total: 0 }
       entry.total++
       if (r.review.is_correct) entry.correct++
-      byTopic.set(topicId, entry)
+      byTopic.set(key, entry)
     }
 
-    return { total, correct, accuracy, totalXp, byTopic: Array.from(byTopic.values()) }
+    return { total, correct, accuracy, totalXp, avgRetrievability, avgStability, byTopic: Array.from(byTopic.values()) }
   }, [results])
 
   // If no results (direct navigation), show empty state
@@ -78,6 +89,27 @@ export default function PracticeResults() {
             />
           </div>
         </div>
+
+        {/* FSRS stats */}
+        {(stats.avgRetrievability != null || stats.avgStability != null) && (
+          <div className="mb-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">FSRS-аналитика</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {stats.avgRetrievability != null && (
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">{stats.avgRetrievability}%</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Ср. запоминание</div>
+                </div>
+              )}
+              {stats.avgStability != null && (
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-indigo-600">{stats.avgStability}д</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Ср. стабильность</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Topic breakdown */}
         {stats.byTopic.length > 0 && (

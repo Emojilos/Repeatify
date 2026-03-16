@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useSessionStore } from '../stores/sessionStore'
-import type { SRSCard, ReviewResult } from '../stores/sessionStore'
+import type { FSRSCard, ReviewResult } from '../stores/sessionStore'
 import ProblemCard from '../components/ProblemCard'
 
 interface Problem {
@@ -15,13 +15,13 @@ interface Problem {
   source?: string | null
 }
 
-function srsCardToProblem(card: SRSCard): Problem {
+function fsrsCardToProblem(card: FSRSCard): Problem {
   return {
-    id: card.problem_id,
-    topic_id: card.topic_id,
-    task_number: card.task_number,
-    difficulty: card.difficulty || 'medium',
-    problem_text: card.problem_text,
+    id: card.problem_id || card.id,
+    topic_id: '',
+    task_number: card.task_number || 0,
+    difficulty: 'medium',
+    problem_text: card.problem_text || '',
     problem_images: card.problem_images,
     hints: card.hints,
   }
@@ -59,14 +59,14 @@ export default function PracticeSession() {
   const handleSubmitOverride = useCallback(
     async (answer: string, timeSpent: number, assessment: string) => {
       if (!currentCard) return null
-      const review = await submitReview(currentCard.card_id, answer, timeSpent, assessment)
+      const review = await submitReview(currentCard.id, answer, timeSpent, assessment)
       if (!review) return null
       return {
         is_correct: review.is_correct,
         correct_answer: review.correct_answer || '',
         solution_markdown: review.solution_markdown,
         xp_earned: review.xp_earned,
-        attempt_id: currentCard.card_id,
+        attempt_id: currentCard.id,
         new_level_reached: review.new_level_reached,
       }
     },
@@ -82,10 +82,12 @@ export default function PracticeSession() {
         correct_answer: result.correct_answer,
         solution_markdown: result.solution_markdown,
         xp_earned: result.xp_earned,
-        next_review_date: '',
-        new_interval: 0,
-        new_ease_factor: 0,
         new_level_reached: null,
+        new_due: '',
+        new_difficulty: currentCard.difficulty,
+        new_stability: currentCard.stability,
+        new_state: currentCard.state,
+        retrievability: currentCard.retrievability,
       }
 
       addResult({ card: currentCard, review: reviewResult, assessment })
@@ -135,7 +137,7 @@ export default function PracticeSession() {
   if (!currentCard) return null
 
   const completed = results.length
-  const problem = srsCardToProblem(currentCard)
+  const problem = fsrsCardToProblem(currentCard)
 
   return (
     <div className="p-8">
@@ -144,11 +146,18 @@ export default function PracticeSession() {
         <Link to="/practice" className="inline-flex items-center text-sm text-blue-600 hover:underline">
           &larr; Назад к тренировке
         </Link>
-        {currentCard.topic_title && (
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {currentCard.topic_title}
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {currentCard.retrievability != null && (
+            <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+              {Math.round(currentCard.retrievability * 100)}% запоминание
+            </span>
+          )}
+          {currentCard.topic_title && (
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {currentCard.topic_title}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -173,7 +182,7 @@ export default function PracticeSession() {
 
       {/* Current card */}
       <ProblemCard
-        key={currentCard.card_id}
+        key={currentCard.id}
         problem={problem}
         onComplete={handleComplete}
         onSubmitOverride={handleSubmitOverride}

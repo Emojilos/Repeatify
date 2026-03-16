@@ -1164,3 +1164,34 @@ All acceptance criteria met:
 7. On completion: POST /api/diagnostic/submit with 19 answers, results screen shown
 
 Next: TASK-030 (Routing guard) depends on TASK-019 (done) + TASK-020 (now done) + TASK-021 (pending). TASK-021 (Study Plan page) and TASK-025 (FSRS session UI) are high priority eligible tasks.
+
+TASK-025 DONE — Фронтенд: обновление SRS-сессии под FSRS
+
+Implementation:
+- Rewrote frontend/src/stores/sessionStore.ts — switched from SRS to FSRS:
+  - New FSRSCard interface with FSRS fields: difficulty (float), stability (float), retrievability (float|null), state, reps, lapses, due, last_review
+  - Removed old SRS fields: ease_factor, interval_days, repetition_count
+  - Updated ReviewResult interface: added new_due, new_difficulty, new_stability, new_state, retrievability (removed next_review_date, new_interval, new_ease_factor)
+  - fetchSession() now calls GET /api/fsrs/session (was /api/srs/session)
+  - submitReview() now calls POST /api/fsrs/review with rating (1-4) mapped from assessment strings via ASSESSMENT_TO_RATING lookup
+  - Request body sends `rating` integer instead of `self_assessment` string
+- Rewrote frontend/src/pages/PracticeSession.tsx — adapted to FSRSCard:
+  - fsrsCardToProblem() maps FSRSCard to Problem interface for ProblemCard compatibility
+  - Uses card.id instead of card.card_id for identification
+  - Shows retrievability badge in header ("X% запоминание") for each card
+  - handleComplete builds ReviewResult with FSRS fields from current card state
+- Rewrote frontend/src/pages/PracticeResults.tsx — added FSRS analytics:
+  - New "FSRS-аналитика" section showing average retrievability (%) and average stability (days)
+  - Topic breakdown groups by topic_title (was topic_id) since FSRSCard has no topic_id
+  - Stats computed from card.retrievability and review.new_stability
+- Practice.tsx unchanged — already uses fetchSession() from store which now calls FSRS endpoint
+
+All acceptance criteria met:
+1. PracticeSession uses /api/fsrs/ endpoints (session + review)
+2. Cards display retrievability as percentage badge
+3. 4 rating buttons (Again/Hard/Good/Easy) map to FSRS Rating 1-4
+4. PracticeResults shows FSRS-specific stats (avg retrievability, avg stability)
+5. sessionStore fully updated with FSRS types
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 305 tests pass, 48 pre-existing failures unchanged
+
+Next: High priority eligible tasks with all deps met: TASK-021 (Study Plan page, unblocks TASK-030 routing guard), TASK-027 (Score prediction, unblocks TASK-028 + TASK-037), TASK-024 (YouTube player), TASK-031 (RLS security). TASK-034 (SRS card with prototype context) is now unblocked by TASK-025.
