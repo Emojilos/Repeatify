@@ -1265,3 +1265,27 @@ All acceptance criteria met:
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 305 tests pass, 48 pre-existing failures unchanged
 
 Next: High priority eligible tasks with all deps met: TASK-022 (Daily checklist on Dashboard), TASK-027 (Score prediction), TASK-024 (YouTube player), TASK-031 (RLS security). TASK-023 (Prototype detail page) depends on TASK-007 (seed prototypes) which is still pending.
+
+TASK-022 DONE — Фронтенд: Ежедневный чек-лист на Dashboard
+
+Implementation:
+- Updated frontend/src/pages/Dashboard.tsx — added "Сегодня" section between stats row and recommendations
+- Fetches GET /api/study-plan/today in parallel with dashboard data (graceful fallback if no plan)
+- Added TodayData and DailyTask TypeScript interfaces
+- Two-column grid layout:
+  1. FSRS Review block: shows due card count with purple theme, "Начать повторение" button → /practice, or "Все карточки повторены!" if 0
+  2. New Material block: lists today's study topics from plan with task_number badges, estimated minutes, "Изучить" button → /topics
+- Estimated total time shown below the blocks
+- No-plan state: indigo CTA card "Создать план" → /onboarding (only shown for non-new users)
+- New user welcome banner (pre-existing) still works — no-plan CTA hidden for new users
+- Dark mode: full dark: variant support on all new elements
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 305 tests pass, 48 pre-existing failures unchanged
+
+All acceptance criteria met:
+1. Dashboard displays "Сегодня" section
+2. Review block shows due card count from /api/study-plan/today
+3. New material block shows next topics from the plan
+4. Buttons link to correct pages (/practice, /topics)
+5. Without plan: CTA "Создать план" displayed
+
+Next: High priority eligible tasks with all deps met: TASK-027 (Score prediction, unblocks TASK-028 + TASK-037), TASK-024 (YouTube player), TASK-031 (RLS security). TASK-023 and TASK-033 depend on TASK-007 (seed prototypes).

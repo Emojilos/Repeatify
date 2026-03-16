@@ -518,7 +518,7 @@
         "Шаг 4: Открыть /dashboard без плана — CTA 'Создать план'"
       ],
       "dependencies": ["TASK-016"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-023",

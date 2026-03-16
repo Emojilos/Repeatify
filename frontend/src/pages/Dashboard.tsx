@@ -25,6 +25,20 @@ interface DashboardData {
   current_streak: number
 }
 
+interface DailyTask {
+  task_type: string
+  task_number: number | null
+  prototype_id: string | null
+  title: string
+  estimated_minutes: number | null
+}
+
+interface TodayData {
+  review_cards_due: number
+  new_material: DailyTask[]
+  total_estimated_minutes: number | null
+}
+
 function strengthColor(strength: number): string {
   if (strength >= 0.7) return 'bg-green-500'
   if (strength >= 0.4) return 'bg-yellow-500'
@@ -64,12 +78,19 @@ function pluralCards(n: number): string {
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
+  const [today, setToday] = useState<TodayData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api<DashboardData>('/api/progress/dashboard')
-      .then(setData)
+    Promise.all([
+      api<DashboardData>('/api/progress/dashboard'),
+      api<TodayData>('/api/study-plan/today').catch(() => null),
+    ])
+      .then(([dashData, todayData]) => {
+        setData(dashData)
+        setToday(todayData)
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
@@ -200,6 +221,96 @@ export default function Dashboard() {
           </p>
         </div>
       </div>
+
+      {/* Today section */}
+      {today ? (
+        <div className="mb-8">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Сегодня</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Review block */}
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 text-lg dark:bg-purple-900/50">
+                  🔄
+                </span>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100">Повторение FSRS</h3>
+              </div>
+              {today.review_cards_due > 0 ? (
+                <>
+                  <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
+                    {pluralCards(today.review_cards_due)} на повторение
+                  </p>
+                  <Link
+                    to="/practice"
+                    className="inline-block rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
+                  >
+                    Начать повторение
+                  </Link>
+                </>
+              ) : (
+                <p className="text-sm text-green-600 dark:text-green-400">Все карточки повторены!</p>
+              )}
+            </div>
+
+            {/* New material block */}
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-lg dark:bg-blue-900/50">
+                  📖
+                </span>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100">Новый материал</h3>
+              </div>
+              {today.new_material.length > 0 ? (
+                <div className="space-y-2">
+                  {today.new_material.map((task, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {task.task_number && (
+                          <span className="flex h-6 w-6 items-center justify-center rounded bg-blue-600 text-[10px] font-bold text-white">
+                            {task.task_number}
+                          </span>
+                        )}
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{task.title}</span>
+                      </div>
+                      {task.estimated_minutes != null && task.estimated_minutes > 0 && (
+                        <span className="text-xs text-gray-400">{task.estimated_minutes} мин</span>
+                      )}
+                    </div>
+                  ))}
+                  {today.new_material[0]?.task_number && (
+                    <Link
+                      to="/topics"
+                      className="mt-2 inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                    >
+                      Изучить
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">На сегодня новых тем нет</p>
+              )}
+            </div>
+          </div>
+          {today.total_estimated_minutes != null && today.total_estimated_minutes > 0 && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Примерное время: ~{today.total_estimated_minutes} мин
+            </p>
+          )}
+        </div>
+      ) : !isNewUser && (
+        <div className="mb-8 rounded-xl border border-indigo-200 bg-indigo-50 p-5 dark:border-indigo-800 dark:bg-indigo-900/30">
+          <h2 className="mb-2 font-semibold text-indigo-900 dark:text-indigo-100">Персональный план</h2>
+          <p className="mb-3 text-sm text-indigo-700 dark:text-indigo-300">
+            Создайте персональный план подготовки, чтобы видеть ежедневные задачи.
+          </p>
+          <Link
+            to="/onboarding"
+            className="inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+          >
+            Создать план
+          </Link>
+        </div>
+      )}
 
       {/* Recommendations */}
       {data.recommendations.length > 0 && (
