@@ -10,6 +10,8 @@ interface User {
   current_xp: number
   current_level: number
   current_streak: number
+  has_diagnostic: boolean
+  has_study_plan: boolean
 }
 
 interface AuthResponse {

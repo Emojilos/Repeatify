@@ -1229,3 +1229,39 @@ All acceptance criteria met:
 - TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 305 tests pass, 48 pre-existing failures unchanged
 
 Next: TASK-030 (Routing guard) is now unblocked (deps: TASK-019 done, TASK-020 done, TASK-021 now done). Other high priority eligible: TASK-027 (Score prediction), TASK-024 (YouTube player), TASK-022 (Daily checklist), TASK-031 (RLS security).
+
+TASK-030 DONE — Routing: onboarding guard + new routes
+
+Implementation:
+- Updated backend/app/models/auth.py — added has_diagnostic and has_study_plan boolean fields to UserProfile
+- Updated backend/app/routers/users.py:
+  - Added _check_onboarding_status(client, user_id) helper — queries diagnostic_results and user_study_plan tables
+  - GET /api/users/me now returns has_diagnostic and has_study_plan flags
+  - PATCH /api/users/me also returns the updated flags
+- Created frontend/src/components/OnboardingGuard.tsx — smart redirect guard:
+  - No target_score → redirect to /onboarding
+  - Has target_score but no diagnostic → redirect to /diagnostic
+  - Otherwise → render children (main app)
+  - Waits for user data to load before redirecting
+- Updated frontend/src/stores/authStore.ts — added has_diagnostic and has_study_plan to User interface
+- Updated frontend/src/pages/Diagnostic.tsx:
+  - Added loadUser() call before navigating to /dashboard after diagnostic completion
+  - Ensures OnboardingGuard sees updated has_diagnostic=true in store
+- Updated frontend/src/App.tsx — restructured routing:
+  - All protected routes wrapped in ProtectedRoute → OnboardingGuard
+  - /onboarding and /diagnostic are standalone (no Layout) but inside guard
+  - Main app routes inside Layout, all inside guard
+  - Added /prototypes/:id route with placeholder page
+- Created frontend/src/pages/PrototypeDetail.tsx — placeholder page for prototype detail (TASK-023 will flesh it out)
+- Sidebar already has "Мой план" and "Прогресс" links (from TASK-021)
+
+All acceptance criteria met:
+1. New user after login → redirected to /onboarding (no target_score)
+2. After onboarding → redirected to /diagnostic (no diagnostic results)
+3. After diagnostic → /dashboard accessible (has_diagnostic=true)
+4. User with plan → direct access to /dashboard
+5. All new routes work: /onboarding, /diagnostic, /plan, /prototypes/:id
+6. Sidebar contains links to Plan and Progress
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 305 tests pass, 48 pre-existing failures unchanged
+
+Next: High priority eligible tasks with all deps met: TASK-022 (Daily checklist on Dashboard), TASK-027 (Score prediction), TASK-024 (YouTube player), TASK-031 (RLS security). TASK-023 (Prototype detail page) depends on TASK-007 (seed prototypes) which is still pending.

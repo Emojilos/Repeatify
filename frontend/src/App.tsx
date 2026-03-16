@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import OnboardingGuard from './components/OnboardingGuard'
 import ToastContainer from './components/ToastContainer'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
@@ -17,6 +18,7 @@ import Profile from './pages/Profile'
 import Onboarding from './pages/Onboarding'
 import Diagnostic from './pages/Diagnostic'
 import StudyPlan from './pages/StudyPlan'
+import PrototypeDetail from './pages/PrototypeDetail'
 
 function App() {
   return (
@@ -27,27 +29,29 @@ function App() {
         <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/register" element={<Register />} />
 
-        {/* Protected routes — without layout (standalone flows) */}
+        {/* Protected routes — with onboarding guard */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/diagnostic" element={<Diagnostic />} />
-        </Route>
+          <Route element={<OnboardingGuard />}>
+            {/* Standalone flows (no sidebar/header) */}
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/diagnostic" element={<Diagnostic />} />
 
-        {/* Protected routes — with layout */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/topics" element={<Topics />} />
-            <Route path="/topics/:id" element={<TopicDetail />} />
-            <Route path="/topics/:id/practice" element={<TopicPractice />} />
-            <Route path="/topics/:id/fire" element={<TopicFire />} />
-            <Route path="/practice" element={<Practice />} />
-            <Route path="/practice/session" element={<PracticeSession />} />
-            <Route path="/practice/results" element={<PracticeResults />} />
-            <Route path="/plan" element={<StudyPlan />} />
-            <Route path="/progress" element={<Progress />} />
-            <Route path="/profile" element={<Profile />} />
+            {/* Main app with layout */}
+            <Route element={<Layout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/topics" element={<Topics />} />
+              <Route path="/topics/:id" element={<TopicDetail />} />
+              <Route path="/topics/:id/practice" element={<TopicPractice />} />
+              <Route path="/topics/:id/fire" element={<TopicFire />} />
+              <Route path="/practice" element={<Practice />} />
+              <Route path="/practice/session" element={<PracticeSession />} />
+              <Route path="/practice/results" element={<PracticeResults />} />
+              <Route path="/plan" element={<StudyPlan />} />
+              <Route path="/progress" element={<Progress />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/prototypes/:id" element={<PrototypeDetail />} />
+            </Route>
           </Route>
         </Route>
       </Routes>

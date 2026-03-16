@@ -7,7 +7,12 @@ from app.models.auth import UpdateProfileRequest, UserProfile, UserStats
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
-def _row_to_profile(row: dict, email: str | None = None) -> UserProfile:
+def _row_to_profile(
+    row: dict,
+    email: str | None = None,
+    has_diagnostic: bool = False,
+    has_study_plan: bool = False,
+) -> UserProfile:
     return UserProfile(
         id=row["id"],
         email=email,
@@ -20,7 +25,29 @@ def _row_to_profile(row: dict, email: str | None = None) -> UserProfile:
         current_level=row.get("current_level", 1),
         current_streak=row.get("current_streak", 0),
         longest_streak=row.get("longest_streak", 0),
+        has_diagnostic=has_diagnostic,
+        has_study_plan=has_study_plan,
     )
+
+
+def _check_onboarding_status(client, user_id: str) -> tuple[bool, bool]:
+    """Check if user has diagnostic results and an active study plan."""
+    diag = (
+        client.table("diagnostic_results")
+        .select("id")
+        .eq("user_id", user_id)
+        .limit(1)
+        .execute()
+    )
+    plan = (
+        client.table("user_study_plan")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("is_active", True)
+        .limit(1)
+        .execute()
+    )
+    return bool(diag.data), bool(plan.data)
 
 
 def _get_user_row(client, user_id: str, auto_create: bool = True) -> dict:
@@ -55,7 +82,13 @@ async def get_me(user: dict = Depends(get_current_user)) -> UserProfile:
     """Return the current user's profile."""
     client = get_supabase_client()
     row = _get_user_row(client, user["id"])
-    return _row_to_profile(row, email=user.get("email"))
+    has_diagnostic, has_study_plan = _check_onboarding_status(client, user["id"])
+    return _row_to_profile(
+        row,
+        email=user.get("email"),
+        has_diagnostic=has_diagnostic,
+        has_study_plan=has_study_plan,
+    )
 
 
 @router.patch("/me", response_model=UserProfile)
@@ -82,7 +115,13 @@ async def update_me(
     client.table("users").update(update_data).eq("id", user["id"]).execute()
 
     row = _get_user_row(client, user["id"])
-    return _row_to_profile(row, email=user.get("email"))
+    has_diagnostic, has_study_plan = _check_onboarding_status(client, user["id"])
+    return _row_to_profile(
+        row,
+        email=user.get("email"),
+        has_diagnostic=has_diagnostic,
+        has_study_plan=has_study_plan,
+    )
 
 
 @router.get("/me/stats", response_model=UserStats)

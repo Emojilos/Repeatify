@@ -29,6 +29,8 @@ class UserProfile(BaseModel):
     current_level: int = 1
     current_streak: int = 0
     longest_streak: int = 0
+    has_diagnostic: bool = False
+    has_study_plan: bool = False
 
 
 class UpdateProfileRequest(BaseModel):

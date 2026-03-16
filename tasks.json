@@ -697,7 +697,7 @@
         "Шаг 6: Существующий пользователь с данными — /dashboard напрямую"
       ],
       "dependencies": ["TASK-019", "TASK-020", "TASK-021"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-031",

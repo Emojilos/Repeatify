@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useAuthStore } from '../stores/authStore'
 import MathRenderer from '../components/MathRenderer'
 
 /* ------------------------------------------------------------------ */
@@ -76,6 +77,7 @@ const SELF_ASSESSMENT_OPTIONS: {
 
 export default function Diagnostic() {
   const navigate = useNavigate()
+  const loadUser = useAuthStore((s) => s.loadUser)
 
   /* ---- state ---- */
   const [problems, setProblems] = useState<DiagnosticProblem[]>([])
@@ -377,7 +379,7 @@ export default function Diagnostic() {
           {/* Action buttons */}
           <div className="flex justify-center gap-4">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={async () => { await loadUser(); navigate('/dashboard') }}
               className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
             >
               Перейти к плану
