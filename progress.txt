@@ -1022,3 +1022,26 @@ Implementation:
 - All 259 tests passing (29 new), 57 pre-existing failures unchanged, ruff check clean
 
 Next: TASK-016 (Study Plan API endpoints) is now unblocked (depends on TASK-015 done). Also unblocked: TASK-036 (PATCH /api/users/me update).
+
+TASK-016 DONE — Study Plan API: генерация, получение, пересчёт
+
+Implementation:
+- Created backend/app/routers/study_plan.py with 4 endpoints:
+  - POST /api/study-plan/generate — calls generate_plan(), returns 201 with StudyPlanResponse
+  - GET /api/study-plan/current — fetches active plan via get_current_plan(), 404 if none
+  - PUT /api/study-plan/recalculate — verifies existing plan exists, then regenerates with new params
+  - GET /api/study-plan/today — combines FSRS due cards count + today's study material from plan
+    - Counts due fsrs_cards (due <= now, state != new)
+    - Finds today's date in plan weeks/days structure
+    - Looks up topic titles for each task_number
+    - Estimates total minutes (~2min per review card + study + review from plan)
+- Registered study_plan router in app/main.py
+- All endpoints require authentication via get_current_user dependency
+- 13 tests in tests/test_study_plan_api.py covering:
+  - POST /generate: creates plan (201), invalid target_score (422), auth required
+  - GET /current: returns plan, no plan (404), auth required
+  - PUT /recalculate: updates plan, no existing plan (404), auth required
+  - GET /today: with plan + due cards, no plan (review only), empty state, auth required
+- All 272 tests passing (13 new), 57 pre-existing failures unchanged, ruff check clean
+
+Next: TASK-021 (Study Plan frontend), TASK-022 (Daily checklist on Dashboard), TASK-037 (E2E test) are now unblocked. Also still pending: TASK-036 (PATCH /api/users/me).
