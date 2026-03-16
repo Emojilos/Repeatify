@@ -12,10 +12,55 @@ from app.models.problems import (
     ProblemListItem,
     ProblemListResponse,
 )
+from app.services.fsrs_service import create_card as fsrs_create_card
+from app.services.fsrs_service import review_card as fsrs_review_card
 from app.services.streak_service import record_activity
 from app.services.xp_service import award_xp, calculate_problem_xp
 
 router = APIRouter(prefix="/api/problems", tags=["problems"])
+
+
+def _determine_fsrs_rating(is_correct: bool, time_spent_seconds: int) -> int:
+    """Determine FSRS rating from attempt result.
+
+    correct + fast (<60s) → Easy (4)
+    correct → Good (3)
+    incorrect → Again (1)
+    """
+    if not is_correct:
+        return 1
+    if time_spent_seconds < 60:
+        return 4
+    return 3
+
+
+def _ensure_fsrs_card(
+    client,
+    user_id: str,
+    problem_id: str,
+    is_correct: bool,
+    time_spent_seconds: int,
+) -> None:
+    """Create an FSRS card on first attempt, or review existing card."""
+    existing = (
+        client.table("fsrs_cards")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("problem_id", problem_id)
+        .execute()
+    )
+
+    rating = _determine_fsrs_rating(is_correct, time_spent_seconds)
+
+    if existing.data:
+        # Review existing card
+        fsrs_review_card(client, existing.data[0]["id"], rating, user_id)
+    else:
+        # Create new card and immediately review it
+        card = fsrs_create_card(
+            client, user_id, card_type="problem", problem_id=problem_id,
+        )
+        fsrs_review_card(client, card["id"], rating, user_id)
 
 
 def _row_to_list_item(row: dict, max_points: int | None = None) -> ProblemListItem:
@@ -181,10 +226,10 @@ async def submit_attempt(
     # Award XP and recalculate level
     _, new_level_reached = award_xp(client, user["id"], xp_earned)
 
-    # Auto-create SRS card on first attempt
-    from app.routers.srs import _ensure_srs_card
-
-    _ensure_srs_card(client, user["id"], problem_id, problem["topic_id"])
+    # FSRS: create card on first attempt, or review existing card
+    _ensure_fsrs_card(
+        client, user["id"], problem_id, is_correct, body.time_spent_seconds,
+    )
 
     # Record daily activity and update streak
     record_activity(

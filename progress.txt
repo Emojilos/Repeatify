@@ -1045,3 +1045,34 @@ Implementation:
 - All 272 tests passing (13 new), 57 pre-existing failures unchanged, ruff check clean
 
 Next: TASK-021 (Study Plan frontend), TASK-022 (Daily checklist on Dashboard), TASK-037 (E2E test) are now unblocked. Also still pending: TASK-036 (PATCH /api/users/me).
+
+TASK-017 DONE — FSRS: автосоздание карточки при решении задачи + обновление attempt
+
+Implementation:
+- Updated backend/app/routers/problems.py — replaced _ensure_srs_card with FSRS-based card management:
+  - Added _determine_fsrs_rating(is_correct, time_spent_seconds) helper:
+    - correct + fast (<60s) → Easy (4)
+    - correct → Good (3)
+    - incorrect → Again (1)
+  - Added _ensure_fsrs_card(client, user_id, problem_id, is_correct, time_spent_seconds):
+    - Checks fsrs_cards table for existing card (user_id + problem_id)
+    - If no card exists: creates new via fsrs_create_card() + immediately reviews it
+    - If card exists: reviews existing card via fsrs_review_card()
+  - Removed import of _ensure_srs_card from app.routers.srs
+  - Added imports of fsrs_create_card and fsrs_review_card from fsrs_service
+- Old SRS code preserved (srs_engine.py, srs router, srs_cards table) — not deleted
+- XP continues to be awarded correctly via xp_service
+- Streak recording continues via streak_service
+- Updated tests/test_problems.py:
+  - Fixed pre-existing broken mock chains (maybe_single → execute for users table, data=problem → data=[problem] for problems table)
+  - Added patch for _ensure_fsrs_card in attempt tests that focus on XP/correctness logic
+  - Added TestDetermineFsrsRating class (5 tests): all rating scenarios + boundary at 60s
+  - Added TestEnsureFsrsCard class (4 tests):
+    - Creates new FSRS card on first attempt
+    - Reviews existing card on repeat attempt
+    - srs_cards table not accessed
+    - Verify correct args passed to _ensure_fsrs_card from attempt endpoint
+- 22 tests in test_problems.py, all passing (9 fixed pre-existing + 9 new)
+- All 290 tests passing, 48 pre-existing failures (improved from 57), ruff check clean
+
+Next: TASK-026 (FIRe flow update) and TASK-038 (SM-2 cleanup) are now unblocked by TASK-017.

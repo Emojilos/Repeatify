@@ -164,9 +164,8 @@ def test_get_problem(client):
         mock_client.table.return_value
         .select.return_value
         .eq.return_value
-        .maybe_single.return_value
         .execute.return_value
-    ) = MagicMock(data=problem)
+    ) = MagicMock(data=[problem])
 
     with patch("app.routers.problems.get_supabase_client", return_value=mock_client):
         resp = client.get(
@@ -190,9 +189,8 @@ def test_get_problem_not_found(client):
         mock_client.table.return_value
         .select.return_value
         .eq.return_value
-        .maybe_single.return_value
         .execute.return_value
-    ) = MagicMock(data=None)
+    ) = MagicMock(data=[])
 
     with patch("app.routers.problems.get_supabase_client", return_value=mock_client):
         resp = client.get(
@@ -222,9 +220,8 @@ def test_attempt_correct_part1(client):
             (
                 mock_table.select.return_value
                 .eq.return_value
-                .maybe_single.return_value
                 .execute.return_value
-            ) = MagicMock(data=problem)
+            ) = MagicMock(data=[problem])
         elif name == "user_problem_attempts":
             mock_table.insert.return_value.execute.return_value = MagicMock(data=[{}])
         elif name == "users":
@@ -233,9 +230,8 @@ def test_attempt_correct_part1(client):
                 (
                     mock_table.select.return_value
                     .eq.return_value
-                    .maybe_single.return_value
                     .execute.return_value
-                ) = MagicMock(data={"current_xp": 50})
+                ) = MagicMock(data=[{"current_xp": 50, "current_level": 1}])
             else:  # second call: update
                 (
                     mock_table.update.return_value
@@ -246,7 +242,10 @@ def test_attempt_correct_part1(client):
 
     mock_client.table.side_effect = table_side_effect
 
-    with patch("app.routers.problems.get_supabase_client", return_value=mock_client):
+    with (
+        patch("app.routers.problems.get_supabase_client", return_value=mock_client),
+        patch("app.routers.problems._ensure_fsrs_card"),
+    ):
         resp = client.post(
             "/api/problems/prob-1/attempt",
             json={"answer": "42", "time_spent_seconds": 60, "self_assessment": "good"},
@@ -275,16 +274,18 @@ def test_attempt_wrong_answer(client):
             (
                 mock_table.select.return_value
                 .eq.return_value
-                .maybe_single.return_value
                 .execute.return_value
-            ) = MagicMock(data=problem)
+            ) = MagicMock(data=[problem])
         elif name == "user_problem_attempts":
             mock_table.insert.return_value.execute.return_value = MagicMock(data=[{}])
         return mock_table
 
     mock_client.table.side_effect = table_side_effect
 
-    with patch("app.routers.problems.get_supabase_client", return_value=mock_client):
+    with (
+        patch("app.routers.problems.get_supabase_client", return_value=mock_client),
+        patch("app.routers.problems._ensure_fsrs_card"),
+    ):
         resp = client.post(
             "/api/problems/prob-1/attempt",
             json={"answer": "99", "time_spent_seconds": 30, "self_assessment": "again"},
@@ -311,18 +312,16 @@ def test_attempt_part2_correct_good(client):
             (
                 mock_table.select.return_value
                 .eq.return_value
-                .maybe_single.return_value
                 .execute.return_value
-            ) = MagicMock(data=problem)
+            ) = MagicMock(data=[problem])
         elif name == "user_problem_attempts":
             mock_table.insert.return_value.execute.return_value = MagicMock(data=[{}])
         elif name == "users":
             (
                 mock_table.select.return_value
                 .eq.return_value
-                .maybe_single.return_value
                 .execute.return_value
-            ) = MagicMock(data={"current_xp": 100})
+            ) = MagicMock(data=[{"current_xp": 100, "current_level": 2}])
             (
                 mock_table.update.return_value
                 .eq.return_value
@@ -332,7 +331,10 @@ def test_attempt_part2_correct_good(client):
 
     mock_client.table.side_effect = table_side_effect
 
-    with patch("app.routers.problems.get_supabase_client", return_value=mock_client):
+    with (
+        patch("app.routers.problems.get_supabase_client", return_value=mock_client),
+        patch("app.routers.problems._ensure_fsrs_card"),
+    ):
         resp = client.post(
             "/api/problems/prob-1/attempt",
             json={"answer": "42", "time_spent_seconds": 120, "self_assessment": "good"},
@@ -358,16 +360,18 @@ def test_attempt_part2_correct_hard(client):
             (
                 mock_table.select.return_value
                 .eq.return_value
-                .maybe_single.return_value
                 .execute.return_value
-            ) = MagicMock(data=problem)
+            ) = MagicMock(data=[problem])
         elif name == "user_problem_attempts":
             mock_table.insert.return_value.execute.return_value = MagicMock(data=[{}])
         return mock_table
 
     mock_client.table.side_effect = table_side_effect
 
-    with patch("app.routers.problems.get_supabase_client", return_value=mock_client):
+    with (
+        patch("app.routers.problems.get_supabase_client", return_value=mock_client),
+        patch("app.routers.problems._ensure_fsrs_card"),
+    ):
         resp = client.post(
             "/api/problems/prob-1/attempt",
             json={"answer": "42", "time_spent_seconds": 300, "self_assessment": "hard"},
@@ -388,9 +392,8 @@ def test_attempt_problem_not_found(client):
         mock_client.table.return_value
         .select.return_value
         .eq.return_value
-        .maybe_single.return_value
         .execute.return_value
-    ) = MagicMock(data=None)
+    ) = MagicMock(data=[])
 
     with patch("app.routers.problems.get_supabase_client", return_value=mock_client):
         resp = client.post(
@@ -427,18 +430,16 @@ def test_attempt_case_insensitive(client):
             (
                 mock_table.select.return_value
                 .eq.return_value
-                .maybe_single.return_value
                 .execute.return_value
-            ) = MagicMock(data=problem)
+            ) = MagicMock(data=[problem])
         elif name == "user_problem_attempts":
             mock_table.insert.return_value.execute.return_value = MagicMock(data=[{}])
         elif name == "users":
             (
                 mock_table.select.return_value
                 .eq.return_value
-                .maybe_single.return_value
                 .execute.return_value
-            ) = MagicMock(data={"current_xp": 0})
+            ) = MagicMock(data=[{"current_xp": 0, "current_level": 1}])
             (
                 mock_table.update.return_value
                 .eq.return_value
@@ -448,7 +449,10 @@ def test_attempt_case_insensitive(client):
 
     mock_client.table.side_effect = table_side_effect
 
-    with patch("app.routers.problems.get_supabase_client", return_value=mock_client):
+    with (
+        patch("app.routers.problems.get_supabase_client", return_value=mock_client),
+        patch("app.routers.problems._ensure_fsrs_card"),
+    ):
         resp = client.post(
             "/api/problems/prob-1/attempt",
             json={"answer": "abc", "time_spent_seconds": 10, "self_assessment": "good"},
@@ -474,18 +478,16 @@ def test_attempt_with_tolerance(client):
             (
                 mock_table.select.return_value
                 .eq.return_value
-                .maybe_single.return_value
                 .execute.return_value
-            ) = MagicMock(data=problem)
+            ) = MagicMock(data=[problem])
         elif name == "user_problem_attempts":
             mock_table.insert.return_value.execute.return_value = MagicMock(data=[{}])
         elif name == "users":
             (
                 mock_table.select.return_value
                 .eq.return_value
-                .maybe_single.return_value
                 .execute.return_value
-            ) = MagicMock(data={"current_xp": 0})
+            ) = MagicMock(data=[{"current_xp": 0, "current_level": 1}])
             (
                 mock_table.update.return_value
                 .eq.return_value
@@ -495,7 +497,10 @@ def test_attempt_with_tolerance(client):
 
     mock_client.table.side_effect = table_side_effect
 
-    with patch("app.routers.problems.get_supabase_client", return_value=mock_client):
+    with (
+        patch("app.routers.problems.get_supabase_client", return_value=mock_client),
+        patch("app.routers.problems._ensure_fsrs_card"),
+    ):
         resp = client.post(
             "/api/problems/prob-1/attempt",
             json={
@@ -508,3 +513,202 @@ def test_attempt_with_tolerance(client):
 
     assert resp.status_code == 200
     assert resp.json()["is_correct"] is True
+
+
+# --- FSRS card integration ---
+
+
+class TestDetermineFsrsRating:
+    """Tests for _determine_fsrs_rating helper."""
+
+    def test_incorrect_returns_again(self):
+        from app.routers.problems import _determine_fsrs_rating
+
+        assert _determine_fsrs_rating(is_correct=False, time_spent_seconds=10) == 1
+
+    def test_incorrect_slow_returns_again(self):
+        from app.routers.problems import _determine_fsrs_rating
+
+        assert _determine_fsrs_rating(is_correct=False, time_spent_seconds=120) == 1
+
+    def test_correct_fast_returns_easy(self):
+        from app.routers.problems import _determine_fsrs_rating
+
+        assert _determine_fsrs_rating(is_correct=True, time_spent_seconds=30) == 4
+
+    def test_correct_slow_returns_good(self):
+        from app.routers.problems import _determine_fsrs_rating
+
+        assert _determine_fsrs_rating(is_correct=True, time_spent_seconds=60) == 3
+
+    def test_correct_boundary_60s_returns_good(self):
+        from app.routers.problems import _determine_fsrs_rating
+
+        assert _determine_fsrs_rating(is_correct=True, time_spent_seconds=59) == 4
+        assert _determine_fsrs_rating(is_correct=True, time_spent_seconds=60) == 3
+
+
+class TestEnsureFsrsCard:
+    """Tests for FSRS card creation/review on problem attempt."""
+
+    def test_creates_new_fsrs_card_on_first_attempt(self):
+        """First attempt creates a new FSRS card and reviews it."""
+        from app.routers.problems import _ensure_fsrs_card
+
+        mock_client = MagicMock()
+        # No existing card
+        (
+            mock_client.table.return_value
+            .select.return_value
+            .eq.return_value
+            .eq.return_value
+            .execute.return_value
+        ) = MagicMock(data=[])
+
+        create_patch = patch(
+            "app.routers.problems.fsrs_create_card",
+            return_value={"id": "card-1"},
+        )
+        review_patch = patch(
+            "app.routers.problems.fsrs_review_card",
+        )
+        with create_patch as mock_create, review_patch as mock_review:
+            _ensure_fsrs_card(mock_client, "user-1", "prob-1", True, 30)
+
+        mock_create.assert_called_once_with(
+            mock_client, "user-1", card_type="problem", problem_id="prob-1",
+        )
+        # correct + fast → Easy (4)
+        mock_review.assert_called_once_with(mock_client, "card-1", 4, "user-1")
+
+    def test_reviews_existing_fsrs_card(self):
+        """Repeat attempt reviews existing card, does not create new."""
+        from app.routers.problems import _ensure_fsrs_card
+
+        mock_client = MagicMock()
+        # Existing card found
+        (
+            mock_client.table.return_value
+            .select.return_value
+            .eq.return_value
+            .eq.return_value
+            .execute.return_value
+        ) = MagicMock(data=[{"id": "existing-card-1"}])
+
+        with (
+            patch("app.routers.problems.fsrs_create_card") as mock_create,
+            patch("app.routers.problems.fsrs_review_card") as mock_review,
+        ):
+            _ensure_fsrs_card(mock_client, "user-1", "prob-1", False, 120)
+
+        mock_create.assert_not_called()
+        # incorrect → Again (1)
+        mock_review.assert_called_once_with(mock_client, "existing-card-1", 1, "user-1")
+
+    def test_no_srs_card_created(self, client):
+        """After attempt, srs_cards table should NOT be accessed."""
+        token = _make_token()
+        problem = _mock_problem_row("prob-1", task_number=3)
+
+        tables_accessed = []
+        mock_client = MagicMock()
+
+        def table_side_effect(name):
+            tables_accessed.append(name)
+            mock_table = MagicMock()
+            if name == "problems":
+                (
+                    mock_table.select.return_value
+                    .eq.return_value
+                    .execute.return_value
+                ) = MagicMock(data=[problem])
+            elif name == "user_problem_attempts":
+                (
+                    mock_table.insert.return_value
+                    .execute
+                ).return_value = MagicMock(data=[{}])
+            elif name == "users":
+                (
+                    mock_table.select.return_value
+                    .eq.return_value
+                    .execute.return_value
+                ) = MagicMock(data=[{"current_xp": 0, "current_level": 1}])
+                (
+                    mock_table.update.return_value
+                    .eq.return_value
+                    .execute.return_value
+                ) = MagicMock(data=[{}])
+            return mock_table
+
+        mock_client.table.side_effect = table_side_effect
+
+        with (
+            patch("app.routers.problems.get_supabase_client", return_value=mock_client),
+            patch("app.routers.problems._ensure_fsrs_card"),
+        ):
+            resp = client.post(
+                "/api/problems/prob-1/attempt",
+                json={
+                    "answer": "42",
+                    "time_spent_seconds": 10,
+                    "self_assessment": "good",
+                },
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        assert "srs_cards" not in tables_accessed
+
+    def test_attempt_calls_ensure_fsrs_card(self, client):
+        """Verify attempt endpoint calls _ensure_fsrs_card with correct args."""
+        token = _make_token()
+        problem = _mock_problem_row("prob-1", task_number=3)
+
+        mock_client = MagicMock()
+
+        def table_side_effect(name):
+            mock_table = MagicMock()
+            if name == "problems":
+                (
+                    mock_table.select.return_value
+                    .eq.return_value
+                    .execute.return_value
+                ) = MagicMock(data=[problem])
+            elif name == "user_problem_attempts":
+                (
+                    mock_table.insert.return_value
+                    .execute
+                ).return_value = MagicMock(data=[{}])
+            elif name == "users":
+                (
+                    mock_table.select.return_value
+                    .eq.return_value
+                    .execute.return_value
+                ) = MagicMock(data=[{"current_xp": 0, "current_level": 1}])
+                (
+                    mock_table.update.return_value
+                    .eq.return_value
+                    .execute.return_value
+                ) = MagicMock(data=[{}])
+            return mock_table
+
+        mock_client.table.side_effect = table_side_effect
+
+        with (
+            patch("app.routers.problems.get_supabase_client", return_value=mock_client),
+            patch("app.routers.problems._ensure_fsrs_card") as mock_ensure,
+        ):
+            resp = client.post(
+                "/api/problems/prob-1/attempt",
+                json={
+                    "answer": "42",
+                    "time_spent_seconds": 60,
+                    "self_assessment": "good",
+                },
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        mock_ensure.assert_called_once_with(
+            mock_client, "user-123", "prob-1", True, 60,
+        )
