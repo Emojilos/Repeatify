@@ -1076,3 +1076,24 @@ Implementation:
 - All 290 tests passing, 48 pre-existing failures (improved from 57), ruff check clean
 
 Next: TASK-026 (FIRe flow update) and TASK-038 (SM-2 cleanup) are now unblocked by TASK-017.
+
+TASK-006 DONE — Prototype API: CRUD-эндпоинты для прототипов
+
+Implementation:
+- Created backend/app/routers/prototypes.py with 4 endpoints:
+  - GET /api/prototypes — list all prototypes with optional ?task_number filter, sorted by task_number + order_index
+  - GET /api/prototypes/{id} — full prototype detail with theory_markdown, key_formulas, solution_algorithm, common_mistakes, related_prototypes
+  - GET /api/prototypes/{id}/videos — video resources linked to prototype, sorted by order_index
+  - GET /api/prototypes/{id}/problems — problems linked via prototype_id with pagination (page, page_size), enriched with max_points from topics
+- Helper functions: _row_to_list_item, _row_to_detail, _row_to_problem for DB→Pydantic conversion
+- All endpoints require authentication (Depends(get_current_user))
+- 404 returned for non-existent prototypes on detail/videos/problems endpoints
+- Registered prototypes router in app/main.py
+- 15 tests in tests/test_prototypes.py covering:
+  - List: all prototypes, filter by task_number, empty list, auth required
+  - Detail: full fields returned, not found 404, auth required
+  - Videos: returns videos with timestamps, empty list, prototype not found, auth required
+  - Problems: paginated results with max_points enrichment, empty, prototype not found, auth required
+- All 305 tests passing (15 new), 48 pre-existing failures unchanged, ruff check clean
+
+Next: TASK-023 (Prototype detail frontend page) and TASK-026 (FIRe flow with prototypes) are now unblocked by TASK-006. TASK-007/008 (seed prototypes data) are also unblocked and needed to populate the prototypes table.
