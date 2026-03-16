@@ -1320,3 +1320,33 @@ Implementation:
 - All 328 tests passing (23 new), 48 pre-existing failures unchanged, ruff check clean
 
 Next: High priority eligible tasks with all deps met: TASK-028 (Dashboard score integration, deps: TASK-022 ✅ + TASK-027 ✅), TASK-024 (YouTube player), TASK-031 (RLS security), TASK-037 (E2E test, deps: TASK-005 ✅ + TASK-014 ✅ + TASK-016 ✅ + TASK-027 ✅). TASK-023 and TASK-033 depend on TASK-007 (seed prototypes).
+
+TASK-028 DONE — Dashboard: интеграция прогноза балла и предупреждений
+
+Implementation:
+- Updated frontend/src/pages/Dashboard.tsx — added predicted score widget and retrievability warnings
+- Added PredictedScoreData and TaskScoreBreakdown TypeScript interfaces
+- Fetches GET /api/progress/predicted-score in parallel with dashboard + today data (graceful catch on error)
+- Predicted score widget (between exam countdown and stats row):
+  - Large score number (predicted_test_score) with primary score in parentheses
+  - Progress bar towards user's target_score (from authStore)
+  - Color-coded: green (>= target), yellow (>= 70% of target), orange (below)
+  - Percentage label showing progress towards goal
+  - "Подробнее" link to /progress page
+- Retrievability warnings section (inside score widget):
+  - Filters predicted.breakdown for tasks with cards but avg_retrievability < 0.6
+  - Shows up to 3 worst tasks sorted by retrievability ascending
+  - Each warning shows task number, topic name (from dashboard data), and retrievability %
+  - Amber-styled warning box matching existing recommendations design
+- Widget hidden when predicted_test_score is 0 (no cards at all)
+- Dark mode: full dark: variant support on all new elements
+- Imported useAuthStore for target_score access
+
+All acceptance criteria met:
+1. Predicted score widget displayed on Dashboard
+2. Progress bar shows current vs target score with percentage
+3. Warnings displayed for tasks with low retrievability (< 60%)
+4. Data loaded from GET /api/progress/predicted-score API
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 328 tests pass, 48 pre-existing failures unchanged
+
+Next: High priority eligible tasks with all deps met: TASK-024 (YouTube player, no deps), TASK-031 (RLS security, deps all met), TASK-029 (Progress page FSRS analytics, deps: TASK-005 ✅). Also eligible: TASK-037 (E2E test), TASK-032 (desired_retention). TASK-023 and TASK-033 depend on TASK-007 (seed prototypes).

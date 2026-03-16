@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useAuthStore } from '../stores/authStore'
 
 interface TopicProgress {
   task_number: number
@@ -37,6 +38,19 @@ interface TodayData {
   review_cards_due: number
   new_material: DailyTask[]
   total_estimated_minutes: number | null
+}
+
+interface TaskScoreBreakdown {
+  cards_count: number
+  avg_retrievability: number
+  is_mastered: boolean
+  points: number
+}
+
+interface PredictedScoreData {
+  predicted_primary_score: number
+  predicted_test_score: number
+  breakdown: Record<string, TaskScoreBreakdown>
 }
 
 function strengthColor(strength: number): string {
@@ -79,17 +93,21 @@ function pluralCards(n: number): string {
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [today, setToday] = useState<TodayData | null>(null)
+  const [predicted, setPredicted] = useState<PredictedScoreData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const user = useAuthStore((s) => s.user)
 
   useEffect(() => {
     Promise.all([
       api<DashboardData>('/api/progress/dashboard'),
       api<TodayData>('/api/study-plan/today').catch(() => null),
+      api<PredictedScoreData>('/api/progress/predicted-score').catch(() => null),
     ])
-      .then(([dashData, todayData]) => {
+      .then(([dashData, todayData, predictedData]) => {
         setData(dashData)
         setToday(todayData)
+        setPredicted(predictedData)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
@@ -178,6 +196,73 @@ export default function Dashboard() {
             <Link to="/profile" className="font-medium underline">профиле</Link>
             , чтобы видеть обратный отсчёт и получать персональные рекомендации.
           </p>
+        </div>
+      )}
+
+      {/* Predicted score widget */}
+      {predicted && predicted.predicted_test_score > 0 && (
+        <div className="mb-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Прогноз балла ЕГЭ</h2>
+            <Link to="/progress" className="text-xs text-blue-600 hover:underline dark:text-blue-400">
+              Подробнее
+            </Link>
+          </div>
+          <div className="flex items-end gap-4">
+            <div>
+              <p className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+                {predicted.predicted_test_score}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                из 100 ({predicted.predicted_primary_score} перв.)
+              </p>
+            </div>
+            {user?.target_score && (
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Цель: {user.target_score}</span>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    {Math.min(Math.round((predicted.predicted_test_score / user.target_score) * 100), 100)}%
+                  </span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      predicted.predicted_test_score >= user.target_score
+                        ? 'bg-green-500'
+                        : predicted.predicted_test_score >= user.target_score * 0.7
+                          ? 'bg-yellow-500'
+                          : 'bg-orange-500'
+                    }`}
+                    style={{ width: `${Math.min((predicted.predicted_test_score / user.target_score) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Warnings for tasks needing review */}
+          {(() => {
+            const needsReview = Object.entries(predicted.breakdown)
+              .filter(([, b]) => b.cards_count > 0 && b.avg_retrievability < 0.6)
+              .sort(([, a], [, b]) => a.avg_retrievability - b.avg_retrievability)
+              .slice(0, 3)
+            if (needsReview.length === 0) return null
+            return (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-900/30">
+                <p className="text-xs font-medium text-amber-800 dark:text-amber-200 mb-1">Требуется повторение:</p>
+                <div className="space-y-0.5">
+                  {needsReview.map(([tn, b]) => {
+                    const topic = data?.topics_progress.find((t) => t.task_number === Number(tn))
+                    return (
+                      <p key={tn} className="text-xs text-amber-700 dark:text-amber-300">
+                        &bull; Задание {tn}{topic ? ` (${topic.title})` : ''} — запоминание {Math.round(b.avg_retrievability * 100)}%
+                      </p>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })()}
         </div>
       )}
 

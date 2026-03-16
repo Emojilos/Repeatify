@@ -652,7 +652,7 @@
         "Шаг 4: При просроченных карточках — предупреждение видно"
       ],
       "dependencies": ["TASK-022", "TASK-027"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-029",
