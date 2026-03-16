@@ -237,6 +237,118 @@ def _build_weeks(
     return weeks
 
 
+# Primary → test score conversion table (linear interpolation between points)
+_SCORE_CONVERSION: list[tuple[int, int]] = [
+    (0, 0),
+    (5, 27),
+    (7, 40),
+    (12, 70),
+    (18, 82),
+    (24, 94),
+    (32, 100),
+]
+
+
+def _primary_to_test_score(primary: int) -> int:
+    """Convert primary score to test score via linear interpolation."""
+    if primary <= 0:
+        return 0
+    for i in range(1, len(_SCORE_CONVERSION)):
+        p1, t1 = _SCORE_CONVERSION[i - 1]
+        p2, t2 = _SCORE_CONVERSION[i]
+        if primary <= p2:
+            ratio = (primary - p1) / (p2 - p1)
+            return round(t1 + ratio * (t2 - t1))
+    return 100
+
+
+def predict_score(
+    client,
+    user_id: str,
+    exam_date: date | None = None,
+) -> dict:
+    """Predict user's score based on FSRS card retrievability.
+
+    For each task_number, fetches all fsrs_cards, computes avg retrievability,
+    and considers the task mastered if avg >= 0.8.
+    """
+    from app.services.fsrs_service import get_retrievability
+
+    # Fetch all user's FSRS cards
+    result = (
+        client.table("fsrs_cards")
+        .select("id,problem_id,prototype_id,state,stability,difficulty,due,last_review")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    cards = result.data or []
+
+    # Map cards to task_number via problems and prototypes
+    problem_ids = [c["problem_id"] for c in cards if c.get("problem_id")]
+    prototype_ids = [c["prototype_id"] for c in cards if c.get("prototype_id")]
+
+    problem_task_map: dict[str, int] = {}
+    if problem_ids:
+        p_result = (
+            client.table("problems")
+            .select("id,task_number")
+            .in_("id", problem_ids)
+            .execute()
+        )
+        for p in p_result.data or []:
+            problem_task_map[p["id"]] = p["task_number"]
+
+    prototype_task_map: dict[str, int] = {}
+    if prototype_ids:
+        pr_result = (
+            client.table("prototypes")
+            .select("id,task_number")
+            .in_("id", prototype_ids)
+            .execute()
+        )
+        for pr in pr_result.data or []:
+            prototype_task_map[pr["id"]] = pr["task_number"]
+
+    # Group retrievabilities by task_number
+    task_retrievabilities: dict[int, list[float]] = {}
+    for card in cards:
+        tn = (
+            problem_task_map.get(card.get("problem_id", ""))
+            or prototype_task_map.get(card.get("prototype_id", ""))
+        )
+        if tn is None:
+            continue
+        r = get_retrievability(card, exam_date)
+        task_retrievabilities.setdefault(tn, []).append(r)
+
+    # Build breakdown and sum points
+    breakdown: dict[int, dict] = {}
+    total_primary = 0
+
+    for tn in range(1, 20):
+        rs = task_retrievabilities.get(tn, [])
+        cards_count = len(rs)
+        avg_r = sum(rs) / len(rs) if rs else 0.0
+        is_mastered = avg_r >= 0.8 and cards_count > 0
+        points = _POINTS.get(tn, 0)
+
+        if is_mastered:
+            total_primary += points
+
+        breakdown[tn] = {
+            "cards_count": cards_count,
+            "avg_retrievability": round(avg_r, 4),
+            "is_mastered": is_mastered,
+            "points": points,
+        }
+
+    return {
+        "predicted_primary_score": total_primary,
+        "predicted_test_score": _primary_to_test_score(total_primary),
+        "breakdown": breakdown,
+    }
+
+
 def get_current_plan(client, user_id: str) -> dict | None:
     """Fetch the active study plan for the user. Returns None if none exists."""
     result = (

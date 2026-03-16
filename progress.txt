@@ -1289,3 +1289,34 @@ All acceptance criteria met:
 5. Without plan: CTA "Создать план" displayed
 
 Next: High priority eligible tasks with all deps met: TASK-027 (Score prediction, unblocks TASK-028 + TASK-037), TASK-024 (YouTube player), TASK-031 (RLS security). TASK-023 and TASK-033 depend on TASK-007 (seed prototypes).
+
+TASK-027 DONE — Прогноз балла на основе FSRS-состояния карточек
+
+Implementation:
+- Added `predict_score(client, user_id, exam_date)` to backend/app/services/study_plan_service.py:
+  - Fetches all user's fsrs_cards, maps them to task_numbers via problems and prototypes tables
+  - Computes avg_retrievability per task_number using fsrs_service.get_retrievability()
+  - Task mastered if avg_retrievability >= 0.8 and cards_count > 0
+  - Sums points for mastered tasks using _POINTS dict (Part 1: 1pt, Part 2: 2pt, 18-19: 4pt)
+  - Returns predicted_primary_score, predicted_test_score, and per-task breakdown
+- Added `_primary_to_test_score(primary)` — linear interpolation score conversion:
+  - Conversion table: 0→0, 5→27, 7→40, 12→70, 18→82, 24→94, 32→100
+  - Interpolates between control points for any primary score
+- Added `_SCORE_CONVERSION` constant for score conversion table
+- Added models to backend/app/models/progress.py:
+  - TaskScoreBreakdown: cards_count, avg_retrievability, is_mastered, points
+  - PredictedScoreResponse: predicted_primary_score, predicted_test_score, breakdown dict
+- Added GET /api/progress/predicted-score endpoint to backend/app/routers/progress.py:
+  - Reads user's exam_date for retrievability calculation
+  - Calls predict_score(), returns PredictedScoreResponse
+  - Requires authentication
+- 19 unit tests in tests/test_predict_score.py covering:
+  - _primary_to_test_score: zero, negative, exact points, interpolation, above max (9 tests)
+  - predict_score: no cards (0), mastered Part 1 tasks (7/40), all Part 1 (12/70),
+    Part 2 tasks (+points), low retrievability (<0.8), prototype cards, multiple cards averaged,
+    boundary 0.8, all 19 tasks in breakdown, points match PRD (10 tests)
+- 4 API tests in tests/test_progress.py (TestPredictedScore):
+  - Returns predicted score with breakdown, no exam_date, high score with Part 2, auth required
+- All 328 tests passing (23 new), 48 pre-existing failures unchanged, ruff check clean
+
+Next: High priority eligible tasks with all deps met: TASK-028 (Dashboard score integration, deps: TASK-022 ✅ + TASK-027 ✅), TASK-024 (YouTube player), TASK-031 (RLS security), TASK-037 (E2E test, deps: TASK-005 ✅ + TASK-014 ✅ + TASK-016 ✅ + TASK-027 ✅). TASK-023 and TASK-033 depend on TASK-007 (seed prototypes).

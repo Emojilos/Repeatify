@@ -63,6 +63,19 @@ class PriorityTopic(BaseModel):
     recommended_action: str
 
 
+class TaskScoreBreakdown(BaseModel):
+    cards_count: int = 0
+    avg_retrievability: float = 0.0
+    is_mastered: bool = False
+    points: int = 0
+
+
+class PredictedScoreResponse(BaseModel):
+    predicted_primary_score: int = 0
+    predicted_test_score: int = 0
+    breakdown: dict[int, TaskScoreBreakdown] = {}
+
+
 class ExamReadinessResponse(BaseModel):
     readiness_percent: float = 0.0
     exam_countdown: int | None = None

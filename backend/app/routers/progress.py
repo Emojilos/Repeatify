@@ -15,10 +15,13 @@ from app.models.progress import (
     ExamReadinessResponse,
     GapMapEntry,
     GapMapResponse,
+    PredictedScoreResponse,
     PriorityTopic,
+    TaskScoreBreakdown,
     TopicProgress,
     WeeklyStats,
 )
+from app.services.study_plan_service import predict_score
 from app.services.topic_priority_service import (
     TopicInfo,
     UserTopicState,
@@ -352,6 +355,40 @@ async def dashboard(
         current_xp=user_data.get("current_xp", 0),
         current_level=user_data.get("current_level", 1),
         current_streak=user_data.get("current_streak", 0),
+    )
+
+
+@router.get("/predicted-score", response_model=PredictedScoreResponse)
+async def get_predicted_score(
+    user: dict = Depends(get_current_user),
+) -> PredictedScoreResponse:
+    """Get predicted score based on current FSRS card retrievability."""
+    client = get_supabase_client()
+
+    # Get user's exam_date for retrievability calculation
+    user_result = (
+        client.table("users")
+        .select("exam_date")
+        .eq("id", user["id"])
+        .execute()
+    )
+    user_data = user_result.data[0] if user_result.data else {}
+    exam_date_str = user_data.get("exam_date")
+    exam_date_val = (
+        date.fromisoformat(str(exam_date_str)) if exam_date_str else None
+    )
+
+    result = predict_score(client, user["id"], exam_date_val)
+
+    breakdown = {
+        int(tn): TaskScoreBreakdown(**entry)
+        for tn, entry in result["breakdown"].items()
+    }
+
+    return PredictedScoreResponse(
+        predicted_primary_score=result["predicted_primary_score"],
+        predicted_test_score=result["predicted_test_score"],
+        breakdown=breakdown,
     )
 
 

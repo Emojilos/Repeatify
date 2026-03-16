@@ -772,3 +772,154 @@ class TestExamReadiness:
     def test_requires_auth(self, client):
         resp = client.get("/api/progress/exam-readiness")
         assert resp.status_code in (401, 403)
+
+
+# --- GET /api/progress/predicted-score ---
+
+PATCH_PREDICTED = "app.routers.progress.get_supabase_client"
+
+
+class TestPredictedScore:
+    def test_returns_predicted_score(self, client):
+        """Returns predicted score with breakdown for all 19 tasks."""
+        mc = MagicMock()
+
+        def table_side_effect(name):
+            mt = MagicMock()
+            if name == "users":
+                (
+                    mt.select.return_value
+                    .eq.return_value
+                    .execute.return_value
+                ) = MagicMock(data=[{"exam_date": "2026-06-01"}])
+            return mt
+
+        mc.table.side_effect = table_side_effect
+
+        mock_result = {
+            "predicted_primary_score": 12,
+            "predicted_test_score": 70,
+            "breakdown": {
+                tn: {
+                    "cards_count": 1 if tn <= 12 else 0,
+                    "avg_retrievability": 0.9 if tn <= 12 else 0.0,
+                    "is_mastered": tn <= 12,
+                    "points": 1 if tn <= 12 else (4 if tn >= 18 else 2),
+                }
+                for tn in range(1, 20)
+            },
+        }
+
+        with patch(PATCH_PREDICTED, return_value=mc), patch(
+            "app.routers.progress.predict_score",
+            return_value=mock_result,
+        ):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/predicted-score",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["predicted_primary_score"] == 12
+        assert data["predicted_test_score"] == 70
+        assert len(data["breakdown"]) == 19
+        assert data["breakdown"]["1"]["is_mastered"] is True
+        assert data["breakdown"]["13"]["is_mastered"] is False
+
+    def test_no_exam_date(self, client):
+        """Works when user has no exam_date set."""
+        mc = MagicMock()
+
+        def table_side_effect(name):
+            mt = MagicMock()
+            if name == "users":
+                (
+                    mt.select.return_value
+                    .eq.return_value
+                    .execute.return_value
+                ) = MagicMock(data=[{"exam_date": None}])
+            return mt
+
+        mc.table.side_effect = table_side_effect
+
+        mock_result = {
+            "predicted_primary_score": 0,
+            "predicted_test_score": 0,
+            "breakdown": {
+                tn: {
+                    "cards_count": 0,
+                    "avg_retrievability": 0.0,
+                    "is_mastered": False,
+                    "points": 1 if tn <= 12 else (4 if tn >= 18 else 2),
+                }
+                for tn in range(1, 20)
+            },
+        }
+
+        with patch(PATCH_PREDICTED, return_value=mc), patch(
+            "app.routers.progress.predict_score",
+            return_value=mock_result,
+        ) as mock_ps:
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/predicted-score",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        # Verify predict_score called with exam_date=None
+        call_args = mock_ps.call_args
+        assert call_args[0][2] is None
+
+    def test_high_score_part2(self, client):
+        """Tasks 13-17 at 2 pts + 18-19 at 4 pts mastered → correct total."""
+        mc = MagicMock()
+
+        def table_side_effect(name):
+            mt = MagicMock()
+            if name == "users":
+                (
+                    mt.select.return_value
+                    .eq.return_value
+                    .execute.return_value
+                ) = MagicMock(data=[{"exam_date": "2026-06-01"}])
+            return mt
+
+        mc.table.side_effect = table_side_effect
+
+        # All 19 tasks mastered → 12 + 5*2 + 2*4 = 30 primary → 94 test
+        mock_result = {
+            "predicted_primary_score": 30,
+            "predicted_test_score": 94,
+            "breakdown": {
+                tn: {
+                    "cards_count": 2,
+                    "avg_retrievability": 0.95,
+                    "is_mastered": True,
+                    "points": 1 if tn <= 12 else (4 if tn >= 18 else 2),
+                }
+                for tn in range(1, 20)
+            },
+        }
+
+        with patch(PATCH_PREDICTED, return_value=mc), patch(
+            "app.routers.progress.predict_score",
+            return_value=mock_result,
+        ):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/predicted-score",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["predicted_primary_score"] == 30
+        assert data["predicted_test_score"] == 94
+
+    def test_requires_auth(self, client):
+        """Should require authentication."""
+        resp = client.get("/api/progress/predicted-score")
+        assert resp.status_code in (401, 403)
