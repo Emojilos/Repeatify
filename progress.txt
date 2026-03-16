@@ -1097,3 +1097,32 @@ Implementation:
 - All 305 tests passing (15 new), 48 pre-existing failures unchanged, ruff check clean
 
 Next: TASK-023 (Prototype detail frontend page) and TASK-026 (FIRe flow with prototypes) are now unblocked by TASK-006. TASK-007/008 (seed prototypes data) are also unblocked and needed to populate the prototypes table.
+
+TASK-019 DONE — Фронтенд: Onboarding flow (целевой балл, часы/день, дата экзамена)
+
+Implementation:
+- Created frontend/src/pages/Onboarding.tsx — standalone 3-step onboarding wizard:
+  - Step 1: Target score selection — 4 buttons (70/80/90/100) with descriptions
+    - 70: "Идеальная Часть 1", 80: "Джентльменский набор", 90: "+ Геометрия и параметры", 100: "Максимум"
+    - Selected option highlighted with blue border + bg
+  - Step 2: Hours per day — 5 buttons (0.5/1/1.5/2/3 ч/день)
+    - Grid layout, responsive on mobile
+  - Step 3: Exam date — date picker with default ЕГЭ-2026 (2026-05-28)
+    - Shows countdown "До экзамена: N дней"
+    - Min date set to today (no past dates)
+  - On finish: PATCH /api/users/me with target_score, hours_per_day, exam_date
+  - After save: loadUser() + navigate('/diagnostic')
+- Step navigation: clickable completed steps (green checkmark), current (blue), pending (gray)
+  - Progress connector lines between steps
+  - Back/Next buttons with disabled states
+  - "Начать диагностику" on final step
+- Error handling: displays error message if PATCH fails
+- Saving state: button shows "Сохранение..." while request in flight
+- Dark mode: full dark: variant support throughout
+- Responsive: works on mobile and desktop (max-w-lg centered card)
+- Updated App.tsx: added /onboarding as protected route WITHOUT layout (standalone full-screen flow)
+- TypeScript clean, frontend builds clean (tsc + vite build), backend ruff + 305 tests pass, 48 pre-existing failures unchanged
+
+Note: hours_per_day is sent in PATCH body but backend UpdateProfileRequest doesn't accept it yet (TASK-036 will add it). The field is silently ignored by the backend for now.
+
+Next: TASK-020 (Diagnostic test UI) and TASK-030 (Routing guard) are closer to being unblocked. TASK-020 depends only on TASK-013 (done). TASK-030 depends on TASK-019 (now done) + TASK-020 + TASK-021.

@@ -14,6 +14,7 @@ import PracticeSession from './pages/PracticeSession'
 import PracticeResults from './pages/PracticeResults'
 import Progress from './pages/Progress'
 import Profile from './pages/Profile'
+import Onboarding from './pages/Onboarding'
 
 function App() {
   return (
@@ -23,6 +24,11 @@ function App() {
         {/* Public routes — no layout */}
         <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/register" element={<Register />} />
+
+        {/* Protected routes — without layout (standalone flows) */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/onboarding" element={<Onboarding />} />
+        </Route>
 
         {/* Protected routes — with layout */}
         <Route element={<ProtectedRoute />}>

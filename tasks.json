@@ -446,7 +446,7 @@
         "Шаг 6: Redirect на /diagnostic произошёл"
       ],
       "dependencies": ["TASK-002"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-020",
