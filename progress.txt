@@ -988,3 +988,37 @@ Implementation:
 - All 230 tests passing (12 new), 57 pre-existing failures unchanged, ruff check clean
 
 Next: TASK-015 (Study plan generation) is now unblocked (depends on TASK-013 done). TASK-037 E2E test depends on TASK-014 (now done) + TASK-005, TASK-016, TASK-027.
+
+TASK-015 DONE — Генерация персонального плана подготовки
+
+Implementation:
+- Created backend/app/services/study_plan_service.py — full study plan generation:
+  - get_required_tasks(target_score) — maps target to required task_numbers:
+    - 70 → tasks 1-12, 80 → +13,15,16, 90 → +14,17, 100 → all 19
+  - _is_mastered(diagnostic_result) — determines if task mastered from diagnostic:
+    - Part 1: correct + < 60s, Part 2: level_3
+  - _sort_by_roi(tasks) — sorts by ROI order from PRD 2.1: 7→6→4→8→1→2→12→9→3→5→10→11, Part 2 appended
+  - generate_plan(client, user_id, target_score, exam_date, hours_per_day):
+    1. Determines required tasks by target_score
+    2. Filters out mastered tasks from diagnostic_results
+    3. Sorts remaining by ROI
+    4. Calculates time budget: 70% study / 30% review
+    5. Generates warning if needed_hours > study_hours
+    6. Distributes tasks across weeks/days via _build_weeks()
+    7. Deactivates old plans, inserts new plan into user_study_plan
+  - _build_weeks(tasks, days_remaining, hours_per_day) — distributes tasks across calendar days:
+    - Each day gets study_minutes (70%) and review_minutes (30%)
+    - Tasks assigned sequentially, spanning multiple days if needed
+    - Returns structured weeks with daily study plans
+  - get_current_plan(client, user_id) — fetches active plan from DB
+- Constants: _POINTS (per task), _DEFAULT_HOURS (study time estimates), _ROI_ORDER, _REQUIRED_TASKS
+- 29 unit tests in tests/test_study_plan_service.py covering:
+  - get_required_tasks: 70/80/90/100 target scores (4 tests)
+  - _is_mastered: Part1 fast/slow/incorrect, Part2 level_3/2/0 (6 tests)
+  - _sort_by_roi: full order, subset, Part2 appended (3 tests)
+  - _build_weeks: single task, review allocation, multi-week, empty, spanning (5 tests)
+  - generate_plan: target 70/80, mastered skipped, warning, no warning, ROI order, 70/30 split, persistence, weekly structure (9 tests)
+  - get_current_plan: found and not found (2 tests)
+- All 259 tests passing (29 new), 57 pre-existing failures unchanged, ruff check clean
+
+Next: TASK-016 (Study Plan API endpoints) is now unblocked (depends on TASK-015 done). Also unblocked: TASK-036 (PATCH /api/users/me update).
