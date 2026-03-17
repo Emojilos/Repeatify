@@ -1,3 +1,22 @@
+TASK-033 DONE — TopicDetail: prototypes section with difficulty badges and navigation
+
+Implementation:
+- Updated TopicDetail.tsx to fetch prototypes via GET /api/prototypes?task_number=N after loading topic data
+- Added Prototype and PrototypeListResponse interfaces
+- New "Прототипы" section between theory and related topics: 2-column grid of prototype cards
+- Each card shows: prototype_code, title, difficulty badge (easy/medium/hard), estimated study minutes, description
+- Two buttons per card: "Теория" -> /prototypes/:id, "Практика" -> /prototypes/:id
+- Extended difficultyBadge helper with 'easy' mapping for prototype difficulties
+- TypeScript compiles with zero errors, ruff passes, 343 passed / 48 pre-existing failures unchanged
+
+Next priorities (all deps met):
+- TASK-008 (medium): Seed prototypes for tasks 13-19
+- TASK-026 (medium): FIRe flow update for prototypes
+- TASK-009 (medium): Seed YouTube videos
+- TASK-035 (medium): Seed FIRe theory for remaining 14 topics
+- TASK-036 (low): Update PATCH /api/users/me
+- TASK-037 (low): E2E test
+
 TASK-023 DONE — Prototype detail page with theory, videos, and practice
 
 Implementation:

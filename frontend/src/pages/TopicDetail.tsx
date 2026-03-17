@@ -42,6 +42,22 @@ interface ProblemListResponse {
   page_size: number
 }
 
+interface Prototype {
+  id: string
+  task_number: number
+  prototype_code: string
+  title: string
+  description: string | null
+  difficulty_within_task: string
+  estimated_study_minutes: number | null
+  order_index: number | null
+}
+
+interface PrototypeListResponse {
+  items: Prototype[]
+  total: number
+}
+
 interface TopicRelationship {
   id: string
   source_topic_id: string
@@ -58,12 +74,14 @@ interface TopicRelationship {
 function difficultyBadge(level: string) {
   const styles: Record<string, string> = {
     basic: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+    easy: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
     medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
     hard: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
     olympiad: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
   }
   const labels: Record<string, string> = {
     basic: 'Базовый',
+    easy: 'Легко',
     medium: 'Средний',
     hard: 'Сложный',
     olympiad: 'Олимпиадный',
@@ -90,6 +108,7 @@ export default function TopicDetailPage() {
   const [topic, setTopic] = useState<TopicDetail | null>(null)
   const [problems, setProblems] = useState<Problem[]>([])
   const [relationships, setRelationships] = useState<TopicRelationship[]>([])
+  const [prototypes, setPrototypes] = useState<Prototype[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -108,6 +127,11 @@ export default function TopicDetailPage() {
         setTopic(topicData)
         setProblems(problemsData.items)
         setRelationships(relData)
+        // Fetch prototypes for this topic's task_number
+        return api<PrototypeListResponse>(`/api/prototypes?task_number=${topicData.task_number}`)
+      })
+      .then((protoData) => {
+        setPrototypes(protoData.items)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
@@ -221,6 +245,51 @@ export default function TopicDetailPage() {
           <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-200">Теория</h2>
           <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
             <MathRenderer content={topic.description} />
+          </div>
+        </section>
+      )}
+
+      {/* Prototypes section */}
+      {prototypes.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-200">
+            Прототипы <span className="text-sm font-normal text-gray-400 dark:text-gray-500">({prototypes.length})</span>
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {prototypes.map((proto) => (
+              <div
+                key={proto.id}
+                className="rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-800"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{proto.prototype_code}</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{proto.title}</span>
+                </div>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  {difficultyBadge(proto.difficulty_within_task)}
+                  {proto.estimated_study_minutes && (
+                    <span className="text-xs text-gray-400 dark:text-gray-500">~{proto.estimated_study_minutes} мин</span>
+                  )}
+                </div>
+                {proto.description && (
+                  <p className="mb-3 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{proto.description}</p>
+                )}
+                <div className="flex gap-2">
+                  <Link
+                    to={`/prototypes/${proto.id}`}
+                    className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+                  >
+                    Теория
+                  </Link>
+                  <Link
+                    to={`/prototypes/${proto.id}`}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                  >
+                    Практика
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}
