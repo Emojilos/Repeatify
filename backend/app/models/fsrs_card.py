@@ -45,6 +45,8 @@ class FSRSCardResponse(BaseModel):
     topic_title: str | None = None
     task_number: int | None = None
     retrievability: float | None = None
+    prototype_code: str | None = None
+    prototype_title: str | None = None
 
 
 class FSRSReviewRequest(BaseModel):

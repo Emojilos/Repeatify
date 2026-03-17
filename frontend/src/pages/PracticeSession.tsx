@@ -13,6 +13,9 @@ interface Problem {
   problem_images?: string[] | null
   hints?: string[] | null
   source?: string | null
+  prototype_id?: string | null
+  prototype_code?: string | null
+  prototype_title?: string | null
 }
 
 function fsrsCardToProblem(card: FSRSCard): Problem {
@@ -24,6 +27,9 @@ function fsrsCardToProblem(card: FSRSCard): Problem {
     problem_text: card.problem_text || '',
     problem_images: card.problem_images,
     hints: card.hints,
+    prototype_id: card.prototype_id,
+    prototype_code: card.prototype_code,
+    prototype_title: card.prototype_title,
   }
 }
 

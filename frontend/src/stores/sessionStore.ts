@@ -24,6 +24,9 @@ export interface FSRSCard {
   topic_title: string | null
   task_number: number | null
   retrievability: number | null
+  prototype_id: string | null
+  prototype_code: string | null
+  prototype_title: string | null
 }
 
 interface FSRSSessionResponse {

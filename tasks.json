@@ -785,7 +785,7 @@
         "Шаг 5: Нажать 'К теории' — redirect на прототип"
       ],
       "dependencies": ["TASK-025"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-035",

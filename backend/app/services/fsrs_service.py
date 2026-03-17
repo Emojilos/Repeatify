@@ -279,7 +279,7 @@ def _enrich_cards(client, cards: list[dict]) -> list[dict]:
     if prototype_ids:
         pr_result = (
             client.table("prototypes")
-            .select("id,title,task_number")
+            .select("id,title,task_number,prototype_code")
             .in_("id", prototype_ids)
             .execute()
         )
@@ -307,6 +307,8 @@ def _enrich_cards(client, cards: list[dict]) -> list[dict]:
         card["task_number"] = prob.get("task_number") or proto.get("task_number")
         card["topic_title"] = topics_map.get(prob.get("topic_id", ""))
         card["difficulty_label"] = prob.get("difficulty")
+        card["prototype_code"] = proto.get("prototype_code")
+        card["prototype_title"] = proto.get("title")
 
     return cards
 

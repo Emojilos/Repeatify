@@ -1,3 +1,19 @@
+TASK-034 DONE — SRS card with prototype context and progressive hints
+
+Implementation:
+- Backend: Added prototype_code and prototype_title to FSRSCardResponse model and _enrich_cards()
+- Frontend ProblemCard: Added prototype badge (links to /prototypes/:id), "К теории" button, progressive hints UI
+- Frontend sessionStore: Added prototype_id, prototype_code, prototype_title to FSRSCard interface
+- Frontend PracticeSession: Updated fsrsCardToProblem to pass prototype fields
+- Frontend TopicPractice: Updated Problem interface with prototype fields
+- Hints show progressively (one at a time) with amber styling, hidden after answer is checked
+- Prototype badge visible in card header, links to theory page
+- If no prototype is attached, card works exactly as before
+
+Next up: TASK-009 (YouTube videos seed), TASK-010 (Shkolkovo parser), TASK-011 (math100 parser) — all medium priority, pending
+
+---
+
 TASK-035 DONE — Seed: FIRe theory for remaining 14 topics
 
 Implementation:

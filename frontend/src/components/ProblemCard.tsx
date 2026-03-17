@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import MathRenderer from './MathRenderer'
 import { useXpStore, levelName } from '../stores/xpStore'
@@ -13,6 +14,9 @@ interface Problem {
   problem_images?: string[] | null
   hints?: string[] | null
   source?: string | null
+  prototype_id?: string | null
+  prototype_code?: string | null
+  prototype_title?: string | null
 }
 
 interface AttemptResponse {
@@ -72,6 +76,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
   const [showSolution, setShowSolution] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedAssessment, setSelectedAssessment] = useState<SelfAssessment | null>(null)
+  const [hintsShown, setHintsShown] = useState(0)
 
   // Timer
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
@@ -180,25 +185,71 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
             {problem.task_number}
           </span>
           {difficultyBadge(problem.difficulty)}
+          {problem.prototype_code && problem.prototype_id && (
+            <Link
+              to={`/prototypes/${problem.prototype_id}`}
+              className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:hover:bg-indigo-900/60"
+              title={problem.prototype_title || undefined}
+            >
+              {problem.prototype_code}
+            </Link>
+          )}
           {problem.source && (
             <span className="text-xs text-gray-400 dark:text-gray-500">{problem.source}</span>
           )}
         </div>
-        {showTimer && (
-          <button
-            onClick={() => setTimerActive(!timerActive)}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"
-          >
-            <span>{formatTime(elapsedSeconds)}</span>
-            <span className="text-xs">{timerActive ? '\u23F8' : '\u25B6'}</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {problem.prototype_id && (
+            <Link
+              to={`/prototypes/${problem.prototype_id}`}
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-50 hover:text-blue-600 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400"
+            >
+              К теории
+            </Link>
+          )}
+          {showTimer && (
+            <button
+              onClick={() => setTimerActive(!timerActive)}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"
+            >
+              <span>{formatTime(elapsedSeconds)}</span>
+              <span className="text-xs">{timerActive ? '\u23F8' : '\u25B6'}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Problem text */}
       <div className="px-6 py-5">
         <MathRenderer content={problem.problem_text} />
       </div>
+
+      {/* Progressive hints */}
+      {problem.hints && problem.hints.length > 0 && !checked && (
+        <div className="border-t border-gray-100 px-6 py-3 dark:border-gray-700">
+          {hintsShown > 0 && (
+            <div className="mb-3 space-y-2">
+              {problem.hints.slice(0, hintsShown).map((hint, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                >
+                  <span className="mr-1.5 font-medium">Подсказка {i + 1}:</span>
+                  <MathRenderer content={hint} />
+                </div>
+              ))}
+            </div>
+          )}
+          {hintsShown < problem.hints.length && (
+            <button
+              onClick={() => setHintsShown((h) => h + 1)}
+              className="text-sm font-medium text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+            >
+              {hintsShown === 0 ? 'Подсказка' : 'Ещё подсказка'} ({hintsShown}/{problem.hints.length})
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Answer section */}
       <div className="border-t border-gray-100 px-6 py-4 dark:border-gray-700">

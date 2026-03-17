@@ -13,6 +13,9 @@ interface Problem {
   hints?: string[] | null
   source?: string | null
   max_points?: number | null
+  prototype_id?: string | null
+  prototype_code?: string | null
+  prototype_title?: string | null
 }
 
 interface ProblemListResponse {
