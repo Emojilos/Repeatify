@@ -1,3 +1,30 @@
+TASK-026 DONE — FIRe flow: prototype-based learning with FSRS card creation
+
+Implementation:
+- Rewrote TopicFire.tsx to support prototype-based FIRe flow
+- Phase 1: Prototype selection screen — loads prototypes via GET /api/prototypes?task_number=N, displays grid with code, title, difficulty badge, estimated time
+- Phase 2: Per-prototype FIRe wizard using prototype data:
+  - F (Framework): theory_markdown rendered via MathRenderer/KaTeX
+  - I (Inquiry): key_formulas grid + solution_algorithm numbered steps
+  - R (Relationships): related_prototypes as card links + topic-level relationships
+  - E (Elaboration): common_mistakes warning cards + self-explanation textarea + comprehension checklist
+- Falls back to legacy theory_content-based flow if no prototypes exist for the topic
+- Updated backend theory.py: _create_concept_cards now creates FSRS cards (fsrs_cards) instead of SRS cards (srs_cards)
+  - First tries prototype-based cards (one per prototype for the topic's task_number)
+  - Falls back to problem-based cards if no prototypes exist
+- Updated test_theory.py: renamed test to test_fire_progress_creates_fsrs_cards, mocks now use fsrs_cards/prototypes
+- Completion screen shows "Прототип изучен!" with links to other prototypes, topic, practice
+- TypeScript compiles with zero errors, ruff passes, 343 passed / 48 pre-existing failures unchanged
+
+Next priorities (all deps met):
+- TASK-008 (medium): Seed prototypes for tasks 13-19
+- TASK-009 (medium): Seed YouTube videos
+- TASK-035 (medium): Seed FIRe theory for remaining 14 topics
+- TASK-018 (medium): Migration script srs->fsrs
+- TASK-034 (low): SRS card with prototype context
+- TASK-036 (low): Update PATCH /api/users/me
+- TASK-037 (low): E2E test
+
 TASK-033 DONE — TopicDetail: prototypes section with difficulty badges and navigation
 
 Implementation:

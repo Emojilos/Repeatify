@@ -20,6 +20,7 @@ from app.models.theory import (
     TheoryContentItem,
     TheoryResponse,
 )
+from app.services.fsrs_service import create_card as create_fsrs_card
 from app.services.streak_service import record_activity
 from app.services.xp_service import XP_FIRE_COMPLETE, award_xp
 
@@ -209,8 +210,54 @@ async def update_fire_progress(
 
 
 def _create_concept_cards(client, user_id: str, topic_id: str) -> None:
-    """Auto-create SRS cards (card_type='concept') for key concepts of the topic."""
-    # Find problems in this topic that don't have SRS cards yet
+    """Auto-create FSRS cards (card_type='concept') for prototypes of the topic.
+
+    Creates one FSRS card per prototype linked to this topic's task_number.
+    Falls back to problem-based cards if no prototypes exist.
+    """
+    # Get topic's task_number to find prototypes
+    topic_result = (
+        client.table("topics")
+        .select("task_number")
+        .eq("id", topic_id)
+        .execute()
+    )
+    task_number = topic_result.data[0]["task_number"] if topic_result.data else None
+
+    if task_number:
+        # Find prototypes for this task_number
+        proto_result = (
+            client.table("prototypes")
+            .select("id")
+            .eq("task_number", task_number)
+            .execute()
+        )
+        prototype_ids = [p["id"] for p in (proto_result.data or [])]
+
+        if prototype_ids:
+            # Check which prototypes already have FSRS cards
+            existing = (
+                client.table("fsrs_cards")
+                .select("prototype_id")
+                .eq("user_id", user_id)
+                .in_("prototype_id", prototype_ids)
+                .execute()
+            )
+            existing_proto_ids = {
+                c["prototype_id"] for c in (existing.data or [])
+            }
+
+            for pid in prototype_ids:
+                if pid not in existing_proto_ids:
+                    create_fsrs_card(
+                        client,
+                        user_id,
+                        card_type="concept",
+                        prototype_id=pid,
+                    )
+            return
+
+    # Fallback: create FSRS cards for problems in this topic
     problems_result = (
         client.table("problems")
         .select("id")
@@ -223,30 +270,22 @@ def _create_concept_cards(client, user_id: str, topic_id: str) -> None:
 
     problem_ids = [p["id"] for p in problems_result.data]
 
-    # Check which ones already have cards
     existing_cards = (
-        client.table("srs_cards")
+        client.table("fsrs_cards")
         .select("problem_id")
         .eq("user_id", user_id)
         .in_("problem_id", problem_ids)
         .execute()
     )
-    existing_problem_ids = {c["problem_id"] for c in (existing_cards.data or [])}
+    existing_problem_ids = {
+        c["problem_id"] for c in (existing_cards.data or [])
+    }
 
-    # Create cards for problems without one
-    new_cards = []
     for pid in problem_ids:
         if pid not in existing_problem_ids:
-            new_cards.append({
-                "id": str(uuid.uuid4()),
-                "user_id": user_id,
-                "problem_id": pid,
-                "card_type": "concept",
-                "status": "new",
-                "ease_factor": 2.5,
-                "interval_days": 0,
-                "repetition_count": 0,
-            })
-
-    if new_cards:
-        client.table("srs_cards").insert(new_cards).execute()
+            create_fsrs_card(
+                client,
+                user_id,
+                card_type="concept",
+                problem_id=pid,
+            )

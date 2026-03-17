@@ -609,7 +609,7 @@
         "Шаг 5: Завершить — XP получен, FSRS-карточка создана"
       ],
       "dependencies": ["TASK-006", "TASK-017"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-027",

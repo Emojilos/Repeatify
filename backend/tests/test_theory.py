@@ -493,12 +493,12 @@ def test_fire_progress_requires_auth(client):
     assert resp.status_code in (401, 403)
 
 
-def test_fire_progress_creates_srs_cards(client):
-    """When all stages complete, SRS concept cards are created for topic problems."""
+def test_fire_progress_creates_fsrs_cards(client):
+    """When all stages complete, FSRS concept cards are created for prototypes."""
     token = _make_token()
 
     existing_progress = _mock_progress_row(fw=True, inq=True, rel=True, elab=False)
-    problems = [{"id": "prob-1"}, {"id": "prob-2"}]
+    prototypes = [{"id": "proto-1"}, {"id": "proto-2"}]
 
     mock_client = MagicMock()
     inserted_cards = []
@@ -511,7 +511,7 @@ def test_fire_progress_creates_srs_cards(client):
                 .eq.return_value
                 .maybe_single.return_value
                 .execute.return_value
-            ) = MagicMock(data={"id": "topic-1"})
+            ) = MagicMock(data={"id": "topic-1", "task_number": 6})
         elif name == "user_topic_progress":
             (
                 mock_table.select.return_value
@@ -538,14 +538,13 @@ def test_fire_progress_creates_srs_cards(client):
                 .execute.return_value
             ) = MagicMock(data=None)
             mock_table.insert.return_value.execute.return_value = MagicMock()
-        elif name == "problems":
+        elif name == "prototypes":
             (
                 mock_table.select.return_value
                 .eq.return_value
-                .limit.return_value
                 .execute.return_value
-            ) = MagicMock(data=problems)
-        elif name == "srs_cards":
+            ) = MagicMock(data=prototypes)
+        elif name == "fsrs_cards":
             # No existing cards
             (
                 mock_table.select.return_value
@@ -554,9 +553,12 @@ def test_fire_progress_creates_srs_cards(client):
                 .execute.return_value
             ) = MagicMock(data=[])
 
-            def capture_insert(cards):
-                inserted_cards.extend(cards)
-                return MagicMock(execute=MagicMock(return_value=MagicMock()))
+            def capture_insert(card_data):
+                inserted_cards.append(card_data)
+                result = MagicMock(data=[card_data])
+                return MagicMock(
+                    execute=MagicMock(return_value=result),
+                )
 
             mock_table.insert.side_effect = capture_insert
         return mock_table
