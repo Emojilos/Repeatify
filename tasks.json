@@ -542,7 +542,7 @@
         "Шаг 5: Нажать 'Практика' — список задач загружается"
       ],
       "dependencies": ["TASK-006", "TASK-007"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-024",
