@@ -1,0 +1,24 @@
+name: Keep Render Awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        env:
+          RENDER_HEALTHCHECK_URL: ${{ vars.RENDER_HEALTHCHECK_URL || 'https://repeatify.onrender.com/health' }}
+        run: |
+          echo "Pinging ${RENDER_HEALTHCHECK_URL}"
+          curl --fail --silent --show-error \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5 \
+            "${RENDER_HEALTHCHECK_URL}"
