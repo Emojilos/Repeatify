@@ -1,3 +1,29 @@
+TASK-018 DONE — Migration script: srs_cards → fsrs_cards
+
+Implementation:
+- Created tools/migrations/migrate_srs_to_fsrs.py — standalone idempotent script
+- Conversion logic: ease_factor → difficulty (inverted: 2.5→D≈2, 1.3→D≈8), interval_days → stability, next_review_date → due, repetition_count → reps
+- Status mapping: new→new, learning→learning, review→review, suspended→review
+- Deduplication: checks existing (user_id, problem_id) pairs in fsrs_cards before insert
+- Prototype linking: looks up prototype_id from problems table for each card
+- Batch inserts (100 per batch) for performance
+- --dry-run flag for safe preview
+- Loads .env from project root for Supabase credentials
+- Created backend/tests/test_migrate_srs_to_fsrs.py with 20 tests covering:
+  - ease_to_difficulty conversion (monotonic, clamping, edge cases)
+  - Status mapping (all 4 statuses + unknown)
+  - Full card conversion (basic, new, suspended, hard, defaults, uniqueness)
+- Ruff passes, 363 passed / 48 pre-existing failures unchanged
+
+Next priorities (all deps met):
+- TASK-009 (medium): Seed YouTube videos for tasks 1-12
+- TASK-035 (medium): Seed FIRe theory for remaining 14 topics
+- TASK-010 (medium): Parser Shkolkovo
+- TASK-011 (medium): Parser math100.ru
+- TASK-034 (low): SRS card with prototype context
+- TASK-036 (low): Update PATCH /api/users/me
+- TASK-037 (low): E2E test
+
 TASK-008 DONE — Seed prototypes for EGE tasks 13-19 (Part 2)
 
 Implementation:

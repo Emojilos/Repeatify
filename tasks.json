@@ -420,7 +420,7 @@
         "Шаг 5: Выборочная проверка: srs_card с ease=2.5 -> fsrs_card с D≈3"
       ],
       "dependencies": ["TASK-004"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-019",
