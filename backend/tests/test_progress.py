@@ -923,3 +923,224 @@ class TestPredictedScore:
         """Should require authentication."""
         resp = client.get("/api/progress/predicted-score")
         assert resp.status_code in (401, 403)
+
+
+# --- GET /api/progress/fsrs-stats ---
+
+
+def _mock_fsrs_stats_client(
+    *,
+    user_data=None,
+    cards_data=None,
+    problems_data=None,
+    prototypes_data=None,
+):
+    """Create a mock Supabase client for the fsrs-stats endpoint."""
+    mock_client = MagicMock()
+
+    if user_data is None:
+        user_data = [{"exam_date": "2026-06-19"}]
+    if cards_data is None:
+        cards_data = []
+    if problems_data is None:
+        problems_data = []
+    if prototypes_data is None:
+        prototypes_data = []
+
+    users_result = MagicMock(data=user_data)
+    cards_result = MagicMock(data=cards_data)
+    problems_result = MagicMock(data=problems_data)
+    prototypes_result = MagicMock(data=prototypes_data)
+
+    def table_effect(name):
+        t = MagicMock()
+        if name == "users":
+            (
+                t.select.return_value
+                .eq.return_value
+                .execute.return_value
+            ) = users_result
+        elif name == "fsrs_cards":
+            (
+                t.select.return_value
+                .eq.return_value
+                .execute.return_value
+            ) = cards_result
+        elif name == "problems":
+            (
+                t.select.return_value
+                .in_.return_value
+                .execute.return_value
+            ) = problems_result
+        elif name == "prototypes":
+            (
+                t.select.return_value
+                .in_.return_value
+                .execute.return_value
+            ) = prototypes_result
+        return t
+
+    mock_client.table.side_effect = table_effect
+    return mock_client
+
+
+class TestFSRSStats:
+    def test_returns_all_fields(self, client):
+        """Returns FSRS stats with all expected fields."""
+        cards = [
+            {
+                "id": "c1",
+                "user_id": "user-123",
+                "problem_id": "p1",
+                "prototype_id": None,
+                "card_type": "problem",
+                "difficulty": 5.0,
+                "stability": 10.0,
+                "due": "2026-03-15T00:00:00+00:00",
+                "last_review": "2026-03-10T00:00:00+00:00",
+                "reps": 3,
+                "lapses": 0,
+                "state": "review",
+                "task_number": 6,
+            },
+            {
+                "id": "c2",
+                "user_id": "user-123",
+                "problem_id": "p2",
+                "prototype_id": None,
+                "card_type": "problem",
+                "difficulty": 3.0,
+                "stability": 20.0,
+                "due": "2026-04-01T00:00:00+00:00",
+                "last_review": "2026-03-12T00:00:00+00:00",
+                "reps": 5,
+                "lapses": 1,
+                "state": "review",
+                "task_number": 7,
+            },
+            {
+                "id": "c3",
+                "user_id": "user-123",
+                "problem_id": None,
+                "prototype_id": "pr1",
+                "card_type": "concept",
+                "difficulty": 0,
+                "stability": 0,
+                "due": "2026-03-17T00:00:00+00:00",
+                "last_review": None,
+                "reps": 0,
+                "lapses": 0,
+                "state": "new",
+                "task_number": None,
+            },
+        ]
+        mc = _mock_fsrs_stats_client(cards_data=cards, prototypes_data=[
+            {"id": "pr1", "task_number": 8},
+        ])
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/fsrs-stats",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_cards"] == 3
+        assert data["cards_in_review"] == 2
+        assert data["avg_stability"] > 0
+        assert isinstance(data["cards_due_today"], int)
+        assert isinstance(data["retrievability_by_task"], list)
+
+    def test_empty_cards(self, client):
+        """Returns zeros when user has no FSRS cards."""
+        mc = _mock_fsrs_stats_client(cards_data=[])
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/fsrs-stats",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_cards"] == 0
+        assert data["cards_in_review"] == 0
+        assert data["avg_stability"] == 0.0
+        assert data["cards_due_today"] == 0
+        assert data["retrievability_by_task"] == []
+
+    def test_retrievability_breakdown_sorted(self, client):
+        """Retrievability breakdown is sorted by task_number."""
+        cards = [
+            {
+                "id": "c1", "user_id": "user-123", "problem_id": "p1",
+                "prototype_id": None, "card_type": "problem",
+                "difficulty": 5.0, "stability": 10.0,
+                "due": "2026-03-15T00:00:00+00:00",
+                "last_review": "2026-03-10T00:00:00+00:00",
+                "reps": 3, "lapses": 0, "state": "review",
+                "task_number": 7,
+            },
+            {
+                "id": "c2", "user_id": "user-123", "problem_id": "p2",
+                "prototype_id": None, "card_type": "problem",
+                "difficulty": 3.0, "stability": 20.0,
+                "due": "2026-04-01T00:00:00+00:00",
+                "last_review": "2026-03-12T00:00:00+00:00",
+                "reps": 5, "lapses": 1, "state": "review",
+                "task_number": 3,
+            },
+        ]
+        mc = _mock_fsrs_stats_client(cards_data=cards)
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/fsrs-stats",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        tasks = resp.json()["retrievability_by_task"]
+        assert len(tasks) == 2
+        assert tasks[0]["task_number"] == 3
+        assert tasks[1]["task_number"] == 7
+        assert tasks[0]["cards_count"] == 1
+        assert tasks[1]["cards_count"] == 1
+
+    def test_no_exam_date(self, client):
+        """Works when user has no exam_date."""
+        cards = [
+            {
+                "id": "c1", "user_id": "user-123", "problem_id": "p1",
+                "prototype_id": None, "card_type": "problem",
+                "difficulty": 5.0, "stability": 10.0,
+                "due": "2026-03-15T00:00:00+00:00",
+                "last_review": "2026-03-10T00:00:00+00:00",
+                "reps": 3, "lapses": 0, "state": "review",
+                "task_number": 6,
+            },
+        ]
+        mc = _mock_fsrs_stats_client(
+            user_data=[{"exam_date": None}],
+            cards_data=cards,
+        )
+
+        with patch(PATCH_TARGET, return_value=mc):
+            token = _make_token()
+            resp = client.get(
+                "/api/progress/fsrs-stats",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_cards"] == 1
+
+    def test_requires_auth(self, client):
+        """Should require authentication."""
+        resp = client.get("/api/progress/fsrs-stats")
+        assert resp.status_code in (401, 403)

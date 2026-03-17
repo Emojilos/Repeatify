@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -40,6 +41,20 @@ interface ActivityCalendarResponse {
   activities: DailyActivity[]
   current_streak: number
   longest_streak: number
+}
+
+interface TaskRetrievability {
+  task_number: number
+  avg_retrievability: number
+  cards_count: number
+}
+
+interface FSRSStatsResponse {
+  total_cards: number
+  cards_in_review: number
+  avg_stability: number
+  cards_due_today: number
+  retrievability_by_task: TaskRetrievability[]
 }
 
 /* ------------------------------------------------------------------ */
@@ -143,6 +158,7 @@ function buildChartData(activities: DailyActivity[], days: number) {
 export default function Progress() {
   const [gapMap, setGapMap] = useState<GapMapEntry[]>([])
   const [calendar, setCalendar] = useState<ActivityCalendarResponse | null>(null)
+  const [fsrsStats, setFsrsStats] = useState<FSRSStatsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -155,10 +171,12 @@ export default function Progress() {
     Promise.all([
       api<GapMapResponse>('/api/progress/gap-map'),
       api<ActivityCalendarResponse>('/api/progress/activity-calendar'),
+      api<FSRSStatsResponse>('/api/progress/fsrs-stats'),
     ])
-      .then(([gm, cal]) => {
+      .then(([gm, cal, fs]) => {
         setGapMap(gm.entries)
         setCalendar(cal)
+        setFsrsStats(fs)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
@@ -323,7 +341,68 @@ export default function Progress() {
         </div>
       </section>
 
-      {/* ====== Section 2: Activity Heatmap ====== */}
+      {/* ====== Section 2: FSRS Statistics ====== */}
+      {fsrsStats && (
+        <section className="mb-8">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">FSRS-аналитика</h2>
+          <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{fsrsStats.total_cards}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Всего карточек</div>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div className="text-2xl font-bold text-blue-600">{fsrsStats.cards_in_review}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">На повторении</div>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{fsrsStats.avg_stability}д</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Ср. стабильность</div>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div className={`text-2xl font-bold ${fsrsStats.cards_due_today > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                {fsrsStats.cards_due_today}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">К повторению сегодня</div>
+            </div>
+          </div>
+
+          {fsrsStats.retrievability_by_task.length > 0 && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <h3 className="mb-3 text-sm font-medium text-gray-600 dark:text-gray-400">Retrievability по заданиям</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={fsrsStats.retrievability_by_task.map((t) => ({
+                    name: `${t.task_number}`,
+                    retrievability: Math.round(t.avg_retrievability * 100),
+                    cards: t.cards_count,
+                  }))}
+                  margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
+                  <Tooltip
+                    formatter={(value: number, _name: string, props: { payload?: { cards?: number } }) => [
+                      `${value}% (${props.payload?.cards ?? 0} карт.)`,
+                      'Retrievability',
+                    ]}
+                    labelFormatter={(label) => `Задание ${label}`}
+                  />
+                  <Bar dataKey="retrievability" radius={[4, 4, 0, 0]} maxBarSize={32}>
+                    {fsrsStats.retrievability_by_task.map((t, i) => {
+                      const pct = t.avg_retrievability * 100
+                      const fill = pct >= 80 ? '#22c55e' : pct >= 50 ? '#eab308' : pct > 0 ? '#f97316' : '#d1d5db'
+                      return <Cell key={i} fill={fill} />
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ====== Section 3: Activity Heatmap ====== */}
       <section className="mb-8">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Активность</h2>
@@ -386,7 +465,7 @@ export default function Progress() {
         </div>
       </section>
 
-      {/* ====== Section 3: Activity Chart ====== */}
+      {/* ====== Section 4: Activity Chart ====== */}
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Динамика решений</h2>

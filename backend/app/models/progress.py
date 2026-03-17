@@ -81,3 +81,17 @@ class ExamReadinessResponse(BaseModel):
     exam_countdown: int | None = None
     priority_topics: list[PriorityTopic]
     summary: str
+
+
+class TaskRetrievability(BaseModel):
+    task_number: int
+    avg_retrievability: float = 0.0
+    cards_count: int = 0
+
+
+class FSRSStatsResponse(BaseModel):
+    total_cards: int = 0
+    cards_in_review: int = 0
+    avg_stability: float = 0.0
+    cards_due_today: int = 0
+    retrievability_by_task: list[TaskRetrievability] = []

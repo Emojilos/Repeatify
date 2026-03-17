@@ -1,3 +1,31 @@
+TASK-029 DONE — Progress page: heatmap + FSRS analytics
+
+Implementation:
+- Added GET /api/progress/fsrs-stats endpoint returning: total_cards, cards_in_review, avg_stability, cards_due_today, retrievability_by_task
+- Added TaskRetrievability and FSRSStatsResponse Pydantic models
+- Endpoint enriches cards without task_number by looking up problems/prototypes tables
+- Updated frontend Progress.tsx with two new sections:
+  1. FSRS statistics: 4-card grid (total cards, in review, avg stability, due today)
+  2. Retrievability breakdown: Recharts BarChart with per-task_number bars, color-coded (green >=80%, yellow >=50%, orange >0%, gray 0%)
+- Added Cell import from recharts for per-bar coloring
+- 5 new backend tests (TestFSRSStats): all fields, empty cards, sorted breakdown, no exam date, auth required
+- All 5 tests pass, ruff check clean, TypeScript clean
+- Pre-existing 48 test failures unchanged
+
+Also marked TASK-032 as done — desired_retention adaptation was already fully implemented:
+- adjust_desired_retention() in fsrs_service.py with correct thresholds
+- _build_scheduler() uses exam_date-based retention
+- Router fetches exam_date and passes to all FSRS operations
+- 10 existing unit tests in test_fsrs_service.py cover all cases
+
+Next priorities (all deps met):
+- TASK-007 (high): Seed prototypes 1-12 — blocks TASK-009, TASK-023, TASK-033
+- TASK-026 (medium): FIRe flow update for prototypes — deps done
+- TASK-037 (low): E2E test — all deps done
+- TASK-036 (low): Update PATCH users/me — deps done
+
+Note: 48 pre-existing test failures in test_theory, test_topics, test_users, test_study_plan_api — not related to TASK-029
+
 TASK-024 DONE — YouTube player component with timestamps
 
 Implementation:

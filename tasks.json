@@ -673,7 +673,7 @@
         "Шаг 4: Проверить на мобильном — responsive"
       ],
       "dependencies": ["TASK-005"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-030",
@@ -742,7 +742,7 @@
         "Шаг 4: pytest"
       ],
       "dependencies": ["TASK-005"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-033",

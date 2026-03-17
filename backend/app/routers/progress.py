@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
 
@@ -13,14 +13,17 @@ from app.models.progress import (
     DailyActivity,
     DashboardResponse,
     ExamReadinessResponse,
+    FSRSStatsResponse,
     GapMapEntry,
     GapMapResponse,
     PredictedScoreResponse,
     PriorityTopic,
+    TaskRetrievability,
     TaskScoreBreakdown,
     TopicProgress,
     WeeklyStats,
 )
+from app.services.fsrs_service import get_retrievability
 from app.services.study_plan_service import predict_score
 from app.services.topic_priority_service import (
     TopicInfo,
@@ -389,6 +392,128 @@ async def get_predicted_score(
         predicted_primary_score=result["predicted_primary_score"],
         predicted_test_score=result["predicted_test_score"],
         breakdown=breakdown,
+    )
+
+
+@router.get("/fsrs-stats", response_model=FSRSStatsResponse)
+async def fsrs_stats(
+    user: dict = Depends(get_current_user),
+) -> FSRSStatsResponse:
+    """Return FSRS card statistics and per-task retrievability breakdown."""
+    client = get_supabase_client()
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Fetch user's exam_date for retrievability calculation
+    user_result = (
+        client.table("users")
+        .select("exam_date")
+        .eq("id", user["id"])
+        .execute()
+    )
+    user_data = user_result.data[0] if user_result.data else {}
+    exam_date_str = user_data.get("exam_date")
+    exam_date_val = (
+        date.fromisoformat(str(exam_date_str)) if exam_date_str else None
+    )
+
+    # Fetch all FSRS cards for this user
+    cards_result = (
+        client.table("fsrs_cards")
+        .select("*")
+        .eq("user_id", user["id"])
+        .execute()
+    )
+    cards = cards_result.data or []
+
+    total_cards = len(cards)
+    cards_in_review = sum(1 for c in cards if c.get("state") == "review")
+
+    stabilities = [
+        c.get("stability", 0) or 0
+        for c in cards
+        if c.get("state") != "new"
+    ]
+    avg_stability = (
+        round(sum(stabilities) / len(stabilities), 2)
+        if stabilities
+        else 0.0
+    )
+
+    cards_due_today = sum(
+        1 for c in cards
+        if c.get("due") and c["due"] <= now and c.get("state") != "new"
+    )
+
+    # Build per-task retrievability breakdown
+    task_cards: dict[int, list[float]] = {}
+    for c in cards:
+        tn = c.get("task_number")
+        if tn is None:
+            continue
+        r = get_retrievability(c, exam_date_val)
+        task_cards.setdefault(tn, []).append(r)
+
+    # If cards lack task_number, enrich from problems/prototypes
+    cards_without_tn = [c for c in cards if c.get("task_number") is None]
+    if cards_without_tn:
+        problem_ids = [c["problem_id"] for c in cards_without_tn if c.get("problem_id")]
+        prototype_ids = [
+            c["prototype_id"]
+            for c in cards_without_tn
+            if c.get("prototype_id")
+        ]
+
+        prob_tn_map: dict[str, int] = {}
+        if problem_ids:
+            p_result = (
+                client.table("problems")
+                .select("id,task_number")
+                .in_("id", problem_ids)
+                .execute()
+            )
+            for p in p_result.data or []:
+                if p.get("task_number"):
+                    prob_tn_map[p["id"]] = p["task_number"]
+
+        proto_tn_map: dict[str, int] = {}
+        if prototype_ids:
+            pr_result = (
+                client.table("prototypes")
+                .select("id,task_number")
+                .in_("id", prototype_ids)
+                .execute()
+            )
+            for pr in pr_result.data or []:
+                if pr.get("task_number"):
+                    proto_tn_map[pr["id"]] = pr["task_number"]
+
+        for c in cards_without_tn:
+            tn = (
+                prob_tn_map.get(c.get("problem_id", ""))
+                or proto_tn_map.get(c.get("prototype_id", ""))
+            )
+            if tn:
+                r = get_retrievability(c, exam_date_val)
+                task_cards.setdefault(tn, []).append(r)
+
+    retrievability_by_task = sorted(
+        [
+            TaskRetrievability(
+                task_number=tn,
+                avg_retrievability=round(sum(rs) / len(rs), 4) if rs else 0.0,
+                cards_count=len(rs),
+            )
+            for tn, rs in task_cards.items()
+        ],
+        key=lambda t: t.task_number,
+    )
+
+    return FSRSStatsResponse(
+        total_cards=total_cards,
+        cards_in_review=cards_in_review,
+        avg_stability=avg_stability,
+        cards_due_today=cards_due_today,
+        retrievability_by_task=retrievability_by_task,
     )
 
 
