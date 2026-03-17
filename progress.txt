@@ -1,3 +1,32 @@
+TASK-038 DONE — Cleanup: remove old SM-2 code after full FSRS migration
+
+Implementation:
+- Deleted backend/app/services/srs_engine.py (SM-2 algorithm)
+- Deleted backend/app/routers/srs.py (/api/srs/ endpoints)
+- Deleted backend/app/models/srs.py (SRS response models)
+- Deleted backend/tests/test_srs_engine.py and test_srs.py (36 tests removed)
+- Removed srs router import and registration from main.py
+- Updated progress.py: switched srs_cards query to fsrs_cards (table: fsrs_cards, columns: due/state instead of next_review_date/status)
+- Removed deprecated SRSCard type alias from frontend/src/stores/sessionStore.ts
+- srs_cards table kept in DB (per task requirements — data may be needed)
+- Frontend already had zero /api/srs/ references (migrated in TASK-025)
+- Ruff passes, 336 passed / 45 pre-existing failures (delta: 36 deleted SM-2 tests, 3 fewer pre-existing failures from deleted files)
+
+Acceptance criteria verified:
+- srs_engine.py deleted ✓
+- /api/srs/ router deleted ✓
+- Frontend has 0 references to /api/srs/ ✓
+- srs_cards table remains in DB ✓
+- All tests pass (no regressions) ✓
+- App runs fully on FSRS ✓
+
+Next priorities (all deps met):
+- TASK-009 (medium): Seed YouTube videos for tasks 1-12
+- TASK-035 (medium): Seed FIRe theory for remaining 14 topics
+- TASK-010 (medium): Parser Shkolkovo
+- TASK-011 (medium): Parser math100.ru
+- TASK-034 (low): SRS card with prototype context
+
 TASK-037 DONE — E2E test: full v2 user journey (register → diagnostic → plan → FSRS → score)
 
 Implementation:

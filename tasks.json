@@ -872,7 +872,7 @@
         "Шаг 4: Полный user flow в браузере работает"
       ],
       "dependencies": ["TASK-025", "TASK-026", "TASK-037"],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

@@ -312,16 +312,16 @@ async def dashboard(
         if tp.strength_score < 0.5:
             weak_topics.append(tp)
 
-    # --- Today's review count (due SRS cards) ---
-    srs_result = (
-        client.table("srs_cards")
+    # --- Today's review count (due FSRS cards) ---
+    fsrs_result = (
+        client.table("fsrs_cards")
         .select("id", count="exact")
         .eq("user_id", user["id"])
-        .lte("next_review_date", today.isoformat())
-        .neq("status", "suspended")
+        .lte("due", today.isoformat())
+        .neq("state", "suspended")
         .execute()
     )
-    today_review_count = srs_result.count if srs_result.count is not None else 0
+    today_review_count = fsrs_result.count if fsrs_result.count is not None else 0
 
     # --- Weekly stats (last 7 days from user_problem_attempts) ---
     week_ago = (today - timedelta(days=7)).isoformat()

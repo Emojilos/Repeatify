@@ -16,7 +16,6 @@ from app.routers import (
     problems,
     progress,
     prototypes,
-    srs,
     study_plan,
     theory,
     topics,
@@ -74,7 +73,6 @@ app.include_router(topics.router)
 app.include_router(theory.router)
 app.include_router(problems.router)
 app.include_router(diagnostic.router)
-app.include_router(srs.router)
 app.include_router(fsrs.router)
 app.include_router(study_plan.router)
 app.include_router(prototypes.router)

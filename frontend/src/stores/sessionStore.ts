@@ -26,9 +26,6 @@ export interface FSRSCard {
   retrievability: number | null
 }
 
-/** @deprecated Use FSRSCard instead */
-export type SRSCard = FSRSCard & { card_id: string; topic_id: string }
-
 interface FSRSSessionResponse {
   cards: FSRSCard[]
   total_due: number
