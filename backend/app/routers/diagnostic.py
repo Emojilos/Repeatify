@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.auth import get_current_user
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.db.supabase_client import get_supabase_client
 from app.models.diagnostic import (
     DiagnosticProblem,
@@ -59,7 +61,9 @@ async def start_diagnostic(
 
 
 @router.post("/submit", response_model=DiagnosticResultResponse)
+@limiter.limit(settings.DIAGNOSTIC_SUBMIT_RATE_LIMIT)
 async def submit_diagnostic(
+    request: Request,
     body: DiagnosticSubmitRequest,
     user: dict = Depends(get_current_user),
 ) -> DiagnosticResultResponse:

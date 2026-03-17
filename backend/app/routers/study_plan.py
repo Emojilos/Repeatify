@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.auth import get_current_user
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.db.supabase_client import get_supabase_client
 from app.models.study_plan import (
     DailyTask,
@@ -23,7 +25,9 @@ router = APIRouter(prefix="/api/study-plan", tags=["study-plan"])
 
 
 @router.post("/generate", response_model=StudyPlanResponse, status_code=201)
+@limiter.limit(settings.STUDY_PLAN_GENERATE_RATE_LIMIT)
 async def generate_study_plan(
+    request: Request,
     body: StudyPlanGenerateRequest,
     user: dict = Depends(get_current_user),
 ) -> StudyPlanResponse:

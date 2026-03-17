@@ -1,3 +1,29 @@
+TASK-031 DONE — RLS and security for new tables
+
+Implementation:
+- Added rate limiting to POST /api/diagnostic/submit (1 req/min) via slowapi @limiter.limit()
+- Added rate limiting to POST /api/study-plan/generate (5 req/min)
+- Added DIAGNOSTIC_SUBMIT_RATE_LIMIT and STUDY_PLAN_GENERATE_RATE_LIMIT to config.py
+- Fixed pre-existing broken test (TestCorrectAnswerNotLeaked mock used .maybe_single() but router uses .eq().execute())
+- Fixed rate limiter interference between test modules by adding limiter.reset() in test_diagnostic.py fixture
+- Added 10 new security tests in test_security.py:
+  - TestDiagnosticSubmitRateLimit: verifies 429 on rapid diagnostic/submit
+  - TestStudyPlanGenerateRateLimit: verifies 429 on >5 study-plan/generate per minute
+  - TestCorrectAnswerNotLeakedInList: verifies GET /api/problems list hides correct_answer
+  - TestUnauthenticatedAccessBlocked: 7 tests verifying auth required on fsrs, diagnostic, study-plan, progress endpoints
+
+Security verification summary:
+- correct_answer: NOT returned in GET /api/problems or GET /api/problems/{id} — Pydantic models (ProblemListItem, ProblemDetail) exclude it, _row_to_list_item() and _row_to_detail() never include it
+- RLS policies: Already properly configured in migrations 002 and 006 — fsrs_cards/diagnostic_results/user_study_plan all enforce user_id = auth.uid()
+- diagnostic_results: Immutable — RLS allows only SELECT/INSERT (no UPDATE/DELETE) per migration 006
+- Rate limiting: diagnostic/submit 1/min, study-plan/generate 5/min, auth endpoints 5/min, all others 100/min
+- All 24 security tests pass, 104 related tests pass, ruff check clean
+
+Next priorities (all deps met):
+- TASK-024 (high): YouTube player component — no deps, unblocks TASK-023 (prototype detail page)
+- TASK-029 (medium): Progress page heatmap — deps done
+- TASK-037 (low): E2E test — all deps done
+
 TASK-008 DONE — Topics API (GET /api/topics, GET /api/topics/{id}, GET /api/topics/{id}/relationships)
 
 Implementation:

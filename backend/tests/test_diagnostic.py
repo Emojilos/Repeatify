@@ -24,7 +24,11 @@ def _mock_env():
 
 @pytest.fixture()
 def client():
+    from app.core.rate_limit import limiter
     from app.main import app
+
+    # Reset rate limiter storage between tests
+    limiter.reset()
 
     return TestClient(app)
 

@@ -721,7 +721,7 @@
         "Шаг 6: pytest test_security.py"
       ],
       "dependencies": ["TASK-002", "TASK-005", "TASK-013"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-032",
