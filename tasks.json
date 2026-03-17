@@ -849,7 +849,7 @@
         "Шаг 3: pytest — все тесты (включая старые) проходят"
       ],
       "dependencies": ["TASK-005", "TASK-014", "TASK-016", "TASK-027"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-038",

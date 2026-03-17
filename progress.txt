@@ -1,3 +1,31 @@
+TASK-037 DONE — E2E test: full v2 user journey (register → diagnostic → plan → FSRS → score)
+
+Implementation:
+- Created backend/tests/test_e2e_v2_flow.py with stateful FakeSupabase mock
+- Full 11-step journey test covering the complete v2 user flow:
+  1. Registration (pre-seeded user, auth tested in test_e2e_flow.py)
+  2. Onboarding: PATCH /api/users/me with target_score=80, exam_date, hours_per_day=1.5
+  3. Diagnostic start: POST /api/diagnostic/start → 19 problems (one per task_number)
+  4. Diagnostic submit: mixed results (tasks 1-7 correct+fast, 8-12 incorrect, 13-19 self-assessment)
+  5. FSRS cards initialized: verifies correct D/S/state mapping per PRD 5.3
+  6. Study plan generation: POST /api/study-plan/generate → mastered tasks excluded, ROI sorting
+  7. GET current plan + verify has_study_plan=true
+  8. GET today's tasks
+  9. FSRS session: cards made due, session fetched with max_cards=5
+  10. FSRS review: rating=3 (Good), card updated in DB
+  11. Predicted score: breakdown for all 19 task_numbers
+- Also tests: diagnostic retake blocked (409), data integrity checks
+- FakeSupabase enhanced with: desc ordering, generated_at defaults, proper INSERT return
+- Ruff passes, 372 passed / 48 pre-existing failures unchanged
+
+Next priorities (all deps met):
+- TASK-009 (medium): Seed YouTube videos for tasks 1-12
+- TASK-035 (medium): Seed FIRe theory for remaining 14 topics
+- TASK-010 (medium): Parser Shkolkovo
+- TASK-011 (medium): Parser math100.ru
+- TASK-034 (low): SRS card with prototype context
+- TASK-038 (low): Cleanup old SM-2 code (NOW UNBLOCKED by TASK-037)
+
 TASK-036 DONE — Update PATCH /api/users/me for hours_per_day + auto plan recalculation
 
 Implementation:
