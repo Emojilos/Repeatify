@@ -8,6 +8,10 @@ from app.services.study_plan_service import generate_plan, get_current_plan
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
+def _coalesce_int(value: object, default: int) -> int:
+    return default if value is None else int(value)
+
+
 def _row_to_profile(
     row: dict,
     email: str | None = None,
@@ -23,33 +27,46 @@ def _row_to_profile(
         ),
         target_score=row.get("target_score"),
         hours_per_day=row.get("hours_per_day"),
-        current_xp=row.get("current_xp", 0),
-        current_level=row.get("current_level", 1),
-        current_streak=row.get("current_streak", 0),
-        longest_streak=row.get("longest_streak", 0),
+        current_xp=_coalesce_int(row.get("current_xp"), 0),
+        current_level=_coalesce_int(row.get("current_level"), 1),
+        current_streak=_coalesce_int(row.get("current_streak"), 0),
+        longest_streak=_coalesce_int(row.get("longest_streak"), 0),
         has_diagnostic=has_diagnostic,
         has_study_plan=has_study_plan,
     )
 
 
 def _check_onboarding_status(client, user_id: str) -> tuple[bool, bool]:
-    """Check if user has diagnostic results and an active study plan."""
-    diag = (
-        client.table("diagnostic_results")
-        .select("id")
-        .eq("user_id", user_id)
-        .limit(1)
-        .execute()
-    )
-    plan = (
-        client.table("user_study_plan")
-        .select("id")
-        .eq("user_id", user_id)
-        .eq("is_active", True)
-        .limit(1)
-        .execute()
-    )
-    return bool(diag.data), bool(plan.data)
+    """Check onboarding flags without breaking profile fetch on missing tables."""
+    has_diagnostic = False
+    has_study_plan = False
+
+    try:
+        diag = (
+            client.table("diagnostic_results")
+            .select("id")
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        has_diagnostic = bool(diag.data)
+    except Exception as e:
+        print(f"[users] diagnostic_results lookup skipped: {type(e).__name__}: {e}")
+
+    try:
+        plan = (
+            client.table("user_study_plan")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("is_active", True)
+            .limit(1)
+            .execute()
+        )
+        has_study_plan = bool(plan.data)
+    except Exception as e:
+        print(f"[users] user_study_plan lookup skipped: {type(e).__name__}: {e}")
+
+    return has_diagnostic, has_study_plan
 
 
 def _get_user_row(client, user_id: str, auto_create: bool = True) -> dict:
@@ -163,9 +180,9 @@ async def get_stats(user: dict = Depends(get_current_user)) -> UserStats:
     total_solved = attempts_result.count if attempts_result.count is not None else 0
 
     return UserStats(
-        current_xp=row.get("current_xp", 0),
-        current_level=row.get("current_level", 1),
-        current_streak=row.get("current_streak", 0),
-        longest_streak=row.get("longest_streak", 0),
+        current_xp=_coalesce_int(row.get("current_xp"), 0),
+        current_level=_coalesce_int(row.get("current_level"), 1),
+        current_streak=_coalesce_int(row.get("current_streak"), 0),
+        longest_streak=_coalesce_int(row.get("longest_streak"), 0),
         total_problems_solved=total_solved,
     )
