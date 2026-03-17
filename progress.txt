@@ -1,3 +1,26 @@
+TASK-024 DONE — YouTube player component with timestamps
+
+Implementation:
+- Created frontend/src/components/YouTubePlayer.tsx
+- Uses YouTube IFrame API directly (no extra npm dependency needed)
+- Lazy-loads the API script with singleton promise pattern (only one script tag ever created)
+- Props: videoId (string), timestamps (optional array of {time, label})
+- 16:9 responsive container via padding-top trick (pt-[56.25%])
+- Clickable timestamp pills below video with seekTo() on click
+- Active timestamp highlighting (blue pill)
+- Dark mode support on timestamp buttons
+- Proper cleanup: destroys player on unmount or videoId change
+- Installed @types/youtube for TypeScript type safety
+- TypeScript passes cleanly (npx tsc --noEmit)
+
+Next priorities (all deps met):
+- TASK-007 (high): Seed prototypes for tasks 1-12 — blocks TASK-009, TASK-023, TASK-033
+- TASK-029 (medium): Progress page heatmap — deps done
+- TASK-032 (medium): FSRS desired_retention — deps done
+- TASK-037 (low): E2E test — all deps done
+
+Note: 48 pre-existing test failures in test_theory, test_topics, test_users, test_study_plan_api (pydantic validation errors) — not related to TASK-024
+
 TASK-031 DONE — RLS and security for new tables
 
 Implementation:
