@@ -142,7 +142,6 @@ export default function TopicFire() {
   const [relationships, setRelationships] = useState<TopicRelationship[]>([])
 
   // Prototype-based flow
-  const [topicInfo, setTopicInfo] = useState<TopicInfo | null>(null)
   const [prototypes, setPrototypes] = useState<PrototypeListItem[]>([])
   const [selectedPrototype, setSelectedPrototype] = useState<Prototype | null>(null)
   const [usePrototypeFlow, setUsePrototypeFlow] = useState(false)
@@ -178,8 +177,6 @@ export default function TopicFire() {
 
         // Get task_number from topic to fetch prototypes
         const topicRes = await api<TopicInfo>(`/api/topics/${id}`)
-        setTopicInfo(topicRes)
-
         const protoRes = await api<PrototypeListResponse>(
           `/api/prototypes?task_number=${topicRes.task_number}`
         )

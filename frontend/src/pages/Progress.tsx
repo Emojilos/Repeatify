@@ -10,6 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import type { TooltipProps, TooltipValueType } from 'recharts'
 import { api } from '../lib/api'
 
 /* ------------------------------------------------------------------ */
@@ -56,6 +57,8 @@ interface FSRSStatsResponse {
   cards_due_today: number
   retrievability_by_task: TaskRetrievability[]
 }
+
+type ProgressTooltipFormatter = NonNullable<TooltipProps<TooltipValueType, string | number>['formatter']>
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -382,10 +385,15 @@ export default function Progress() {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
                   <Tooltip
-                    formatter={(value: number, _name: string, props: { payload?: { cards?: number } }) => [
-                      `${value}% (${props.payload?.cards ?? 0} карт.)`,
-                      'Retrievability',
-                    ]}
+                    formatter={((value, _name, item) => {
+                      const rawValue = Array.isArray(value) ? value[0] : value
+                      const retrievability = typeof rawValue === 'number' ? rawValue : Number(rawValue ?? 0)
+                      const cards = item.payload && 'cards' in item.payload
+                        ? Number(item.payload.cards ?? 0)
+                        : 0
+
+                      return [`${retrievability}% (${cards} карт.)`, 'Retrievability']
+                    }) satisfies ProgressTooltipFormatter}
                     labelFormatter={(label) => `Задание ${label}`}
                   />
                   <Bar dataKey="retrievability" radius={[4, 4, 0, 0]} maxBarSize={32}>
