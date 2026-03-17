@@ -1,3 +1,26 @@
+TASK-008 DONE — Seed prototypes for EGE tasks 13-19 (Part 2)
+
+Implementation:
+- Created migration 008_seed_prototypes_part2.sql with 21 prototypes (3 per task, tasks 13-19)
+- Task 13 (Тригонометрия): базовые уравнения, сводимые к квадратным, отбор корней
+- Task 14 (Стереометрия): объёмы/площади, расстояния, углы в пространстве
+- Task 15 (Неравенства): логарифмические, показательные, метод интервалов
+- Task 16 (Планиметрия Ч2): вписанные/описанные окружности, подобие, площади/метрика
+- Task 17 (Экономические): кредиты, вклады, оптимизация
+- Task 18 (Параметры): квадратные с параметром, графический метод, модули
+- Task 19 (Числа): делимость/остатки, последовательности/суммы, оценка+пример
+- Each prototype has: theory_markdown with LaTeX, key_formulas JSONB, solution_algorithm, common_mistakes
+- Existing problems for tasks 13-19 linked to prototypes via UPDATE (order_index=1 default)
+- Ruff passes, 336 passed / 46 pre-existing failures unchanged
+
+Next priorities (all deps met):
+- TASK-009 (medium): Seed YouTube videos for tasks 1-12
+- TASK-035 (medium): Seed FIRe theory for remaining 14 topics
+- TASK-018 (medium): Migration script srs->fsrs
+- TASK-034 (low): SRS card with prototype context
+- TASK-036 (low): Update PATCH /api/users/me
+- TASK-037 (low): E2E test (deps: TASK-038 blocked on TASK-037)
+
 TASK-026 DONE — FIRe flow: prototype-based learning with FSRS card creation
 
 Implementation:
