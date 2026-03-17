@@ -1,3 +1,23 @@
+TASK-036 DONE — Update PATCH /api/users/me for hours_per_day + auto plan recalculation
+
+Implementation:
+- Added hours_per_day field to UpdateProfileRequest (validation: 0.5-5.0) and UserProfile model
+- Updated _row_to_profile to include hours_per_day in response
+- PATCH /api/users/me now auto-recalculates study plan when plan-related fields change (target_score, exam_date, hours_per_day)
+- Only recalculates if an active plan exists; no-op if no plan
+- Uses existing generate_plan() which deactivates old plan and creates new one
+- 8 new tests: hours_per_day update, validation (too low/high), plan recalculation on target/hours/exam_date change, no recalculation without plan, no recalculation on display_name change
+- Ruff passes, 371 passed / 48 pre-existing failures unchanged
+
+Next priorities (all deps met):
+- TASK-009 (medium): Seed YouTube videos for tasks 1-12
+- TASK-035 (medium): Seed FIRe theory for remaining 14 topics
+- TASK-010 (medium): Parser Shkolkovo
+- TASK-011 (medium): Parser math100.ru
+- TASK-034 (low): SRS card with prototype context (deps: TASK-025 done)
+- TASK-037 (low): E2E test (all deps met)
+- TASK-038 (low): Cleanup old SM-2 code (blocked on TASK-037)
+
 TASK-018 DONE — Migration script: srs_cards → fsrs_cards
 
 Implementation:

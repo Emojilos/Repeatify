@@ -308,3 +308,258 @@ def test_stats_user_not_found(client):
         )
 
     assert resp.status_code == 404
+
+
+# --- PATCH /api/users/me: hours_per_day tests ---
+
+
+def _patch_user_helpers(
+    mock_client,
+    get_user_rows,
+    has_diagnostic=False,
+    has_study_plan=False,
+    current_plan=None,
+):
+    """Context manager helper for patching user router internals."""
+    call_idx = {"i": 0}
+    original_rows = list(get_user_rows)
+
+    def fake_get_user_row(_client, _uid, auto_create=True):
+        idx = min(call_idx["i"], len(original_rows) - 1)
+        call_idx["i"] += 1
+        return original_rows[idx]
+
+    return (
+        patch(
+            "app.routers.users.get_supabase_client",
+            return_value=mock_client,
+        ),
+        patch(
+            "app.routers.users._get_user_row",
+            side_effect=fake_get_user_row,
+        ),
+        patch(
+            "app.routers.users._check_onboarding_status",
+            return_value=(has_diagnostic, has_study_plan),
+        ),
+        patch(
+            "app.routers.users.get_current_plan",
+            return_value=current_plan,
+        ),
+    )
+
+
+def test_patch_me_update_hours_per_day(client):
+    token = _make_token()
+    row = _mock_user_row()
+    updated_row = _mock_user_row({"hours_per_day": 2.0})
+    mock_client = MagicMock()
+
+    p1, p2, p3, p4 = _patch_user_helpers(
+        mock_client, [row, updated_row],
+    )
+    with p1, p2, p3, p4:
+        resp = client.patch(
+            "/api/users/me",
+            json={"hours_per_day": 2.0},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["hours_per_day"] == 2.0
+
+
+def test_patch_me_hours_per_day_too_low(client):
+    token = _make_token()
+
+    resp = client.patch(
+        "/api/users/me",
+        json={"hours_per_day": 0.1},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert resp.status_code == 422
+
+
+def test_patch_me_hours_per_day_too_high(client):
+    token = _make_token()
+
+    resp = client.patch(
+        "/api/users/me",
+        json={"hours_per_day": 6.0},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert resp.status_code == 422
+
+
+def test_patch_me_recalculates_plan_on_target_change(client):
+    token = _make_token()
+    row = _mock_user_row({"target_score": 70})
+    updated_row = _mock_user_row({
+        "target_score": 90, "exam_date": "2026-06-19",
+        "hours_per_day": 1.5,
+    })
+    mock_client = MagicMock()
+    existing_plan = {
+        "id": "plan-1",
+        "target_score": 70,
+        "exam_date": "2026-06-19",
+        "hours_per_day": 1.5,
+    }
+
+    p1, p2, p3, p4 = _patch_user_helpers(
+        mock_client,
+        [row, updated_row, updated_row],
+        current_plan=existing_plan,
+    )
+    with (
+        p1, p2, p3, p4,
+        patch("app.routers.users.generate_plan") as mock_gen,
+    ):
+        resp = client.patch(
+            "/api/users/me",
+            json={"target_score": 90},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert resp.status_code == 200
+    mock_gen.assert_called_once_with(
+        mock_client,
+        "user-123",
+        target_score=90,
+        exam_date_str="2026-06-19",
+        hours_per_day=1.5,
+    )
+
+
+def test_patch_me_no_recalculate_without_plan(client):
+    token = _make_token()
+    row = _mock_user_row({"target_score": 70})
+    updated_row = _mock_user_row({"target_score": 90})
+    mock_client = MagicMock()
+
+    p1, p2, p3, p4 = _patch_user_helpers(
+        mock_client, [row, updated_row],
+    )
+    with (
+        p1, p2, p3, p4,
+        patch("app.routers.users.generate_plan") as mock_gen,
+    ):
+        resp = client.patch(
+            "/api/users/me",
+            json={"target_score": 90},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert resp.status_code == 200
+    mock_gen.assert_not_called()
+
+
+def test_patch_me_no_recalculate_on_display_name(client):
+    token = _make_token()
+    row = _mock_user_row()
+    updated_row = _mock_user_row({"display_name": "New Name"})
+    mock_client = MagicMock()
+
+    p1, p2, p3, p4 = _patch_user_helpers(
+        mock_client, [row, updated_row],
+    )
+    with (
+        p1, p2, p3, p4,
+        patch("app.routers.users.generate_plan") as mock_gen,
+    ):
+        resp = client.patch(
+            "/api/users/me",
+            json={"display_name": "New Name"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert resp.status_code == 200
+    mock_gen.assert_not_called()
+
+
+def test_patch_me_recalculates_plan_on_hours_change(client):
+    token = _make_token()
+    row = _mock_user_row({
+        "target_score": 80, "exam_date": "2026-06-19",
+        "hours_per_day": 1.0,
+    })
+    updated_row = _mock_user_row({
+        "target_score": 80, "exam_date": "2026-06-19",
+        "hours_per_day": 2.5,
+    })
+    mock_client = MagicMock()
+    existing_plan = {
+        "id": "plan-1",
+        "target_score": 80,
+        "exam_date": "2026-06-19",
+        "hours_per_day": 1.0,
+    }
+
+    p1, p2, p3, p4 = _patch_user_helpers(
+        mock_client,
+        [row, updated_row, updated_row],
+        current_plan=existing_plan,
+    )
+    with (
+        p1, p2, p3, p4,
+        patch("app.routers.users.generate_plan") as mock_gen,
+    ):
+        resp = client.patch(
+            "/api/users/me",
+            json={"hours_per_day": 2.5},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert resp.status_code == 200
+    mock_gen.assert_called_once_with(
+        mock_client,
+        "user-123",
+        target_score=80,
+        exam_date_str="2026-06-19",
+        hours_per_day=2.5,
+    )
+
+
+def test_patch_me_recalculates_plan_on_exam_date_change(client):
+    token = _make_token()
+    row = _mock_user_row({
+        "target_score": 80, "exam_date": "2026-06-19",
+        "hours_per_day": 1.5,
+    })
+    updated_row = _mock_user_row({
+        "target_score": 80, "exam_date": "2026-07-15",
+        "hours_per_day": 1.5,
+    })
+    mock_client = MagicMock()
+    existing_plan = {
+        "id": "plan-1",
+        "target_score": 80,
+        "exam_date": "2026-06-19",
+        "hours_per_day": 1.5,
+    }
+
+    p1, p2, p3, p4 = _patch_user_helpers(
+        mock_client,
+        [row, updated_row, updated_row],
+        current_plan=existing_plan,
+    )
+    with (
+        p1, p2, p3, p4,
+        patch("app.routers.users.generate_plan") as mock_gen,
+    ):
+        resp = client.patch(
+            "/api/users/me",
+            json={"exam_date": "2026-07-15"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert resp.status_code == 200
+    mock_gen.assert_called_once_with(
+        mock_client,
+        "user-123",
+        target_score=80,
+        exam_date_str="2026-07-15",
+        hours_per_day=1.5,
+    )

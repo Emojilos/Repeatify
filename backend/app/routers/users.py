@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.auth import get_current_user
 from app.db.supabase_client import get_supabase_client
 from app.models.auth import UpdateProfileRequest, UserProfile, UserStats
+from app.services.study_plan_service import generate_plan, get_current_plan
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -21,6 +22,7 @@ def _row_to_profile(
             str(row["exam_date"]) if row.get("exam_date") else None
         ),
         target_score=row.get("target_score"),
+        hours_per_day=row.get("hours_per_day"),
         current_xp=row.get("current_xp", 0),
         current_level=row.get("current_level", 1),
         current_streak=row.get("current_streak", 0),
@@ -112,7 +114,27 @@ async def update_me(
     # Ensure user exists
     _get_user_row(client, user["id"])
 
+    plan_fields = {"target_score", "exam_date", "hours_per_day"}
+    plan_fields_changed = bool(plan_fields & update_data.keys())
+
     client.table("users").update(update_data).eq("id", user["id"]).execute()
+
+    # Auto-recalculate study plan if plan-related fields changed
+    if plan_fields_changed:
+        existing_plan = get_current_plan(client, user["id"])
+        if existing_plan:
+            row = _get_user_row(client, user["id"])
+            target = row.get("target_score") or existing_plan.get("target_score", 70)
+            exam = row.get("exam_date") or existing_plan.get("exam_date")
+            hpd = row.get("hours_per_day") or existing_plan.get("hours_per_day", 1.0)
+            if exam:
+                generate_plan(
+                    client,
+                    user["id"],
+                    target_score=target,
+                    exam_date_str=str(exam),
+                    hours_per_day=hpd,
+                )
 
     row = _get_user_row(client, user["id"])
     has_diagnostic, has_study_plan = _check_onboarding_status(client, user["id"])
