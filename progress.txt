@@ -1,3 +1,26 @@
+TASK-035 DONE — Seed: FIRe theory for remaining 14 topics
+
+Implementation:
+- Created supabase/migrations/010_seed_theory_remaining.sql (1400 lines)
+- 14 topics covered: tasks 1-5, 10-11, 13-19 (tasks 6, 7, 8, 9, 12 already in 004_seed_theory.sql)
+- Each topic has 4 theory_content records: framework (formulas+topic map), inquiry (3 research questions with reference answers), relationships (connections to other EGE tasks), elaboration (self-assessment checklist)
+- 56 INSERT INTO theory_content statements (14 × 4)
+- 28 INSERT INTO topic_relationships statements linking topics
+- All content in Russian with LaTeX math notation ($...$ inline, $$...$$ display)
+- Priority topics (1-4, 13) have detailed step-by-step algorithms
+
+Acceptance criteria verified:
+- theory_content for all 19 tasks: 20 existing + 56 new = 76 records ✓
+- Each task has 4 records (F, I, R, E) ✓
+- Markdown with LaTeX present in all entries ✓
+- Ruff passes, 336 passed / 45 pre-existing test failures (no delta) ✓
+
+Next priorities (all deps met):
+- TASK-009 (medium): Seed YouTube videos for tasks 1-12
+- TASK-010 (medium): Parser Shkolkovo
+- TASK-011 (medium): Parser math100.ru
+- TASK-034 (low): SRS card with prototype context
+
 TASK-038 DONE — Cleanup: remove old SM-2 code after full FSRS migration
 
 Implementation:
