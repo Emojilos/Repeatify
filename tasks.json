@@ -174,7 +174,7 @@
         "Шаг 4: Выборочно проверить theory_markdown 3-4 прототипов на корректность LaTeX"
       ],
       "dependencies": ["TASK-001"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-008",
