@@ -1758,3 +1758,39 @@ Note: Live site scraping requires manual verification — CSS selectors may need
 Next priorities (all deps met):
 - TASK-012 (medium): Normalizer (NOW UNBLOCKED — depends on TASK-010 ✓ + TASK-011 ✓)
 - TASK-009 (medium): Seed YouTube videos for tasks 1-12
+
+---
+
+TASK-012 DONE — Normalizer: clean, deduplicate, and upload problems to DB
+
+Implementation:
+- Created tools/parsers/normalizer.py — standalone script accepting JSON from both parsers
+- HTML cleanup: removes stray tags (br/span/div/p/em/strong/b/i/u/font/a/img), decodes entities (&nbsp; &amp; &lt; &gt; &laquo; &raquo; etc.), strips numeric entities (&#NNN;)
+- LaTeX normalization: converts \( \) → $ $, \[ \] → $$ $$, collapses excessive whitespace
+- Deduplication: in-batch by content_hash set, then DB-level check via SELECT content_hash FROM problems
+- Prototype linking: fetches prototypes by task_number, assigns first by order_index (simple heuristic)
+- Bulk INSERT via Supabase client with per-row error handling
+- CLI: --input (multiple files), --dry-run, --recompute-hashes
+- Stats logging: "Added: N, Skipped (duplicates): M, Skipped (no topic): K, Failed: F"
+- Created 42 unit tests in backend/tests/test_normalizer.py covering:
+  - clean_html_artifacts (entities, tags, br, LaTeX preservation, cyrillic, empty/None)
+  - normalize_latex (inline/display conversion, standard passthrough, whitespace, mixed)
+  - clean_problem_text (combined pipeline, real-world example)
+  - compute_content_hash (determinism, whitespace normalization, case insensitivity, SHA-256 length)
+  - load_problems_from_json (single/multiple files, missing file, single dict)
+  - normalize_problems (basic, dedup, empty text, hash preservation/recompute, answer cleanup, images)
+  - link_prototypes (single, multiple, none)
+  - NormalizerStats summary format
+  - upload_problems (mocked Supabase insert, existing hash skip, missing env vars)
+  - Integration: full load → normalize → stats pipeline
+
+Acceptance criteria verified:
+- Script accepts JSON: python tools/parsers/normalizer.py --input test_output.json ✓
+- Deduplication: in-batch + DB-level by content_hash ✓
+- LaTeX cleaned from HTML tags ✓
+- Problems linked to prototype_id where possible ✓
+- Log shows: "Added: N, Skipped (duplicates): M" ✓
+- Ruff passes, 456 passed / 45 pre-existing test failures (delta: +42 new tests, 0 regressions) ✓
+
+Next priorities:
+- TASK-009 (medium): Seed YouTube videos for tasks 1-12 — ONLY remaining pending task

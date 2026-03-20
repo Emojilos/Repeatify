@@ -279,7 +279,7 @@
         "Шаг 4: SELECT problem_text FROM problems WHERE source='shkolkovo' LIMIT 3 — проверить чистоту текста"
       ],
       "dependencies": ["TASK-010", "TASK-011"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-013",
