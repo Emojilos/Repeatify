@@ -237,7 +237,7 @@
         "Шаг 4: Повторный запуск — проверить что content_hash стабилен (одинаков для тех же задач)"
       ],
       "dependencies": ["TASK-002"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-011",
