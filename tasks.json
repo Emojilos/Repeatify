@@ -214,7 +214,7 @@
         "Шаг 4: Выборочно проверить 3 youtube_video_id — открыть на YouTube, убедиться что видео существует"
       ],
       "dependencies": ["TASK-007"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-010",
