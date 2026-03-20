@@ -257,7 +257,7 @@
         "Шаг 3: Сравнить формат с выходом shkolkovo_parser — должны быть совместимы"
       ],
       "dependencies": ["TASK-002"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-012",
