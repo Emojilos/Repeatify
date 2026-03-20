@@ -25,7 +25,7 @@ from app.services.diagnostic_service import (
 router = APIRouter(prefix="/api/diagnostic", tags=["diagnostic"])
 
 
-@router.post("/start", response_model=DiagnosticStartResponse)
+@router.api_route("/start", methods=["GET", "POST"], response_model=DiagnosticStartResponse)
 async def start_diagnostic(
     user: dict = Depends(get_current_user),
 ) -> DiagnosticStartResponse:
