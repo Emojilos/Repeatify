@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     JWT_PUBLIC_KEY: str = ""
 
     # CORS: comma-separated allowed origins
-    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,https://emojilos.github.io"
 
     # Rate limiting
     AUTH_RATE_LIMIT: str = "5/minute"
