@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -19,10 +21,10 @@ class PrototypeResponse(BaseModel):
     difficulty_within_task: str
     estimated_study_minutes: int | None = None
     theory_markdown: str | None = None
-    key_formulas: list[dict] | None = None
-    solution_algorithm: list[dict] | None = None
-    common_mistakes: list[dict] | None = None
-    related_prototypes: list[dict] | None = None
+    key_formulas: list[Any] | None = None
+    solution_algorithm: list[Any] | None = None
+    common_mistakes: list[Any] | None = None
+    related_prototypes: list[Any] | None = None
     order_index: int | None = None
 
 
