@@ -62,16 +62,41 @@ def _normalize_mistakes(raw: list | None) -> list[dict]:
     ]
 
 
-def _normalize_related(raw: list | None) -> list[dict]:
+def _resolve_related(raw: list | None, task_number: int, client) -> list[dict]:
+    """Resolve related prototype codes to full objects with id, title, etc."""
     if not raw:
         return []
+    # Extract codes from strings or dicts
+    codes = []
+    for item in raw:
+        if isinstance(item, dict):
+            codes.append(item.get("prototype_code") or item.get("code", ""))
+        else:
+            codes.append(str(item))
+    codes = [c for c in codes if c]
+    if not codes:
+        return []
+    result = (
+        client.table("prototypes")
+        .select("id, prototype_code, title, task_number, difficulty_within_task")
+        .eq("task_number", task_number)
+        .in_("prototype_code", codes)
+        .execute()
+    )
     return [
-        item if isinstance(item, dict) else {"code": item}
-        for item in raw
+        {
+            "id": r["id"],
+            "prototype_code": r["prototype_code"],
+            "title": r["title"],
+            "task_number": r["task_number"],
+            "difficulty_within_task": r["difficulty_within_task"],
+        }
+        for r in (result.data or [])
     ]
 
 
-def _row_to_detail(row: dict) -> PrototypeResponse:
+def _row_to_detail(row: dict, client=None) -> PrototypeResponse:
+    related = _resolve_related(row.get("related_prototypes"), row["task_number"], client) if client else []
     return PrototypeResponse(
         id=row["id"],
         task_number=row["task_number"],
@@ -84,7 +109,7 @@ def _row_to_detail(row: dict) -> PrototypeResponse:
         key_formulas=_normalize_formulas(row.get("key_formulas")),
         solution_algorithm=_normalize_algorithm(row.get("solution_algorithm")),
         common_mistakes=_normalize_mistakes(row.get("common_mistakes")),
-        related_prototypes=_normalize_related(row.get("related_prototypes")),
+        related_prototypes=related,
         order_index=row.get("order_index"),
     )
 
@@ -148,7 +173,7 @@ async def get_prototype(
             detail="Prototype not found",
         )
 
-    return _row_to_detail(result.data[0])
+    return _row_to_detail(result.data[0], client)
 
 
 @router.get(
