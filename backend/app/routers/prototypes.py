@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.auth import get_current_user
@@ -153,12 +155,20 @@ async def list_prototypes(
     return PrototypeListResponse(items=items, total=total)
 
 
+def _validate_uuid(value: str) -> None:
+    try:
+        uuid.UUID(value)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid ID")
+
+
 @router.get("/{prototype_id}", response_model=PrototypeResponse)
 async def get_prototype(
     prototype_id: str,
     _user: dict = Depends(get_current_user),
 ) -> PrototypeResponse:
     """Return full details for a single prototype."""
+    _validate_uuid(prototype_id)
     client = get_supabase_client()
 
     result = (
@@ -185,6 +195,7 @@ async def get_prototype_videos(
     _user: dict = Depends(get_current_user),
 ) -> list[VideoResourceResponse]:
     """Return video resources linked to a prototype."""
+    _validate_uuid(prototype_id)
     client = get_supabase_client()
 
     # Verify prototype exists
@@ -234,6 +245,7 @@ async def get_prototype_problems(
     _user: dict = Depends(get_current_user),
 ) -> ProblemListResponse:
     """Return problems linked to a prototype with pagination."""
+    _validate_uuid(prototype_id)
     client = get_supabase_client()
 
     # Verify prototype exists
