@@ -24,6 +24,30 @@ from app.services.study_plan_service import (
 router = APIRouter(prefix="/api/study-plan", tags=["study-plan"])
 
 
+@router.post("/trigger/{user_id}")
+async def trigger_plan_for_user(user_id: str) -> dict:
+    """One-time helper: generate plan from user profile. Remove after use."""
+    client = get_supabase_client()
+    user_row = (
+        client.table("users")
+        .select("target_score, exam_date, hours_per_day")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    u = user_row.data
+    if not u or not u.get("target_score") or not u.get("exam_date"):
+        raise HTTPException(status_code=400, detail="User missing target_score or exam_date")
+    plan = generate_plan(
+        client,
+        user_id=user_id,
+        target_score=u["target_score"],
+        exam_date_str=u["exam_date"],
+        hours_per_day=u.get("hours_per_day") or 1.0,
+    )
+    return {"status": "ok", "plan_id": plan["id"]}
+
+
 @router.post("/generate", response_model=StudyPlanResponse, status_code=201)
 @limiter.limit(settings.STUDY_PLAN_GENERATE_RATE_LIMIT)
 async def generate_study_plan(
