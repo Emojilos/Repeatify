@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     # CORS: comma-separated allowed origins
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,https://emojilos.github.io"
 
+    # Keep-alive: set to the public URL of the service (e.g. https://your-app.onrender.com)
+    SELF_URL: str = ""
+
     # Rate limiting
     AUTH_RATE_LIMIT: str = "5/minute"
     API_RATE_LIMIT: str = "100/minute"

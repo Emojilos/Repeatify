@@ -1,6 +1,8 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -24,6 +26,19 @@ from app.routers import (
 
 _db_connected = False
 
+_KEEP_ALIVE_INTERVAL = 14 * 60  # 14 minutes
+
+
+async def _keep_alive() -> None:
+    url = settings.SELF_URL.rstrip("/") + "/health"
+    async with httpx.AsyncClient(timeout=10) as client:
+        while True:
+            await asyncio.sleep(_KEEP_ALIVE_INTERVAL)
+            try:
+                await client.get(url)
+            except Exception:
+                pass
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
@@ -33,7 +48,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         print("✓ Supabase connection verified")
     else:
         print("✗ Supabase connection failed — check credentials")
+
+    task = None
+    if settings.SELF_URL:
+        task = asyncio.create_task(_keep_alive())
+        print(f"✓ Keep-alive started → {settings.SELF_URL}/health every 14 min")
+
     yield
+
+    if task:
+        task.cancel()
 
 
 app = FastAPI(
