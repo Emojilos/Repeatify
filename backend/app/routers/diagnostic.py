@@ -21,6 +21,7 @@ from app.services.diagnostic_service import (
     initialize_fsrs_from_diagnostic,
     select_problems_for_diagnostic,
 )
+from app.services.study_plan_service import generate_plan
 
 router = APIRouter(prefix="/api/diagnostic", tags=["diagnostic"])
 
@@ -96,6 +97,27 @@ async def submit_diagnostic(
 
     # Initialize FSRS cards from diagnostic results (PRD 5.3)
     initialize_fsrs_from_diagnostic(client, user["id"], results)
+
+    # Auto-generate study plan from user profile data
+    try:
+        user_row = (
+            client.table("users")
+            .select("target_score, exam_date, hours_per_day")
+            .eq("id", user["id"])
+            .single()
+            .execute()
+        )
+        u = user_row.data
+        if u and u.get("target_score") and u.get("exam_date"):
+            generate_plan(
+                client,
+                user_id=user["id"],
+                target_score=u["target_score"],
+                exam_date_str=u["exam_date"],
+                hours_per_day=u.get("hours_per_day") or 1.0,
+            )
+    except Exception as e:
+        print(f"[diagnostic] auto-generate study plan failed: {e}")
 
     total_correct = sum(1 for r in results if r["is_correct"] is True)
     total_answered = sum(
