@@ -26,12 +26,20 @@ def _row_to_list_item(row: dict) -> PrototypeListItem:
     )
 
 
+def _wrap_latex(s: str) -> str:
+    """Wrap a LaTeX string in $...$ if not already wrapped."""
+    s = s.strip()
+    if s.startswith("$") or s.startswith("\\("):
+        return s
+    return f"${s}$"
+
+
 def _normalize_formulas(raw: list | None) -> list[dict]:
     """Convert list[str] to list[dict] expected by frontend."""
     if not raw:
         return []
     return [
-        item if isinstance(item, dict) else {"name": "", "formula": item, "description": ""}
+        item if isinstance(item, dict) else {"name": "", "formula": _wrap_latex(item), "description": ""}
         for item in raw
     ]
 
