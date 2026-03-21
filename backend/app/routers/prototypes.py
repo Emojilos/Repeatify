@@ -26,6 +26,43 @@ def _row_to_list_item(row: dict) -> PrototypeListItem:
     )
 
 
+def _normalize_formulas(raw: list | None) -> list[dict]:
+    """Convert list[str] to list[dict] expected by frontend."""
+    if not raw:
+        return []
+    return [
+        item if isinstance(item, dict) else {"name": "", "formula": item, "description": ""}
+        for item in raw
+    ]
+
+
+def _normalize_algorithm(raw: list | None) -> list[dict]:
+    if not raw:
+        return []
+    return [
+        item if isinstance(item, dict) else {"step": i + 1, "title": item, "description": ""}
+        for i, item in enumerate(raw)
+    ]
+
+
+def _normalize_mistakes(raw: list | None) -> list[dict]:
+    if not raw:
+        return []
+    return [
+        item if isinstance(item, dict) else {"mistake": item, "explanation": "", "correct": ""}
+        for item in raw
+    ]
+
+
+def _normalize_related(raw: list | None) -> list[dict]:
+    if not raw:
+        return []
+    return [
+        item if isinstance(item, dict) else {"code": item}
+        for item in raw
+    ]
+
+
 def _row_to_detail(row: dict) -> PrototypeResponse:
     return PrototypeResponse(
         id=row["id"],
@@ -36,10 +73,10 @@ def _row_to_detail(row: dict) -> PrototypeResponse:
         difficulty_within_task=row["difficulty_within_task"],
         estimated_study_minutes=row.get("estimated_study_minutes"),
         theory_markdown=row.get("theory_markdown"),
-        key_formulas=row.get("key_formulas"),
-        solution_algorithm=row.get("solution_algorithm"),
-        common_mistakes=row.get("common_mistakes"),
-        related_prototypes=row.get("related_prototypes"),
+        key_formulas=_normalize_formulas(row.get("key_formulas")),
+        solution_algorithm=_normalize_algorithm(row.get("solution_algorithm")),
+        common_mistakes=_normalize_mistakes(row.get("common_mistakes")),
+        related_prototypes=_normalize_related(row.get("related_prototypes")),
         order_index=row.get("order_index"),
     )
 
