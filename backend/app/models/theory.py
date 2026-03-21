@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -6,7 +8,7 @@ class TheoryContentItem(BaseModel):
     topic_id: str
     content_type: str  # framework / inquiry / relationships / elaboration / summary
     content_markdown: str
-    visual_assets: list = []
+    visual_assets: list | dict | Any = []
     order_index: int = 0
 
 
