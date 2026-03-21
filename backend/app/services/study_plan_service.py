@@ -189,10 +189,26 @@ def _build_weeks(
 
     task_idx = 0
     remaining_minutes_for_current_task = 0
+    all_tasks_distributed = False
 
     for week_num in range(1, num_weeks + 1):
         days_in_week = min(7, days_remaining - (week_num - 1) * 7)
         if days_in_week <= 0:
+            break
+
+        # Stop generating detailed weeks once all tasks are distributed;
+        # just add a summary for the review-only phase
+        if all_tasks_distributed:
+            remaining_days = days_remaining - (week_num - 1) * 7
+            remaining_weeks_count = max(ceil(remaining_days / 7), 1)
+            weeks.append({
+                "week": week_num,
+                "label": "review_phase",
+                "summary": f"Повторение и закрепление ({remaining_weeks_count} нед.)",
+                "review_minutes_per_day": review_minutes_per_day + study_minutes_per_day,
+                "weeks_count": remaining_weeks_count,
+                "days": [],
+            })
             break
 
         week_days: list[dict] = []
@@ -221,6 +237,9 @@ def _build_weeks(
 
                 if remaining_minutes_for_current_task <= 0:
                     task_idx += 1
+
+            if task_idx >= len(tasks) and remaining_minutes_for_current_task <= 0:
+                all_tasks_distributed = True
 
             week_days.append({
                 "date": day_date,
