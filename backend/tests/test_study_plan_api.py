@@ -1,8 +1,8 @@
-"""Tests for Study Plan API endpoints."""
+"""Tests for Study Plan API endpoints (knowledge map)."""
 
 import os
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import jwt
@@ -48,48 +48,19 @@ def _mock_plan(
     plan_id: str = "plan-1",
     user_id: str = "user-123",
     target_score: int = 80,
-    exam_date: str = "2026-07-01",
-    hours_per_day: float = 1.5,
 ) -> dict:
     return {
         "id": plan_id,
         "user_id": user_id,
         "target_score": target_score,
-        "exam_date": exam_date,
-        "hours_per_day": hours_per_day,
         "plan_data": {
             "target_score": target_score,
-            "exam_date": exam_date,
-            "hours_per_day": hours_per_day,
-            "days_remaining": 60,
-            "total_hours": 90.0,
-            "study_hours": 63.0,
-            "review_hours": 27.0,
-            "tasks_to_study": [7, 6, 4],
-            "mastered_tasks": [1, 2, 3],
-            "warning": None,
-            "weeks": [
-                {
-                    "week": 1,
-                    "days": [
-                        {
-                            "date": date.today().isoformat(),
-                            "study": [
-                                {"task_number": 7, "minutes": 63},
-                            ],
-                            "study_minutes": 63,
-                            "review_minutes": 27,
-                        },
-                        {
-                            "date": (date.today() + timedelta(days=1)).isoformat(),
-                            "study": [
-                                {"task_number": 7, "minutes": 63},
-                            ],
-                            "study_minutes": 63,
-                            "review_minutes": 27,
-                        },
-                    ],
-                },
+            "tasks": [
+                {"task_number": i, "status": "not_tested", "correct": None, "total": None, "assessed_at": None}
+                for i in range(1, 13)
+            ] + [
+                {"task_number": i, "status": "not_tested", "correct": None, "total": None, "assessed_at": None}
+                for i in [13, 15, 16]
             ],
         },
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -102,7 +73,6 @@ def _mock_plan(
 
 class TestGenerateStudyPlan:
     def test_generate_creates_plan(self, client):
-        """POST /api/study-plan/generate creates and returns a plan."""
         token = _make_token()
         plan_result = _mock_plan()
 
@@ -115,11 +85,7 @@ class TestGenerateStudyPlan:
         ) as mock_gen:
             resp = client.post(
                 "/api/study-plan/generate",
-                json={
-                    "target_score": 80,
-                    "exam_date": "2026-07-01",
-                    "hours_per_day": 1.5,
-                },
+                json={"target_score": 80},
                 headers={"Authorization": f"Bearer {token}"},
             )
 
@@ -127,37 +93,23 @@ class TestGenerateStudyPlan:
         data = resp.json()
         assert data["target_score"] == 80
         assert data["is_active"] is True
-        assert data["plan_data"]["tasks_to_study"] == [7, 6, 4]
+        assert "tasks" in data["plan_data"]
 
-        # Verify service was called with correct args
         mock_gen.assert_called_once()
-        call_kwargs = mock_gen.call_args
-        assert call_kwargs.kwargs["target_score"] == 80
-        assert call_kwargs.kwargs["hours_per_day"] == 1.5
 
     def test_generate_invalid_target_score(self, client):
-        """Target score not in {70,80,90,100} → 422."""
         token = _make_token()
         resp = client.post(
             "/api/study-plan/generate",
-            json={
-                "target_score": 75,
-                "exam_date": "2026-07-01",
-                "hours_per_day": 1.5,
-            },
+            json={"target_score": 75},
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 422
 
     def test_generate_no_auth(self, client):
-        """Should require authentication."""
         resp = client.post(
             "/api/study-plan/generate",
-            json={
-                "target_score": 80,
-                "exam_date": "2026-07-01",
-                "hours_per_day": 1.5,
-            },
+            json={"target_score": 80},
         )
         assert resp.status_code in (401, 403)
 
@@ -167,7 +119,6 @@ class TestGenerateStudyPlan:
 
 class TestGetCurrentPlan:
     def test_returns_active_plan(self, client):
-        """Returns the active study plan."""
         token = _make_token()
         plan = _mock_plan()
 
@@ -187,11 +138,8 @@ class TestGetCurrentPlan:
         data = resp.json()
         assert data["id"] == "plan-1"
         assert data["target_score"] == 80
-        assert data["is_active"] is True
-        assert data["plan_data"] is not None
 
     def test_no_plan_returns_404(self, client):
-        """No active plan → 404."""
         token = _make_token()
 
         with patch(
@@ -209,7 +157,6 @@ class TestGetCurrentPlan:
         assert resp.status_code == 404
 
     def test_current_no_auth(self, client):
-        """Should require authentication."""
         resp = client.get("/api/study-plan/current")
         assert resp.status_code in (401, 403)
 
@@ -219,12 +166,11 @@ class TestGetCurrentPlan:
 
 class TestRecalculatePlan:
     def test_recalculate_updates_plan(self, client):
-        """Recalculate with new target_score → plan updated."""
         token = _make_token()
         existing_plan = _mock_plan(target_score=80)
         new_plan = _mock_plan(target_score=70)
-        new_plan["plan_data"]["target_score"] = 70
         new_plan["target_score"] = 70
+        new_plan["plan_data"]["target_score"] = 70
 
         with patch(
             "app.routers.study_plan.get_supabase_client",
@@ -238,20 +184,14 @@ class TestRecalculatePlan:
         ):
             resp = client.put(
                 "/api/study-plan/recalculate",
-                json={
-                    "target_score": 70,
-                    "exam_date": "2026-07-01",
-                    "hours_per_day": 1.5,
-                },
+                json={"target_score": 70},
                 headers={"Authorization": f"Bearer {token}"},
             )
 
         assert resp.status_code == 200
-        data = resp.json()
-        assert data["target_score"] == 70
+        assert resp.json()["target_score"] == 70
 
     def test_recalculate_no_existing_plan(self, client):
-        """Recalculate without existing plan → 404."""
         token = _make_token()
 
         with patch(
@@ -263,145 +203,130 @@ class TestRecalculatePlan:
         ):
             resp = client.put(
                 "/api/study-plan/recalculate",
-                json={
-                    "target_score": 70,
-                    "exam_date": "2026-07-01",
-                    "hours_per_day": 1.5,
-                },
+                json={"target_score": 70},
                 headers={"Authorization": f"Bearer {token}"},
             )
 
         assert resp.status_code == 404
 
     def test_recalculate_no_auth(self, client):
-        """Should require authentication."""
         resp = client.put(
             "/api/study-plan/recalculate",
-            json={
-                "target_score": 70,
-                "exam_date": "2026-07-01",
-                "hours_per_day": 1.5,
-            },
+            json={"target_score": 70},
         )
         assert resp.status_code in (401, 403)
 
 
-# --- GET /api/study-plan/today ---
+# --- POST /api/study-plan/assess/{task_number} ---
 
 
-class TestGetTodayTasks:
-    def test_today_with_plan_and_due_cards(self, client):
-        """Returns due cards count + today's study material from plan."""
+class TestStartAssessment:
+    def test_start_returns_problems(self, client):
         token = _make_token()
-        plan = _mock_plan()
-
-        mock_client = MagicMock()
-
-        def table_side_effect(name):
-            mock_table = MagicMock()
-            if name == "fsrs_cards":
-                (
-                    mock_table.select.return_value
-                    .eq.return_value
-                    .lte.return_value
-                    .neq.return_value
-                    .execute.return_value
-                ) = MagicMock(data=[{"id": "c1"}, {"id": "c2"}, {"id": "c3"}])
-            elif name == "topics":
-                (
-                    mock_table.select.return_value
-                    .eq.return_value
-                    .execute.return_value
-                ) = MagicMock(data=[{"title": "Производная"}])
-            return mock_table
-
-        mock_client.table.side_effect = table_side_effect
+        problems = [
+            {"id": f"p{i}", "task_number": 1, "difficulty": "medium",
+             "problem_text": f"Solve {i}", "problem_images": None, "hints": None}
+            for i in range(10)
+        ]
 
         with patch(
             "app.routers.study_plan.get_supabase_client",
-            return_value=mock_client,
+            return_value=MagicMock(),
+        ), patch(
+            "app.routers.study_plan.start_assessment",
+            return_value=problems,
+        ):
+            resp = client.post(
+                "/api/study-plan/assess/1",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["task_number"] == 1
+        assert len(data["problems"]) == 10
+
+    def test_start_invalid_task_number(self, client):
+        token = _make_token()
+        resp = client.post(
+            "/api/study-plan/assess/0",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 400
+
+    def test_start_no_problems(self, client):
+        token = _make_token()
+
+        with patch(
+            "app.routers.study_plan.get_supabase_client",
+            return_value=MagicMock(),
+        ), patch(
+            "app.routers.study_plan.start_assessment",
+            return_value=[],
+        ):
+            resp = client.post(
+                "/api/study-plan/assess/19",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        assert resp.status_code == 404
+
+
+# --- POST /api/study-plan/assess/{task_number}/submit ---
+
+
+class TestSubmitAssessment:
+    def test_submit_returns_result(self, client):
+        token = _make_token()
+        assessment_result = {
+            "task_number": 1,
+            "correct_count": 7,
+            "total_count": 10,
+            "status": "good",
+            "details": [
+                {"problem_id": "p1", "is_correct": True, "correct_answer": "42", "solution_markdown": None},
+            ],
+        }
+        plan = _mock_plan()
+
+        with patch(
+            "app.routers.study_plan.get_supabase_client",
+            return_value=MagicMock(),
+        ), patch(
+            "app.routers.study_plan.submit_assessment",
+            return_value=assessment_result,
         ), patch(
             "app.routers.study_plan.get_current_plan",
             return_value=plan,
-        ):
-            resp = client.get(
-                "/api/study-plan/today",
-                headers={"Authorization": f"Bearer {token}"},
-            )
-
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["review_cards_due"] == 3
-        assert len(data["new_material"]) >= 1
-        assert data["new_material"][0]["task_number"] == 7
-        assert data["new_material"][0]["title"] == "Производная"
-        assert data["total_estimated_minutes"] > 0
-
-    def test_today_no_plan(self, client):
-        """No plan → only review cards returned."""
-        token = _make_token()
-
-        mock_client = MagicMock()
-        (
-            mock_client.table.return_value
-            .select.return_value
-            .eq.return_value
-            .lte.return_value
-            .neq.return_value
-            .execute.return_value
-        ) = MagicMock(data=[{"id": "c1"}])
-
-        with patch(
-            "app.routers.study_plan.get_supabase_client",
-            return_value=mock_client,
         ), patch(
-            "app.routers.study_plan.get_current_plan",
-            return_value=None,
+            "app.routers.study_plan.generate_plan",
+            return_value=plan,
         ):
-            resp = client.get(
-                "/api/study-plan/today",
+            resp = client.post(
+                "/api/study-plan/assess/1/submit",
+                json={"answers": [{"problem_id": "p1", "answer": "42"}]},
                 headers={"Authorization": f"Bearer {token}"},
             )
 
         assert resp.status_code == 200
         data = resp.json()
-        assert data["review_cards_due"] == 1
-        assert data["new_material"] == []
-        assert data["total_estimated_minutes"] == 2  # 1 card * 2 min
+        assert data["correct_count"] == 7
+        assert data["status"] == "good"
 
-    def test_today_empty(self, client):
-        """No due cards, no plan → all zeros."""
+    def test_submit_empty_answers(self, client):
         token = _make_token()
+        resp = client.post(
+            "/api/study-plan/assess/1/submit",
+            json={"answers": []},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 400
 
-        mock_client = MagicMock()
-        (
-            mock_client.table.return_value
-            .select.return_value
-            .eq.return_value
-            .lte.return_value
-            .neq.return_value
-            .execute.return_value
-        ) = MagicMock(data=[])
-
-        with patch(
-            "app.routers.study_plan.get_supabase_client",
-            return_value=mock_client,
-        ), patch(
-            "app.routers.study_plan.get_current_plan",
-            return_value=None,
-        ):
-            resp = client.get(
-                "/api/study-plan/today",
-                headers={"Authorization": f"Bearer {token}"},
-            )
-
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["review_cards_due"] == 0
-        assert data["new_material"] == []
-        assert data["total_estimated_minutes"] == 0
-
-    def test_today_no_auth(self, client):
-        """Should require authentication."""
-        resp = client.get("/api/study-plan/today")
-        assert resp.status_code in (401, 403)
+    def test_submit_invalid_task(self, client):
+        token = _make_token()
+        resp = client.post(
+            "/api/study-plan/assess/20/submit",
+            json={"answers": [{"problem_id": "p1", "answer": "42"}]},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 400

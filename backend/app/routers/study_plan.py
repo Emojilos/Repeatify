@@ -1,8 +1,8 @@
-"""Study Plan API: generate, retrieve, recalculate, and get today's tasks."""
+"""Study Plan API: generate knowledge map, run task assessments."""
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
@@ -11,41 +11,20 @@ from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.db.supabase_client import get_supabase_client
 from app.models.study_plan import (
-    DailyTask,
-    DailyTasksResponse,
+    AssessmentResultResponse,
+    AssessmentStartResponse,
+    AssessmentSubmitRequest,
     StudyPlanGenerateRequest,
     StudyPlanResponse,
 )
 from app.services.study_plan_service import (
     generate_plan,
     get_current_plan,
+    start_assessment,
+    submit_assessment,
 )
 
 router = APIRouter(prefix="/api/study-plan", tags=["study-plan"])
-
-
-@router.post("/trigger/{user_id}")
-async def trigger_plan_for_user(user_id: str) -> dict:
-    """One-time helper: generate plan from user profile. Remove after use."""
-    client = get_supabase_client()
-    user_row = (
-        client.table("users")
-        .select("target_score, exam_date, hours_per_day")
-        .eq("id", user_id)
-        .single()
-        .execute()
-    )
-    u = user_row.data
-    if not u or not u.get("target_score") or not u.get("exam_date"):
-        raise HTTPException(status_code=400, detail="User missing target_score or exam_date")
-    plan = generate_plan(
-        client,
-        user_id=user_id,
-        target_score=u["target_score"],
-        exam_date_str=u["exam_date"],
-        hours_per_day=u.get("hours_per_day") or 1.0,
-    )
-    return {"status": "ok", "plan_id": plan["id"]}
 
 
 @router.post("/generate", response_model=StudyPlanResponse, status_code=201)
@@ -55,23 +34,19 @@ async def generate_study_plan(
     body: StudyPlanGenerateRequest,
     user: dict = Depends(get_current_user),
 ) -> StudyPlanResponse:
-    """Generate a personalised study plan based on diagnostic results and goals."""
+    """Generate a knowledge-map study plan based on target score and assessments."""
     client = get_supabase_client()
 
     plan = generate_plan(
         client,
         user_id=user["id"],
         target_score=body.target_score,
-        exam_date_str=body.exam_date,
-        hours_per_day=body.hours_per_day,
     )
 
     return StudyPlanResponse(
         id=plan["id"],
         user_id=plan["user_id"],
         target_score=plan["target_score"],
-        exam_date=plan["exam_date"],
-        hours_per_day=plan["hours_per_day"],
         plan_data=plan["plan_data"],
         generated_at=datetime.now(timezone.utc).isoformat(),
         is_active=plan["is_active"],
@@ -82,7 +57,7 @@ async def generate_study_plan(
 async def get_current_study_plan(
     user: dict = Depends(get_current_user),
 ) -> StudyPlanResponse:
-    """Return the user's active study plan."""
+    """Return the user's active study plan (knowledge map)."""
     client = get_supabase_client()
 
     plan = get_current_plan(client, user["id"])
@@ -96,8 +71,6 @@ async def get_current_study_plan(
         id=plan["id"],
         user_id=plan["user_id"],
         target_score=plan["target_score"],
-        exam_date=plan["exam_date"],
-        hours_per_day=plan["hours_per_day"],
         plan_data=plan.get("plan_data"),
         generated_at=plan.get("generated_at", ""),
         is_active=plan["is_active"],
@@ -109,13 +82,9 @@ async def recalculate_study_plan(
     body: StudyPlanGenerateRequest,
     user: dict = Depends(get_current_user),
 ) -> StudyPlanResponse:
-    """Recalculate the study plan with updated parameters.
-
-    Deactivates the existing plan and creates a new one.
-    """
+    """Recalculate the study plan with updated target score."""
     client = get_supabase_client()
 
-    # Verify a plan exists before recalculating
     existing = get_current_plan(client, user["id"])
     if not existing:
         raise HTTPException(
@@ -127,86 +96,92 @@ async def recalculate_study_plan(
         client,
         user_id=user["id"],
         target_score=body.target_score,
-        exam_date_str=body.exam_date,
-        hours_per_day=body.hours_per_day,
     )
 
     return StudyPlanResponse(
         id=plan["id"],
         user_id=plan["user_id"],
         target_score=plan["target_score"],
-        exam_date=plan["exam_date"],
-        hours_per_day=plan["hours_per_day"],
         plan_data=plan["plan_data"],
         generated_at=datetime.now(timezone.utc).isoformat(),
         is_active=plan["is_active"],
     )
 
 
-@router.get("/today", response_model=DailyTasksResponse)
-async def get_today_tasks(
+@router.post(
+    "/assess/{task_number}",
+    response_model=AssessmentStartResponse,
+)
+async def start_task_assessment(
+    task_number: int,
     user: dict = Depends(get_current_user),
-) -> DailyTasksResponse:
-    """Return today's tasks: FSRS cards due + next topic from the plan."""
+) -> AssessmentStartResponse:
+    """Start an assessment test for a specific task. Returns 10 problems."""
+    if task_number < 1 or task_number > 19:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="task_number must be between 1 and 19",
+        )
+
+    client = get_supabase_client()
+    problems = start_assessment(client, user["id"], task_number)
+
+    if not problems:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No problems found for task {task_number}",
+        )
+
+    return AssessmentStartResponse(
+        task_number=task_number,
+        problems=problems,
+    )
+
+
+@router.post(
+    "/assess/{task_number}/submit",
+    response_model=AssessmentResultResponse,
+)
+async def submit_task_assessment(
+    task_number: int,
+    body: AssessmentSubmitRequest,
+    user: dict = Depends(get_current_user),
+) -> AssessmentResultResponse:
+    """Submit assessment answers and get results. Updates mastery level."""
+    if task_number < 1 or task_number > 19:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="task_number must be between 1 and 19",
+        )
+
+    if not body.answers:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="answers list cannot be empty",
+        )
+
     client = get_supabase_client()
 
-    # 1) Count due FSRS cards
-    now = datetime.now(timezone.utc).isoformat()
-    due_result = (
-        client.table("fsrs_cards")
-        .select("id")
-        .eq("user_id", user["id"])
-        .lte("due", now)
-        .neq("state", "new")
-        .execute()
+    result = submit_assessment(
+        client,
+        user_id=user["id"],
+        task_number=task_number,
+        answers=[a.model_dump() for a in body.answers],
     )
-    review_cards_due = len(due_result.data or [])
 
-    # 2) Get today's new material from the active plan
-    new_material: list[DailyTask] = []
-    total_estimated_minutes = review_cards_due * 2  # ~2 min per review card
-
+    # Regenerate plan to reflect updated mastery
     plan = get_current_plan(client, user["id"])
-    if plan and plan.get("plan_data"):
-        plan_data = plan["plan_data"]
-        today_str = date.today().isoformat()
+    if plan:
+        generate_plan(
+            client,
+            user_id=user["id"],
+            target_score=plan["target_score"],
+        )
 
-        # Find today's entry in the plan weeks
-        for week in plan_data.get("weeks", []):
-            for day in week.get("days", []):
-                if day.get("date") == today_str:
-                    for study_item in day.get("study", []):
-                        task_number = study_item.get("task_number")
-                        minutes = study_item.get("minutes", 0)
-
-                        # Look up topic title for this task_number
-                        title = f"Задание {task_number}"
-                        topic_result = (
-                            client.table("topics")
-                            .select("title")
-                            .eq("task_number", task_number)
-                            .execute()
-                        )
-                        if topic_result.data:
-                            title = topic_result.data[0].get("title", title)
-
-                        new_material.append(DailyTask(
-                            task_type="study",
-                            task_number=task_number,
-                            title=title,
-                            estimated_minutes=minutes,
-                        ))
-                        total_estimated_minutes += minutes
-
-                    # Also add review minutes from plan
-                    total_estimated_minutes += day.get("review_minutes", 0)
-                    break
-            else:
-                continue
-            break
-
-    return DailyTasksResponse(
-        review_cards_due=review_cards_due,
-        new_material=new_material,
-        total_estimated_minutes=total_estimated_minutes,
+    return AssessmentResultResponse(
+        task_number=result["task_number"],
+        correct_count=result["correct_count"],
+        total_count=result["total_count"],
+        status=result["status"],
+        details=result["details"],
     )

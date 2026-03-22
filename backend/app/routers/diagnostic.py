@@ -102,19 +102,17 @@ async def submit_diagnostic(
     try:
         user_row = (
             client.table("users")
-            .select("target_score, exam_date, hours_per_day")
+            .select("target_score")
             .eq("id", user["id"])
             .single()
             .execute()
         )
         u = user_row.data
-        if u and u.get("target_score") and u.get("exam_date"):
+        if u and u.get("target_score"):
             generate_plan(
                 client,
                 user_id=user["id"],
                 target_score=u["target_score"],
-                exam_date_str=u["exam_date"],
-                hours_per_day=u.get("hours_per_day") or 1.0,
             )
     except Exception as e:
         print(f"[diagnostic] auto-generate study plan failed: {e}")

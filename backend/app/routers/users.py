@@ -142,16 +142,11 @@ async def update_me(
         if existing_plan:
             row = _get_user_row(client, user["id"])
             target = row.get("target_score") or existing_plan.get("target_score", 70)
-            exam = row.get("exam_date") or existing_plan.get("exam_date")
-            hpd = row.get("hours_per_day") or existing_plan.get("hours_per_day", 1.0)
-            if exam:
-                generate_plan(
-                    client,
-                    user["id"],
-                    target_score=target,
-                    exam_date_str=str(exam),
-                    hours_per_day=hpd,
-                )
+            generate_plan(
+                client,
+                user["id"],
+                target_score=target,
+            )
 
     row = _get_user_row(client, user["id"])
     has_diagnostic, has_study_plan = _check_onboarding_status(client, user["id"])

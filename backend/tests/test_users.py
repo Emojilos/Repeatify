@@ -428,8 +428,6 @@ def test_patch_me_recalculates_plan_on_target_change(client):
         mock_client,
         "user-123",
         target_score=90,
-        exam_date_str="2026-06-19",
-        hours_per_day=1.5,
     )
 
 
@@ -517,8 +515,6 @@ def test_patch_me_recalculates_plan_on_hours_change(client):
         mock_client,
         "user-123",
         target_score=80,
-        exam_date_str="2026-06-19",
-        hours_per_day=2.5,
     )
 
 
@@ -560,6 +556,4 @@ def test_patch_me_recalculates_plan_on_exam_date_change(client):
         mock_client,
         "user-123",
         target_score=80,
-        exam_date_str="2026-07-15",
-        hours_per_day=1.5,
     )

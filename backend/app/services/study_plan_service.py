@@ -1,18 +1,16 @@
-"""Study plan generation: personalised weekly/daily study schedule.
+"""Study plan: knowledge-map based assessment system.
 
-Implements the algorithm from PRD 6.1:
-1. Determine required tasks by target_score
-2. Filter out mastered tasks (from diagnostic)
-3. Sort by ROI (points / hours)
-4. Distribute across days with 70/30 study/review split
-5. Warn if insufficient time
+Each task (1-19) has a mastery level determined by a 10-problem assessment test.
+No time-based scheduling — just mastery tracking per task type.
 """
 
 from __future__ import annotations
 
 import uuid
-from datetime import date, timedelta
-from math import ceil
+from datetime import datetime, timezone
+from random import sample
+
+from app.services.diagnostic_service import check_diagnostic_answer
 
 # ROI order from PRD 2.1 (highest ROI first)
 _ROI_ORDER: list[int] = [7, 6, 4, 8, 1, 2, 12, 9, 3, 5, 10, 11]
@@ -24,20 +22,15 @@ _POINTS: dict[int, int] = {
     13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 4, 19: 4,
 }
 
-# Estimated study hours per task_number (defaults)
-_DEFAULT_HOURS: dict[int, float] = {
-    1: 2, 2: 3, 3: 3, 4: 3, 5: 4, 6: 4,
-    7: 3, 8: 3, 9: 4, 10: 5, 11: 5, 12: 3,
-    13: 6, 14: 8, 15: 6, 16: 6, 17: 8, 18: 10, 19: 10,
-}
-
 # Required tasks per target_score
 _REQUIRED_TASKS: dict[int, list[int]] = {
-    70: list(range(1, 13)),              # tasks 1-12
-    80: list(range(1, 13)) + [13, 15, 16],  # + Part 2 basics
-    90: list(range(1, 13)) + [13, 14, 15, 16, 17],  # + geometry/ineq
-    100: list(range(1, 20)),             # all 19 tasks
+    70: list(range(1, 13)),
+    80: list(range(1, 13)) + [13, 15, 16],
+    90: list(range(1, 13)) + [13, 14, 15, 16, 17],
+    100: list(range(1, 20)),
 }
+
+ASSESSMENT_SIZE = 10
 
 
 def get_required_tasks(target_score: int) -> list[int]:
@@ -45,104 +38,86 @@ def get_required_tasks(target_score: int) -> list[int]:
     return _REQUIRED_TASKS.get(target_score, list(range(1, 13)))
 
 
-def _is_mastered(diagnostic_result: dict) -> bool:
-    """Determine if a task is considered mastered based on diagnostic result.
-
-    Part 1: correct and fast (< 60s).
-    Part 2: level_3 (confident solve).
-    """
-    task_num = diagnostic_result["task_number"]
-    if task_num <= 12:
-        return (
-            diagnostic_result.get("is_correct") is True
-            and (diagnostic_result.get("time_spent_seconds") or 60) < 60
-        )
-    return diagnostic_result.get("self_assessment") == "level_3"
+def _mastery_status(correct: int, total: int) -> str:
+    """Compute mastery status from assessment score."""
+    if total == 0:
+        return "not_tested"
+    if correct <= 3:
+        return "weak"
+    if correct <= 6:
+        return "medium"
+    if correct <= 9:
+        return "good"
+    return "mastered"
 
 
 def _sort_by_roi(task_numbers: list[int]) -> list[int]:
     """Sort task_numbers by ROI order (Part 1 from PRD, Part 2 appended)."""
     roi_index = {tn: i for i, tn in enumerate(_ROI_ORDER)}
-    # Part 2 tasks not in _ROI_ORDER get appended by task_number
     max_idx = len(_ROI_ORDER)
     return sorted(task_numbers, key=lambda tn: roi_index.get(tn, max_idx + tn))
+
+
+def _get_latest_assessments(client, user_id: str) -> dict[int, dict]:
+    """Fetch the most recent assessment per task_number for user.
+
+    Returns dict: task_number -> {correct_count, total_count, assessed_at}
+    """
+    result = (
+        client.table("task_assessments")
+        .select("task_number,correct_count,total_count,assessed_at")
+        .eq("user_id", user_id)
+        .order("assessed_at", desc=True)
+        .execute()
+    )
+    latest: dict[int, dict] = {}
+    for row in result.data or []:
+        tn = row["task_number"]
+        if tn not in latest:
+            latest[tn] = row
+    return latest
 
 
 def generate_plan(
     client,
     user_id: str,
     target_score: int,
-    exam_date_str: str,
-    hours_per_day: float,
 ) -> dict:
-    """Generate a study plan and save to user_study_plan.
+    """Generate a knowledge-map study plan and save to user_study_plan.
 
     Returns the plan dict (same shape as plan_data column).
     """
-    exam_date_val = date.fromisoformat(exam_date_str)
-    today = date.today()
-    days_remaining = max((exam_date_val - today).days, 1)
-
-    # 1) Required tasks for target
     required = get_required_tasks(target_score)
+    assessments = _get_latest_assessments(client, user_id)
 
-    # 2) Filter out mastered (from diagnostic)
-    diag_result = (
-        client.table("diagnostic_results")
-        .select("task_number,is_correct,self_assessment,time_spent_seconds")
-        .eq("user_id", user_id)
-        .execute()
-    )
-    diag_rows = diag_result.data or []
-    diag_by_task = {r["task_number"]: r for r in diag_rows}
-
-    mastered = {
-        tn for tn in required
-        if tn in diag_by_task and _is_mastered(diag_by_task[tn])
-    }
-    tasks_to_study = [tn for tn in required if tn not in mastered]
-
-    # 3) Sort by ROI
-    tasks_to_study = _sort_by_roi(tasks_to_study)
-
-    # 4) Time budget
-    total_hours = days_remaining * hours_per_day
-    study_hours = total_hours * 0.70  # 70% new material
-    review_hours = total_hours * 0.30  # 30% review
-
-    # Estimate needed hours
-    needed_hours = sum(_DEFAULT_HOURS.get(tn, 4) for tn in tasks_to_study)
-
-    warning = None
-    if needed_hours > study_hours and tasks_to_study:
-        warning = (
-            f"Недостаточно времени: нужно ~{ceil(needed_hours)}ч на новый материал, "
-            f"доступно ~{ceil(study_hours)}ч. "
-            "Рекомендуем снизить целевой балл или увеличить часы/день."
-        )
-
-    # 5) Distribute across weeks/days
-    weeks = _build_weeks(
-        tasks_to_study,
-        days_remaining,
-        hours_per_day,
-    )
+    tasks = []
+    for tn in sorted(required):
+        a = assessments.get(tn)
+        if a:
+            correct = a["correct_count"]
+            total = a["total_count"]
+            status = _mastery_status(correct, total)
+            tasks.append({
+                "task_number": tn,
+                "status": status,
+                "correct": correct,
+                "total": total,
+                "assessed_at": a["assessed_at"],
+            })
+        else:
+            tasks.append({
+                "task_number": tn,
+                "status": "not_tested",
+                "correct": None,
+                "total": None,
+                "assessed_at": None,
+            })
 
     plan_data = {
         "target_score": target_score,
-        "exam_date": exam_date_str,
-        "hours_per_day": hours_per_day,
-        "days_remaining": days_remaining,
-        "total_hours": round(total_hours, 1),
-        "study_hours": round(study_hours, 1),
-        "review_hours": round(review_hours, 1),
-        "tasks_to_study": tasks_to_study,
-        "mastered_tasks": sorted(mastered),
-        "warning": warning,
-        "weeks": weeks,
+        "tasks": tasks,
     }
 
-    # 6) Persist
     plan_id = str(uuid.uuid4())
 
     # Deactivate existing plans
@@ -154,8 +129,6 @@ def generate_plan(
         "id": plan_id,
         "user_id": user_id,
         "target_score": target_score,
-        "exam_date": exam_date_str,
-        "hours_per_day": hours_per_day,
         "plan_data": plan_data,
         "is_active": True,
     }).execute()
@@ -164,99 +137,200 @@ def generate_plan(
         "id": plan_id,
         "user_id": user_id,
         "target_score": target_score,
-        "exam_date": exam_date_str,
-        "hours_per_day": hours_per_day,
         "plan_data": plan_data,
         "is_active": True,
     }
 
 
-def _build_weeks(
-    tasks: list[int],
-    days_remaining: int,
-    hours_per_day: float,
-) -> list[dict]:
-    """Distribute tasks across weeks with daily slots.
+def start_assessment(client, user_id: str, task_number: int) -> list[dict]:
+    """Select 10 random problems for a task assessment.
 
-    Each week has 7 days. Each day allocates 70% study + 30% review.
-    Tasks are assigned sequentially until study hours run out.
+    Returns list of problem dicts (without correct_answer).
     """
-    study_minutes_per_day = int(hours_per_day * 60 * 0.70)
-    review_minutes_per_day = int(hours_per_day * 60 * 0.30)
+    result = (
+        client.table("problems")
+        .select("id,task_number,difficulty,problem_text,problem_images,hints")
+        .eq("task_number", task_number)
+        .execute()
+    )
+    problems = result.data or []
 
-    num_weeks = max(ceil(days_remaining / 7), 1)
-    weeks: list[dict] = []
+    if len(problems) <= ASSESSMENT_SIZE:
+        selected = problems
+    else:
+        # Try to get a mix of difficulties
+        by_diff: dict[str, list[dict]] = {}
+        for p in problems:
+            by_diff.setdefault(p.get("difficulty", "medium"), []).append(p)
 
-    task_idx = 0
-    remaining_minutes_for_current_task = 0
-    all_tasks_distributed = False
+        selected = []
+        # Take proportionally from each difficulty
+        remaining = ASSESSMENT_SIZE
+        diffs = list(by_diff.keys())
+        for i, diff in enumerate(diffs):
+            pool = by_diff[diff]
+            if i == len(diffs) - 1:
+                take = remaining
+            else:
+                take = max(1, remaining // (len(diffs) - i))
+            take = min(take, len(pool))
+            selected.extend(sample(pool, take))
+            remaining -= take
 
-    for week_num in range(1, num_weeks + 1):
-        days_in_week = min(7, days_remaining - (week_num - 1) * 7)
-        if days_in_week <= 0:
-            break
+        # Fill up if needed
+        if len(selected) < ASSESSMENT_SIZE:
+            remaining_problems = [p for p in problems if p not in selected]
+            need = ASSESSMENT_SIZE - len(selected)
+            selected.extend(sample(remaining_problems, min(need, len(remaining_problems))))
 
-        # Stop generating detailed weeks once all tasks are distributed;
-        # just add a summary for the review-only phase
-        if all_tasks_distributed:
-            remaining_days = days_remaining - (week_num - 1) * 7
-            remaining_weeks_count = max(ceil(remaining_days / 7), 1)
-            weeks.append({
-                "week": week_num,
-                "label": "review_phase",
-                "summary": f"Повторение и закрепление ({remaining_weeks_count} нед.)",
-                "review_minutes_per_day": review_minutes_per_day + study_minutes_per_day,
-                "weeks_count": remaining_weeks_count,
-                "days": [],
-            })
-            break
+    return [
+        {
+            "id": p["id"],
+            "task_number": p["task_number"],
+            "difficulty": p.get("difficulty"),
+            "problem_text": p.get("problem_text"),
+            "problem_images": p.get("problem_images"),
+            "hints": p.get("hints"),
+        }
+        for p in selected
+    ]
 
-        week_days: list[dict] = []
-        for day_offset in range(days_in_week):
-            total_days = (week_num - 1) * 7 + day_offset
-            day_date = (
-                date.today() + timedelta(days=total_days)
-            ).isoformat()
-            study_tasks: list[dict] = []
-            budget = study_minutes_per_day
 
-            while budget > 0 and task_idx < len(tasks):
-                tn = tasks[task_idx]
-                if remaining_minutes_for_current_task <= 0:
-                    remaining_minutes_for_current_task = int(
-                        _DEFAULT_HOURS.get(tn, 4) * 60
-                    )
+def submit_assessment(
+    client,
+    user_id: str,
+    task_number: int,
+    answers: list[dict],
+) -> dict:
+    """Grade assessment answers and persist results.
 
-                allocated = min(budget, remaining_minutes_for_current_task)
-                study_tasks.append({
-                    "task_number": tn,
-                    "minutes": allocated,
-                })
-                budget -= allocated
-                remaining_minutes_for_current_task -= allocated
+    answers: list of {problem_id, answer}
+    Returns assessment result with per-problem details.
+    """
+    problem_ids = [a["problem_id"] for a in answers]
 
-                if remaining_minutes_for_current_task <= 0:
-                    task_idx += 1
+    # Fetch correct answers
+    problems_result = (
+        client.table("problems")
+        .select("id,correct_answer,answer_tolerance,solution_markdown")
+        .in_("id", problem_ids)
+        .execute()
+    )
+    problems_by_id = {p["id"]: p for p in (problems_result.data or [])}
 
-            if task_idx >= len(tasks) and remaining_minutes_for_current_task <= 0:
-                all_tasks_distributed = True
+    correct_count = 0
+    details = []
 
-            week_days.append({
-                "date": day_date,
-                "study": study_tasks,
-                "study_minutes": study_minutes_per_day - budget,
-                "review_minutes": review_minutes_per_day,
-            })
+    for a in answers:
+        problem = problems_by_id.get(a["problem_id"], {})
+        correct_answer = problem.get("correct_answer")
+        tolerance = problem.get("answer_tolerance") or 0.0
 
-        weeks.append({
-            "week": week_num,
-            "days": week_days,
+        is_correct = check_diagnostic_answer(
+            a.get("answer"),
+            correct_answer,
+            tolerance,
+        )
+        # For Part 2 tasks without correct_answer, treat as incorrect
+        if is_correct is None:
+            is_correct = False
+
+        if is_correct:
+            correct_count += 1
+
+        details.append({
+            "problem_id": a["problem_id"],
+            "is_correct": is_correct,
+            "correct_answer": correct_answer,
+            "solution_markdown": problem.get("solution_markdown"),
         })
 
-    return weeks
+    total_count = len(answers)
+
+    # Persist assessment
+    client.table("task_assessments").insert({
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "task_number": task_number,
+        "correct_count": correct_count,
+        "total_count": total_count,
+    }).execute()
+
+    # Create/update FSRS cards for attempted problems
+    _ensure_fsrs_cards_from_assessment(client, user_id, details, task_number)
+
+    status = _mastery_status(correct_count, total_count)
+
+    return {
+        "task_number": task_number,
+        "correct_count": correct_count,
+        "total_count": total_count,
+        "status": status,
+        "details": details,
+    }
 
 
-# Primary → test score conversion table (linear interpolation between points)
+def _ensure_fsrs_cards_from_assessment(
+    client,
+    user_id: str,
+    details: list[dict],
+    task_number: int,
+) -> None:
+    """Create or update FSRS cards based on assessment results."""
+    for item in details:
+        problem_id = item["problem_id"]
+        is_correct = item["is_correct"]
+
+        # Check if card exists
+        existing = (
+            client.table("fsrs_cards")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("problem_id", problem_id)
+            .execute()
+        )
+
+        if existing.data:
+            continue  # Card already exists, FSRS review flow handles updates
+
+        # Create new card with initial params based on correctness
+        if is_correct:
+            card_data = {
+                "state": "review",
+                "difficulty": 3.0,
+                "stability": 7.0,
+            }
+        else:
+            card_data = {
+                "state": "learning",
+                "difficulty": 6.0,
+                "stability": 1.0,
+            }
+
+        now = datetime.now(timezone.utc).isoformat()
+        from datetime import timedelta
+        due = (datetime.now(timezone.utc) + timedelta(days=card_data["stability"])).isoformat()
+
+        client.table("fsrs_cards").insert({
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "problem_id": problem_id,
+            "card_type": "problem",
+            "difficulty": card_data["difficulty"],
+            "stability": card_data["stability"],
+            "state": card_data["state"],
+            "due": due,
+            "last_review": now,
+            "reps": 1,
+            "lapses": 0 if is_correct else 1,
+        }).execute()
+
+
+# ---------------------------------------------------------------------------
+# Score prediction (kept from previous version)
+# ---------------------------------------------------------------------------
+
+# Primary → test score conversion table
 _SCORE_CONVERSION: list[tuple[int, int]] = [
     (0, 0),
     (5, 27),
@@ -284,16 +358,11 @@ def _primary_to_test_score(primary: int) -> int:
 def predict_score(
     client,
     user_id: str,
-    exam_date: date | None = None,
+    exam_date=None,
 ) -> dict:
-    """Predict user's score based on FSRS card retrievability.
-
-    For each task_number, fetches all fsrs_cards, computes avg retrievability,
-    and considers the task mastered if avg >= 0.8.
-    """
+    """Predict user's score based on FSRS card retrievability."""
     from app.services.fsrs_service import get_retrievability
 
-    # Fetch all user's FSRS cards
     result = (
         client.table("fsrs_cards")
         .select("id,problem_id,prototype_id,state,stability,difficulty,due,last_review")
@@ -302,7 +371,6 @@ def predict_score(
     )
     cards = result.data or []
 
-    # Map cards to task_number via problems and prototypes
     problem_ids = [c["problem_id"] for c in cards if c.get("problem_id")]
     prototype_ids = [c["prototype_id"] for c in cards if c.get("prototype_id")]
 
@@ -328,7 +396,6 @@ def predict_score(
         for pr in pr_result.data or []:
             prototype_task_map[pr["id"]] = pr["task_number"]
 
-    # Group retrievabilities by task_number
     task_retrievabilities: dict[int, list[float]] = {}
     for card in cards:
         tn = (
@@ -340,7 +407,6 @@ def predict_score(
         r = get_retrievability(card, exam_date)
         task_retrievabilities.setdefault(tn, []).append(r)
 
-    # Build breakdown and sum points
     breakdown: dict[int, dict] = {}
     total_primary = 0
 
@@ -369,10 +435,10 @@ def predict_score(
 
 
 def get_current_plan(client, user_id: str) -> dict | None:
-    """Fetch the active study plan for the user. Returns None if none exists."""
+    """Fetch the active study plan for the user."""
     result = (
         client.table("user_study_plan")
-        .select("id,user_id,target_score,exam_date,hours_per_day,plan_data,generated_at,is_active")
+        .select("id,user_id,target_score,plan_data,generated_at,is_active")
         .eq("user_id", user_id)
         .eq("is_active", True)
         .order("generated_at", desc=True)
