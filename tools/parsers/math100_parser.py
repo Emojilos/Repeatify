@@ -27,6 +27,8 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup, Tag
 
+from image_downloader import process_images
+
 _project_root = Path(__file__).resolve().parent.parent.parent
 
 logging.basicConfig(
@@ -244,17 +246,28 @@ def parse_problem_page(
         log.warning("Problem text too short on %s", url)
         return None
 
-    images = extract_images(content_el)
+    image_urls = extract_images(content_el)
     answer = extract_answer(soup)
 
     problem = ParsedProblem(
         task_number=task_number,
         problem_text=problem_text,
         correct_answer=answer,
-        problem_images=images,
+        problem_images=[],
         source_url=url,
     )
     problem.compute_hash()
+
+    # Download images locally (uses content_hash for deterministic filenames)
+    if image_urls:
+        problem.problem_images = process_images(
+            image_urls=image_urls,
+            source="math100",
+            task_number=task_number,
+            content_hash=problem.content_hash,
+            session=session,
+        )
+
     return problem
 
 
@@ -428,10 +441,12 @@ def scrape_task(
     return problems
 
 
-def upload_to_supabase(problems: list[ParsedProblem]) -> int:
+def upload_to_supabase(problems: list[ParsedProblem], upload_images: bool = False) -> int:
     """Upload parsed problems to Supabase (optional).
 
     Requires SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.
+    If upload_images is True, also uploads local images to Supabase Storage
+    and replaces local paths with public URLs.
     Returns number of inserted problems.
     """
     from dotenv import load_dotenv
@@ -482,13 +497,22 @@ def upload_to_supabase(problems: list[ParsedProblem]) -> int:
             skipped += 1
             continue
 
+        # Upload images to Supabase Storage if requested
+        images = problem.problem_images
+        if upload_images and images:
+            from image_downloader import upload_images_to_storage
+
+            images = upload_images_to_storage(
+                images, "math100", problem.task_number
+            )
+
         row = {
             "topic_id": topic_id,
             "task_number": problem.task_number,
             "difficulty": problem.difficulty,
             "problem_text": problem.problem_text,
             "correct_answer": problem.correct_answer or "",
-            "problem_images": problem.problem_images,
+            "problem_images": images,
             "source": problem.source,
             "source_url": problem.source_url,
             "content_hash": problem.content_hash,
@@ -546,6 +570,11 @@ def main() -> None:
         action="store_true",
         help="Upload parsed problems to Supabase",
     )
+    parser.add_argument(
+        "--upload-images",
+        action="store_true",
+        help="Upload downloaded images to Supabase Storage (requires --upload)",
+    )
 
     args = parser.parse_args()
 
@@ -569,7 +598,7 @@ def main() -> None:
 
     # Optionally upload to Supabase
     if args.upload:
-        upload_to_supabase(problems)
+        upload_to_supabase(problems, upload_images=args.upload_images)
 
 
 if __name__ == "__main__":

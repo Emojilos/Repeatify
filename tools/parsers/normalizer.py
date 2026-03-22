@@ -239,10 +239,12 @@ def normalize_problems(
         if answer is not None:
             answer = str(answer).strip()
 
-        # Clean images
+        # Clean images — keep local paths or external URLs as-is;
+        # Supabase Storage upload happens at upload_problems() time.
         images = raw.get("problem_images", [])
         if not isinstance(images, list):
             images = []
+        images = [img for img in images if isinstance(img, str) and img.strip()]
 
         results.append(NormalizedProblem(
             task_number=int(task_number),
@@ -329,6 +331,7 @@ def upload_problems(
     problems: list[NormalizedProblem],
     stats: NormalizerStats,
     dry_run: bool = False,
+    upload_images: bool = False,
 ) -> NormalizerStats:
     """Upload normalized problems to Supabase.
 
@@ -371,13 +374,22 @@ def upload_problems(
 
         prototype_id = getattr(problem, "_prototype_id", None)
 
+        # Upload images to Supabase Storage if requested
+        images = problem.problem_images
+        if upload_images and images:
+            from image_downloader import upload_images_to_storage
+
+            images = upload_images_to_storage(
+                images, problem.source, problem.task_number
+            )
+
         row = {
             "topic_id": topic_id,
             "task_number": problem.task_number,
             "difficulty": problem.difficulty,
             "problem_text": problem.problem_text,
             "correct_answer": problem.correct_answer or "",
-            "problem_images": problem.problem_images,
+            "problem_images": images,
             "source": problem.source,
             "source_url": problem.source_url,
             "content_hash": problem.content_hash,
@@ -434,6 +446,11 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="Recompute content_hash from cleaned text instead of using parser's hash",
     )
+    parser.add_argument(
+        "--upload-images",
+        action="store_true",
+        help="Upload local images to Supabase Storage and store public URLs",
+    )
 
     args = parser.parse_args(argv)
 
@@ -453,7 +470,9 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     # Upload
-    stats = upload_problems(problems, stats, dry_run=args.dry_run)
+    stats = upload_problems(
+        problems, stats, dry_run=args.dry_run, upload_images=args.upload_images
+    )
 
     # Report
     log.info(stats.summary())
