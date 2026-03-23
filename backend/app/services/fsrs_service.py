@@ -247,6 +247,18 @@ def get_session(
     )
     cards = result.data or []
 
+    # Deduplicate by problem_id — keep the card with earliest due date
+    seen_problems: set[str] = set()
+    unique_cards: list[dict] = []
+    for card in cards:
+        pid = card.get("problem_id")
+        if pid and pid in seen_problems:
+            continue
+        if pid:
+            seen_problems.add(pid)
+        unique_cards.append(card)
+    cards = unique_cards
+
     for card in cards:
         card["retrievability"] = get_retrievability(card, exam_date)
 

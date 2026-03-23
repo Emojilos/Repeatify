@@ -67,9 +67,12 @@ export default function YouTubePlayer({ videoId, timestamps }: YouTubePlayerProp
 
       playerRef.current = new window.YT.Player(playerDiv, {
         videoId,
+        width: '100%',
+        height: '100%',
         playerVars: {
           rel: 0,
           modestbranding: 1,
+          origin: window.location.origin,
         },
       })
     })
