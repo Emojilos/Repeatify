@@ -248,6 +248,33 @@ def extract_problem_ids_from_theme(
     return problem_ids
 
 
+def _clean_formula_alt(alt: str) -> str:
+    """Clean formula alt text from SDAMGIA images.
+
+    Alt text can be either Russian verbal descriptions (keep as-is)
+    or broken LaTeX commands (convert to readable Unicode).
+    """
+    # Remove soft hyphens
+    alt = alt.replace("\u00ad", "")
+    # Fix common broken LaTeX patterns → Unicode
+    alt = re.sub(r"\\overrightarrow\{?(\w+)\}?", r"→\1", alt)
+    alt = re.sub(r"\\overline\{?(\w+)\}?", r"\1̄", alt)
+    alt = re.sub(r"\\sqrt\{?([^}]+)\}?", r"√(\1)", alt)
+    alt = re.sub(r"\\frac\{?([^}]+)\}\{?([^}]+)\}?", r"(\1)/(\2)", alt)
+    alt = re.sub(r"\\le(?:q)?\b", "≤", alt)
+    alt = re.sub(r"\\ge(?:q)?\b", "≥", alt)
+    alt = re.sub(r"\\ne(?:q)?\b", "≠", alt)
+    alt = re.sub(r"\\cdot\b", "·", alt)
+    alt = re.sub(r"\\times\b", "×", alt)
+    alt = re.sub(r"\\pi\b", "π", alt)
+    alt = re.sub(r"\\infty\b", "∞", alt)
+    alt = re.sub(r"\\alpha\b", "α", alt)
+    alt = re.sub(r"\\beta\b", "β", alt)
+    alt = re.sub(r"\\gamma\b", "γ", alt)
+    alt = re.sub(r"\\in\b", "∈", alt)
+    return alt
+
+
 def extract_text_with_formulas(element: BeautifulSoup | Tag) -> str:
     """Extract text from element, inserting formula alt/title text inline.
 
@@ -273,7 +300,8 @@ def extract_text_with_formulas(element: BeautifulSoup | Tag) -> str:
             src = child.get("src", "")
             # Only include alt for formula/content images, not UI icons
             if alt and ("/formula/" in src or "/get_file?" in src):
-                parts.append(f" {alt.strip()} ")
+                formula = _clean_formula_alt(alt.strip())
+                parts.append(f" {formula} ")
 
     raw = " ".join(parts)
     return raw
