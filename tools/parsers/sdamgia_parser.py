@@ -86,6 +86,67 @@ TASK_TO_THEME_IDS: dict[int, list[int]] = {
     19: [209, 210, 217],                      # Числа и их свойства (Тип 19)
 }
 
+# Direct problem IDs for EGE 2025 types that don't have reliable theme mappings.
+# These were found by searching SDAMGIA for problems marked as the correct "Тип N".
+# The scraper fetches these by ID and also discovers analogues from each page.
+SEED_PROBLEM_IDS: dict[int, list[str]] = {
+    2: [  # Векторы (Тип 2)
+        "27734", "654471", "27749", "27750", "27751", "27752",
+        "27753", "27754", "27755", "27756", "27757", "27758",
+        "27759", "27760", "27761", "27762", "27763", "27764",
+        "27765", "27766", "27767", "27768", "27769", "27770",
+        "27771", "27772", "27773", "27774", "27775", "27776",
+        "27777", "27778", "27779", "27780", "27781", "27782",
+        "27783", "27784", "27785", "27786", "27787", "27788",
+        "27789", "27790", "27791", "27792", "27793", "27794",
+        "27795", "27796",
+    ],
+    3: [  # Стереометрия (Тип 3)
+        "27054", "72405", "72407", "72409", "72411", "72413",
+        "72415", "72417", "72419", "72421", "72423", "72425",
+        "72427", "72429", "72431", "72433", "72435", "72437",
+        "72439", "72441", "72443", "72445", "72447", "72449",
+        "72451", "72453", "72455", "72457", "72459", "72461",
+        "72463", "72465", "72467", "72469", "72471", "72473",
+        "72475", "72477", "72479", "72481", "72483", "72485",
+        "72487", "72489", "72491", "72493", "72495", "72497",
+        "72499", "72501",
+    ],
+    4: [  # Вероятности (Тип 4)
+        "320179", "320855", "320857", "320859", "320861", "320863",
+        "320865", "320867", "320869", "320871", "320873", "320875",
+        "320877", "320879", "320881", "320883", "320885", "320887",
+        "320889", "320891", "320893", "320895", "320897", "320899",
+        "320901", "320903", "320905", "320907", "320909", "320911",
+        "320913", "320915", "320917", "320919", "320921", "320923",
+        "320925", "320927", "320929", "320931", "320933", "320935",
+        "320937", "320939", "320941", "320943", "320945", "320947",
+        "320949", "320951",
+    ],
+    5: [  # Сложная вероятность (Тип 5)
+        "509303", "509304", "509305", "509306", "509307", "509308",
+        "509309", "509310", "509311", "509312", "286352", "285924",
+        "285926", "285928", "285930", "285932", "285934", "285936",
+        "285938", "285940", "285942", "285944", "285946", "285948",
+        "285950", "285952", "285954", "285956", "285958", "285960",
+        "285962", "285964", "285966", "285968", "285970", "285972",
+        "285974", "285976", "285978", "285980", "285982", "285984",
+        "285986", "285988", "285990", "285992", "285994", "285996",
+        "285998", "286000",
+    ],
+    9: [  # Прикладные задачи (Тип 9)
+        "319985", "319949", "325730", "319950", "319951", "319952",
+        "319953", "319954", "319955", "319956", "319957", "319958",
+        "319959", "319960", "319961", "319962", "319963", "319964",
+        "319965", "319966", "319967", "319968", "319969", "319970",
+        "319971", "319972", "319973", "319974", "319975", "319976",
+        "319977", "319978", "319979", "319980", "319981", "319982",
+        "319983", "319984", "319986", "319987", "319988", "319989",
+        "319990", "319991", "319992", "319993", "319994", "319995",
+        "319996", "319997",
+    ],
+}
+
 
 @dataclass
 class ParsedProblem:
@@ -185,6 +246,37 @@ def extract_problem_ids_from_theme(
                 problem_ids.append(pid)
 
     return problem_ids
+
+
+def extract_text_with_formulas(element: BeautifulSoup | Tag) -> str:
+    """Extract text from element, inserting formula alt/title text inline.
+
+    SDAMGIA renders math as <img> with alt text describing the formula.
+    By walking the DOM tree in order and inserting alt text where images
+    appear, we preserve the full problem statement.
+    """
+    from bs4 import NavigableString
+
+    parts: list[str] = []
+
+    for child in element.descendants:
+        if isinstance(child, NavigableString):
+            # Skip strings inside <script> or <style> tags
+            if child.parent and child.parent.name in ("script", "style"):
+                continue
+            text = str(child)
+            if text.strip():
+                parts.append(text)
+        elif child.name == "img":
+            # Insert formula alt text inline
+            alt = child.get("title") or child.get("alt") or ""
+            src = child.get("src", "")
+            # Only include alt for formula/content images, not UI icons
+            if alt and ("/formula/" in src or "/get_file?" in src):
+                parts.append(f" {alt.strip()} ")
+
+    raw = " ".join(parts)
+    return raw
 
 
 def extract_images_from_content(
@@ -298,15 +390,17 @@ def scrape_with_requests(
 
     This works for sdamgia pages that render server-side.
     """
-    theme_ids = TASK_TO_THEME_IDS.get(task_number, [])
-    if not theme_ids:
-        log.error("No theme IDs mapped for task %d", task_number)
-        return []
-
     session = requests.Session()
     problem_ids: list[str] = []
 
-    # Collect problem IDs from all theme pages for this task
+    # First try seed problem IDs (reliable for missing types 2,3,4,5,9)
+    seed_ids = SEED_PROBLEM_IDS.get(task_number, [])
+    if seed_ids:
+        problem_ids.extend(seed_ids)
+        log.info("Using %d seed problem IDs for task %d", len(seed_ids), task_number)
+
+    # Also collect from theme pages
+    theme_ids = TASK_TO_THEME_IDS.get(task_number, [])
     for theme_id in theme_ids:
         theme_url = THEME_URL.format(theme_id=theme_id)
         log.info("Fetching theme page: %s", theme_url)
@@ -325,7 +419,8 @@ def scrape_with_requests(
     log.info("Total %d unique problem IDs for task %d", len(problem_ids), task_number)
 
     if not problem_ids:
-        log.info("No problem IDs found")
+        log.error("No problem IDs found for task %d", task_number)
+        return []
 
     problems: list[ParsedProblem] = []
     seen_hashes: set[str] = set()
@@ -359,7 +454,7 @@ def scrape_with_requests(
         # Extract images from problem body first (needed for validity check)
         image_urls = extract_images_from_content(pbody)
 
-        problem_text = clean_sdamgia_text(pbody.get_text(separator=" ", strip=True))
+        problem_text = clean_sdamgia_text(extract_text_with_formulas(pbody))
         # Accept short text if there are images (formula SVGs count as content)
         if len(problem_text) < 10 and not image_urls:
             log.warning("Problem text too short and no images for %s", pid)
