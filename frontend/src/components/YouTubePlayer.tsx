@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useState } from 'react'
 
 interface Timestamp {
   time: number
@@ -10,33 +10,6 @@ interface YouTubePlayerProps {
   timestamps?: Timestamp[]
 }
 
-declare global {
-  interface Window {
-    YT: typeof YT
-    onYouTubeIframeAPIReady: (() => void) | undefined
-  }
-}
-
-let apiLoadPromise: Promise<void> | null = null
-
-function loadYouTubeAPI(): Promise<void> {
-  if (window.YT?.Player) return Promise.resolve()
-  if (apiLoadPromise) return apiLoadPromise
-
-  apiLoadPromise = new Promise<void>((resolve) => {
-    const existingCallback = window.onYouTubeIframeAPIReady
-    window.onYouTubeIframeAPIReady = () => {
-      existingCallback?.()
-      resolve()
-    }
-    const script = document.createElement('script')
-    script.src = 'https://www.youtube.com/iframe_api'
-    document.head.appendChild(script)
-  })
-
-  return apiLoadPromise
-}
-
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = Math.floor(seconds % 60)
@@ -44,61 +17,26 @@ function formatTime(seconds: number): string {
 }
 
 export default function YouTubePlayer({ videoId, timestamps }: YouTubePlayerProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const playerRef = useRef<YT.Player | null>(null)
+  const [startTime, setStartTime] = useState(0)
   const [activeTimestamp, setActiveTimestamp] = useState<number | null>(null)
 
-  useEffect(() => {
-    let destroyed = false
+  const seekTo = (time: number) => {
+    setStartTime(time)
+    setActiveTimestamp(time)
+  }
 
-    loadYouTubeAPI().then(() => {
-      if (destroyed || !containerRef.current) return
-
-      // Clear previous player
-      if (playerRef.current) {
-        playerRef.current.destroy()
-        playerRef.current = null
-      }
-
-      // Create a div for the player inside the container
-      const playerDiv = document.createElement('div')
-      containerRef.current.innerHTML = ''
-      containerRef.current.appendChild(playerDiv)
-
-      playerRef.current = new window.YT.Player(playerDiv, {
-        videoId,
-        width: '100%',
-        height: '100%',
-        playerVars: {
-          rel: 0,
-          modestbranding: 1,
-          origin: window.location.origin,
-        },
-      })
-    })
-
-    return () => {
-      destroyed = true
-      if (playerRef.current) {
-        playerRef.current.destroy()
-        playerRef.current = null
-      }
-    }
-  }, [videoId])
-
-  const seekTo = useCallback((time: number) => {
-    if (playerRef.current?.seekTo) {
-      playerRef.current.seekTo(time, true)
-      setActiveTimestamp(time)
-    }
-  }, [])
+  const src = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1${startTime ? `&start=${startTime}` : ''}`
 
   return (
     <div className="w-full">
-      <div className="relative w-full pt-[56.25%]">
-        <div
-          ref={containerRef}
-          className="absolute inset-0 rounded-lg overflow-hidden [&>div]:w-full [&>div]:h-full [&>iframe]:w-full [&>iframe]:h-full"
+      <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+        <iframe
+          key={`${videoId}-${startTime}`}
+          src={src}
+          className="absolute inset-0 w-full h-full rounded-lg"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          title="YouTube video"
         />
       </div>
 
