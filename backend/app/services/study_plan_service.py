@@ -36,17 +36,23 @@ def check_answer(
 
     return False
 
-# ROI order from PRD 2.1 (highest ROI first)
-_ROI_ORDER: list[int] = [7, 6, 4, 8, 1, 2, 12, 9, 3, 5, 10, 11]
+# ROI order: easiest Part 1 tasks first (by pass rate)
+_ROI_ORDER: list[int] = [4, 1, 6, 7, 10, 3, 2, 5, 8, 9, 11, 12]
 
-# Points per task_number (Part 1 = 1pt each, Part 2 varies)
+# Points per task_number (EGE 2025 profile math)
+# Part 1 (1-12): 1 point each
+# Part 2: 13=2, 14=3, 15=2, 16=2, 17=3, 18=4, 19=4
 _POINTS: dict[int, int] = {
     1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1,
     7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1,
-    13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 4, 19: 4,
+    13: 2, 14: 3, 15: 2, 16: 2, 17: 3, 18: 4, 19: 4,
 }
 
-# Required tasks per target_score
+# Required tasks per target_score (EGE 2025)
+# 70 = Part 1 only (12 primary → 70 test)
+# 80 = Part 1 + 13, 15, 16 (18 primary → 82 test)
+# 90 = Part 1 + 13, 14, 15, 16, 17 (24 primary → 94 test)
+# 100 = all tasks (32 primary → 100 test)
 _REQUIRED_TASKS: dict[int, list[int]] = {
     70: list(range(1, 13)),
     80: list(range(1, 13)) + [13, 15, 16],
