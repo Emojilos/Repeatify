@@ -7,9 +7,6 @@ interface RequestOptions extends RequestInit {
   silent?: boolean
 }
 
-let coldStartShown = false
-let coldStartTimeout: ReturnType<typeof setTimeout> | null = null
-
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { skipAuth, silent, ...fetchOptions } = options
 
@@ -25,14 +22,6 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     }
   }
 
-  // Show cold-start toast if request takes > 3s (Render free tier wakes up slowly)
-  if (!coldStartShown) {
-    coldStartTimeout = setTimeout(() => {
-      useToastStore.getState().addToast('Сервер просыпается... Первый запрос может занять до 30 секунд.', 'info')
-      coldStartShown = true
-    }, 3000)
-  }
-
   let response: Response
   try {
     response = await fetch(`${API_URL}${path}`, {
@@ -40,15 +29,9 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
       headers,
     })
   } catch (err) {
-    if (coldStartTimeout) clearTimeout(coldStartTimeout)
     const message = 'Не удалось подключиться к серверу. Проверьте соединение.'
     if (!silent) useToastStore.getState().addToast(message, 'error')
     throw new ApiError(0, message)
-  }
-
-  if (coldStartTimeout) {
-    clearTimeout(coldStartTimeout)
-    coldStartTimeout = null
   }
 
   if (!response.ok) {
