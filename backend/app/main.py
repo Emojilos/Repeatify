@@ -13,7 +13,6 @@ from app.core.rate_limit import limiter
 from app.db.supabase_client import verify_connection
 from app.routers import (
     auth,
-    diagnostic,
     fsrs,
     problems,
     progress,
@@ -96,7 +95,6 @@ app.include_router(users.router)
 app.include_router(topics.router)
 app.include_router(theory.router)
 app.include_router(problems.router)
-app.include_router(diagnostic.router)
 app.include_router(fsrs.router)
 app.include_router(study_plan.router)
 app.include_router(prototypes.router)

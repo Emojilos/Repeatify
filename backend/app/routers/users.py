@@ -15,7 +15,6 @@ def _coalesce_int(value: object, default: int) -> int:
 def _row_to_profile(
     row: dict,
     email: str | None = None,
-    has_diagnostic: bool = False,
     has_study_plan: bool = False,
 ) -> UserProfile:
     return UserProfile(
@@ -31,28 +30,12 @@ def _row_to_profile(
         current_level=_coalesce_int(row.get("current_level"), 1),
         current_streak=_coalesce_int(row.get("current_streak"), 0),
         longest_streak=_coalesce_int(row.get("longest_streak"), 0),
-        has_diagnostic=has_diagnostic,
         has_study_plan=has_study_plan,
     )
 
 
-def _check_onboarding_status(client, user_id: str) -> tuple[bool, bool]:
-    """Check onboarding flags without breaking profile fetch on missing tables."""
-    has_diagnostic = False
-    has_study_plan = False
-
-    try:
-        diag = (
-            client.table("diagnostic_results")
-            .select("id")
-            .eq("user_id", user_id)
-            .limit(1)
-            .execute()
-        )
-        has_diagnostic = bool(diag.data)
-    except Exception as e:
-        print(f"[users] diagnostic_results lookup skipped: {type(e).__name__}: {e}")
-
+def _check_has_study_plan(client, user_id: str) -> bool:
+    """Check if user has an active study plan."""
     try:
         plan = (
             client.table("user_study_plan")
@@ -62,11 +45,10 @@ def _check_onboarding_status(client, user_id: str) -> tuple[bool, bool]:
             .limit(1)
             .execute()
         )
-        has_study_plan = bool(plan.data)
+        return bool(plan.data)
     except Exception as e:
         print(f"[users] user_study_plan lookup skipped: {type(e).__name__}: {e}")
-
-    return has_diagnostic, has_study_plan
+        return False
 
 
 def _get_user_row(client, user_id: str, auto_create: bool = True) -> dict:
@@ -101,11 +83,10 @@ async def get_me(user: dict = Depends(get_current_user)) -> UserProfile:
     """Return the current user's profile."""
     client = get_supabase_client()
     row = _get_user_row(client, user["id"])
-    has_diagnostic, has_study_plan = _check_onboarding_status(client, user["id"])
+    has_study_plan = _check_has_study_plan(client, user["id"])
     return _row_to_profile(
         row,
         email=user.get("email"),
-        has_diagnostic=has_diagnostic,
         has_study_plan=has_study_plan,
     )
 
@@ -149,11 +130,10 @@ async def update_me(
             )
 
     row = _get_user_row(client, user["id"])
-    has_diagnostic, has_study_plan = _check_onboarding_status(client, user["id"])
+    has_study_plan = _check_has_study_plan(client, user["id"])
     return _row_to_profile(
         row,
         email=user.get("email"),
-        has_diagnostic=has_diagnostic,
         has_study_plan=has_study_plan,
     )
 

@@ -22,7 +22,6 @@ class Settings(BaseSettings):
     # Rate limiting
     AUTH_RATE_LIMIT: str = "5/minute"
     API_RATE_LIMIT: str = "100/minute"
-    DIAGNOSTIC_SUBMIT_RATE_LIMIT: str = "1/minute"
     STUDY_PLAN_GENERATE_RATE_LIMIT: str = "5/minute"
 
     @property

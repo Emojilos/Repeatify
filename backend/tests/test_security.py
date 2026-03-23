@@ -320,64 +320,7 @@ class TestCORSConfiguration:
         assert "authorization" in allowed.lower() or "*" not in allowed
 
 
-# --- Rate limiting on diagnostic/submit and study-plan/generate ---
-
-
-class TestDiagnosticSubmitRateLimit:
-    def test_diagnostic_submit_rate_limit(self, client):
-        """Rapid diagnostic/submit requests should trigger 429."""
-        token = _make_token()
-
-        mock_client = MagicMock()
-        # Simulate existing diagnostic check returning True
-        (
-            mock_client.table.return_value
-            .select.return_value
-            .eq.return_value
-            .limit.return_value
-            .execute.return_value
-        ) = MagicMock(data=[{"id": "existing"}])
-
-        submit_body = {
-            "answers": [
-                {
-                    "task_number": i,
-                    "answer": "1" if i <= 12 else None,
-                    "self_assessment": None if i <= 12 else "level_2",
-                    "time_spent_seconds": 30,
-                }
-                for i in range(1, 20)
-            ],
-        }
-
-        with patch(
-            "app.routers.diagnostic.get_supabase_client",
-            return_value=mock_client,
-        ), patch(
-            "app.routers.diagnostic.grade_and_persist",
-            return_value=[
-                {
-                    "task_number": i,
-                    "is_correct": True,
-                    "self_assessment": None,
-                    "time_spent_seconds": 30,
-                }
-                for i in range(1, 20)
-            ],
-        ), patch(
-            "app.routers.diagnostic.initialize_fsrs_from_diagnostic",
-        ):
-            statuses = []
-            for _ in range(3):
-                resp = client.post(
-                    "/api/diagnostic/submit",
-                    json=submit_body,
-                    headers={"Authorization": f"Bearer {token}"},
-                )
-                statuses.append(resp.status_code)
-
-            # 1/minute limit → second request should be 429
-            assert 429 in statuses
+# --- Rate limiting on study-plan/generate ---
 
 
 class TestStudyPlanGenerateRateLimit:
@@ -492,16 +435,6 @@ class TestUnauthenticatedAccessBlocked:
         """GET /api/fsrs/session must require authentication."""
         resp = client.get("/api/fsrs/session")
         assert resp.status_code in (401, 403)
-
-    def test_diagnostic_start_requires_auth(self, client):
-        """POST /api/diagnostic/start must require authentication."""
-        resp = client.post("/api/diagnostic/start")
-        assert resp.status_code in (401, 403)
-
-    def test_diagnostic_submit_requires_auth(self, client):
-        """POST /api/diagnostic/submit must require authentication."""
-        resp = client.post("/api/diagnostic/submit", json={"answers": []})
-        assert resp.status_code in (401, 403, 422)
 
     def test_study_plan_current_requires_auth(self, client):
         """GET /api/study-plan/current must require authentication."""

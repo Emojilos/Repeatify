@@ -3,13 +3,11 @@
 Covers the complete new-user flow:
   1. Register
   2. Onboarding (PATCH users/me with target_score, hours_per_day, exam_date)
-  3. Diagnostic start + submit
-  4. Verify FSRS cards initialized from diagnostic
-  5. Generate study plan
-  6. GET study-plan/today
-  7. FSRS session
-  8. FSRS review
-  9. Predicted score
+  3. Generate study plan (all tasks start as not_tested)
+  4. Task assessment (10 problems)
+  5. FSRS session
+  6. FSRS review
+  7. Predicted score
 """
 
 import os
@@ -240,21 +238,22 @@ class FakeSupabase:
                 "parent_topic_id": None,
             })
 
-        # 19 problems (one per task_number) for diagnostic
+        # Multiple problems per task_number (for assessments)
         for i in range(1, 20):
-            self.tables["problems"].append({
-                "id": f"prob-{i}",
-                "topic_id": f"topic-{i}",
-                "task_number": i,
-                "difficulty": "medium",
-                "problem_text": f"Задача {i}: найдите значение выражения",
-                "problem_images": None,
-                "correct_answer": str(i * 10),
-                "answer_tolerance": 0.0,
-                "solution_markdown": f"Ответ: {i * 10}.",
-                "hints": [f"Подсказка {i}"],
-                "source": "ФИПИ",
-            })
+            for j in range(1, 11):
+                self.tables["problems"].append({
+                    "id": f"prob-{i}-{j}",
+                    "topic_id": f"topic-{i}",
+                    "task_number": i,
+                    "difficulty": "medium",
+                    "problem_text": f"Задача {i}.{j}: найдите значение выражения",
+                    "problem_images": None,
+                    "correct_answer": str(i * 10 + j),
+                    "answer_tolerance": 0.0,
+                    "solution_markdown": f"Ответ: {i * 10 + j}.",
+                    "hints": [f"Подсказка {i}.{j}"],
+                    "source": "ФИПИ",
+                })
 
         # Prototypes (2 per task_number for first 19 tasks)
         for i in range(1, 20):
@@ -295,11 +294,9 @@ _PATCHED_MODULES = [
     "app.routers.users",
     "app.routers.topics",
     "app.routers.problems",
-    "app.routers.srs",
     "app.routers.fsrs",
     "app.routers.theory",
     "app.routers.progress",
-    "app.routers.diagnostic",
     "app.routers.study_plan",
     "app.routers.prototypes",
 ]
@@ -311,7 +308,7 @@ _PATCHED_MODULES = [
 
 
 class TestFullV2UserJourney:
-    """Full v2 user path: onboarding → diagnostic → plan → FSRS."""
+    """Full v2 user path: onboarding → plan → assessment → FSRS."""
 
     def test_full_v2_journey(self, client):  # noqa: C901
         fake = FakeSupabase()
@@ -372,158 +369,16 @@ class TestFullV2UserJourney:
             assert resp.status_code == 200
             me = resp.json()
             assert me["target_score"] == 80
-            assert me["has_diagnostic"] is False
             assert me["has_study_plan"] is False
 
             # =============================================
-            # Step 3: Diagnostic start
-            # =============================================
-            resp = client.post("/api/diagnostic/start", headers=headers)
-            assert resp.status_code == 200
-            diag_start = resp.json()
-            assert diag_start["total"] == 19
-            assert len(diag_start["problems"]) == 19
-
-            # Verify each task_number 1-19 is present
-            task_numbers = {p["task_number"] for p in diag_start["problems"]}
-            assert task_numbers == set(range(1, 20))
-
-            # =============================================
-            # Step 4: Diagnostic submit
-            # =============================================
-            answers = []
-            for tn in range(1, 20):
-                if tn <= 12:
-                    # Part 1: some correct, some incorrect
-                    if tn <= 7:
-                        # Correct answer, fast (< 60s)
-                        answers.append({
-                            "task_number": tn,
-                            "answer": str(tn * 10),
-                            "self_assessment": None,
-                            "time_spent_seconds": 30,
-                        })
-                    else:
-                        # Incorrect answer
-                        answers.append({
-                            "task_number": tn,
-                            "answer": "wrong",
-                            "self_assessment": None,
-                            "time_spent_seconds": 90,
-                        })
-                else:
-                    # Part 2: self-assessment
-                    levels = {
-                        13: "level_0",
-                        14: "level_1",
-                        15: "level_2",
-                        16: "level_3",
-                        17: "level_0",
-                        18: "level_1",
-                        19: "level_0",
-                    }
-                    answers.append({
-                        "task_number": tn,
-                        "answer": None,
-                        "self_assessment": levels[tn],
-                        "time_spent_seconds": 120,
-                    })
-
-            resp = client.post(
-                "/api/diagnostic/submit",
-                headers=headers,
-                json={"answers": answers},
-            )
-            assert resp.status_code == 200
-            diag_result = resp.json()
-            assert diag_result["total_correct"] == 7  # tasks 1-7 correct
-            assert diag_result["total_answered"] == 19
-
-            # Verify correct results
-            results_by_task = {
-                r["task_number"]: r for r in diag_result["results"]
-            }
-            # Task 1 correct
-            assert results_by_task[1]["is_correct"] is True
-            # Task 8 incorrect
-            assert results_by_task[8]["is_correct"] is False
-            # Task 13 self-assessment
-            assert results_by_task[13]["self_assessment"] == "level_0"
-            assert results_by_task[16]["self_assessment"] == "level_3"
-
-            # =============================================
-            # Step 5: Verify FSRS cards initialized
-            # =============================================
-            fsrs_cards = fake.tables["fsrs_cards"]
-            assert len(fsrs_cards) > 0
-
-            # Cards should exist for prototypes of each task_number
-            card_task_numbers = set()
-            for card in fsrs_cards:
-                proto_id = card.get("prototype_id", "")
-                if proto_id:
-                    # Extract task_number from proto-{i}-{j}
-                    parts = proto_id.split("-")
-                    if len(parts) >= 2:
-                        card_task_numbers.add(int(parts[1]))
-
-            # All 19 task_numbers should have cards
-            assert card_task_numbers == set(range(1, 20))
-
-            # Check FSRS params for specific cases:
-            # Task 1 (correct, fast <60s) -> state=review, S=30, D=2
-            task1_cards = [
-                c for c in fsrs_cards
-                if c.get("prototype_id", "").startswith("proto-1-")
-            ]
-            assert len(task1_cards) > 0
-            assert task1_cards[0]["state"] == "review"
-            assert task1_cards[0]["stability"] == 30.0
-            assert task1_cards[0]["difficulty"] == 2.0
-
-            # Task 8 (incorrect) -> state=learning, S=1, D=6
-            task8_cards = [
-                c for c in fsrs_cards
-                if c.get("prototype_id", "").startswith("proto-8-")
-            ]
-            assert len(task8_cards) > 0
-            assert task8_cards[0]["state"] == "learning"
-            assert task8_cards[0]["stability"] == 1.0
-            assert task8_cards[0]["difficulty"] == 6.0
-
-            # Task 13 (level_0) -> state=new, S=0, D=0
-            task13_cards = [
-                c for c in fsrs_cards
-                if c.get("prototype_id", "").startswith("proto-13-")
-            ]
-            assert len(task13_cards) > 0
-            assert task13_cards[0]["state"] == "new"
-
-            # Task 16 (level_3) -> state=review, S=14, D=3
-            task16_cards = [
-                c for c in fsrs_cards
-                if c.get("prototype_id", "").startswith("proto-16-")
-            ]
-            assert len(task16_cards) > 0
-            assert task16_cards[0]["state"] == "review"
-            assert task16_cards[0]["stability"] == 14.0
-            assert task16_cards[0]["difficulty"] == 3.0
-
-            # Verify has_diagnostic is now True
-            resp = client.get("/api/users/me", headers=headers)
-            assert resp.status_code == 200
-            assert resp.json()["has_diagnostic"] is True
-
-            # =============================================
-            # Step 6: Generate study plan
+            # Step 3: Generate study plan (all tasks not_tested)
             # =============================================
             resp = client.post(
                 "/api/study-plan/generate",
                 headers=headers,
                 json={
                     "target_score": 80,
-                    "exam_date": exam_date,
-                    "hours_per_day": 1.5,
                 },
             )
             assert resp.status_code == 201
@@ -533,19 +388,12 @@ class TestFullV2UserJourney:
             assert plan["plan_data"] is not None
 
             plan_data = plan["plan_data"]
-            # Tasks 1-7 were mastered (correct + fast) -> should be excluded
-            mastered = plan_data.get("mastered_tasks", [])
-            assert all(tn in mastered for tn in range(1, 8))
-
-            # Tasks to study should include remaining required tasks
-            tasks_to_study = plan_data.get("tasks_to_study", [])
-            assert len(tasks_to_study) > 0
-            # Tasks 8-12 should be in study list (required for 80, not mastered)
-            for tn in [8, 9, 10, 11, 12]:
-                assert tn in tasks_to_study
+            # All tasks should start as not_tested
+            for task in plan_data["tasks"]:
+                assert task["status"] == "not_tested"
 
             # =============================================
-            # Step 7: GET current plan
+            # Step 4: GET current plan
             # =============================================
             resp = client.get(
                 "/api/study-plan/current", headers=headers
@@ -561,19 +409,49 @@ class TestFullV2UserJourney:
             assert resp.json()["has_study_plan"] is True
 
             # =============================================
-            # Step 8: GET today's tasks
+            # Step 5: Task assessment (task 1)
             # =============================================
-            resp = client.get(
-                "/api/study-plan/today", headers=headers
+            resp = client.post(
+                "/api/study-plan/assess/1", headers=headers
             )
             assert resp.status_code == 200
-            today_tasks = resp.json()
-            assert "review_cards_due" in today_tasks
-            assert "new_material" in today_tasks
-            assert "total_estimated_minutes" in today_tasks
+            assessment = resp.json()
+            assert assessment["task_number"] == 1
+            assert len(assessment["problems"]) > 0
+
+            # Submit assessment with correct answers
+            answers = []
+            for prob in assessment["problems"]:
+                # Look up correct answer from seed data
+                correct = None
+                for p in fake.tables["problems"]:
+                    if p["id"] == prob["id"]:
+                        correct = p["correct_answer"]
+                        break
+                answers.append({
+                    "problem_id": prob["id"],
+                    "answer": correct or "0",
+                })
+
+            resp = client.post(
+                "/api/study-plan/assess/1/submit",
+                headers=headers,
+                json={"answers": answers},
+            )
+            assert resp.status_code == 200
+            result = resp.json()
+            assert result["task_number"] == 1
+            assert result["correct_count"] > 0
+            assert result["status"] in ("weak", "medium", "good", "mastered")
 
             # =============================================
-            # Step 9: FSRS session
+            # Step 6: Verify FSRS cards created from assessment
+            # =============================================
+            fsrs_cards = fake.tables["fsrs_cards"]
+            assert len(fsrs_cards) > 0
+
+            # =============================================
+            # Step 7: FSRS session
             # =============================================
             # Make some cards due now for the session
             past_str = (
@@ -602,7 +480,7 @@ class TestFullV2UserJourney:
             assert "retrievability" in first_card
 
             # =============================================
-            # Step 10: FSRS review
+            # Step 8: FSRS review
             # =============================================
             card_to_review = first_card
             resp = client.post(
@@ -630,7 +508,7 @@ class TestFullV2UserJourney:
             assert reviewed_card["reps"] >= 1
 
             # =============================================
-            # Step 11: Predicted score
+            # Step 9: Predicted score
             # =============================================
             resp = client.get(
                 "/api/progress/predicted-score", headers=headers
@@ -641,24 +519,6 @@ class TestFullV2UserJourney:
             assert "predicted_test_score" in score
             assert "breakdown" in score
 
-            # Breakdown should have entries for 19 task_numbers
-            breakdown = score["breakdown"]
-            assert len(breakdown) == 19
-
-            # Tasks 1-7 should have cards with high retrievability
-            # (they had S=30, state=review from diagnostic)
-            for tn_str in ["1", "2", "3", "4", "5", "6", "7"]:
-                entry = breakdown[tn_str]
-                assert entry["cards_count"] > 0
-
-            # =============================================
-            # Step 12: Diagnostic retake blocked (409)
-            # =============================================
-            resp = client.post(
-                "/api/diagnostic/start", headers=headers
-            )
-            assert resp.status_code == 409
-
             # =============================================
             # Verify data integrity
             # =============================================
@@ -666,9 +526,9 @@ class TestFullV2UserJourney:
             assert user_row["target_score"] == 80
             assert user_row["hours_per_day"] == 1.5
 
-            # Diagnostic results persisted
-            diag_rows = fake.tables["diagnostic_results"]
-            assert len(diag_rows) == 19
+            # Task assessment persisted
+            assessment_rows = fake.tables["task_assessments"]
+            assert len(assessment_rows) >= 1
 
             # Study plan persisted
             plan_rows = [

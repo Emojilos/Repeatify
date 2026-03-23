@@ -316,7 +316,6 @@ def test_stats_user_not_found(client):
 def _patch_user_helpers(
     mock_client,
     get_user_rows,
-    has_diagnostic=False,
     has_study_plan=False,
     current_plan=None,
 ):
@@ -339,8 +338,8 @@ def _patch_user_helpers(
             side_effect=fake_get_user_row,
         ),
         patch(
-            "app.routers.users._check_onboarding_status",
-            return_value=(has_diagnostic, has_study_plan),
+            "app.routers.users._check_has_study_plan",
+            return_value=has_study_plan,
         ),
         patch(
             "app.routers.users.get_current_plan",

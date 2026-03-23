@@ -348,7 +348,7 @@ export default function TopicDetailPage() {
                     {problem.problem_images && problem.problem_images.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {problem.problem_images.map((url, i) => (
-                          <img key={i} src={url} alt="" className="max-h-16 rounded" />
+                          <img key={i} src={url} alt="Условие задачи" className="h-auto max-h-24 rounded bg-white p-1 dark:invert" />
                         ))}
                       </div>
                     )}

@@ -10,7 +10,31 @@ import uuid
 from datetime import datetime, timezone
 from random import sample
 
-from app.services.diagnostic_service import check_diagnostic_answer
+def check_answer(
+    user_answer: str | None,
+    correct_answer: str | None,
+    tolerance: float = 0.0,
+) -> bool | None:
+    """Check answer correctness. Returns None if no correct_answer."""
+    if not correct_answer:
+        return None
+    if not user_answer:
+        return False
+
+    user_answer = user_answer.strip()
+    correct_answer = correct_answer.strip()
+
+    if user_answer.lower() == correct_answer.lower():
+        return True
+
+    if tolerance > 0:
+        try:
+            diff = abs(float(user_answer) - float(correct_answer))
+            return diff <= tolerance
+        except ValueError:
+            pass
+
+    return False
 
 # ROI order from PRD 2.1 (highest ROI first)
 _ROI_ORDER: list[int] = [7, 6, 4, 8, 1, 2, 12, 9, 3, 5, 10, 11]
@@ -226,7 +250,7 @@ def submit_assessment(
         correct_answer = problem.get("correct_answer")
         tolerance = problem.get("answer_tolerance") or 0.0
 
-        is_correct = check_diagnostic_answer(
+        is_correct = check_answer(
             a.get("answer"),
             correct_answer,
             tolerance,

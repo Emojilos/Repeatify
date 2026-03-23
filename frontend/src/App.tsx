@@ -16,7 +16,6 @@ import PracticeResults from './pages/PracticeResults'
 import Progress from './pages/Progress'
 import Profile from './pages/Profile'
 import Onboarding from './pages/Onboarding'
-import Diagnostic from './pages/Diagnostic'
 import StudyPlan from './pages/StudyPlan'
 import PrototypeDetail from './pages/PrototypeDetail'
 
@@ -34,8 +33,6 @@ function App() {
           <Route element={<OnboardingGuard />}>
             {/* Standalone flows (no sidebar/header) */}
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/diagnostic" element={<Diagnostic />} />
-
             {/* Main app with layout */}
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
