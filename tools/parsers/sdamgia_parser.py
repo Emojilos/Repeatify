@@ -143,6 +143,19 @@ def clean_sdamgia_text(text: str) -> str:
     return text.strip()
 
 
+def extract_task_type_from_page(soup: BeautifulSoup) -> int | None:
+    """Extract actual EGE task type ('Тип N') from a problem page.
+
+    SDAMGIA marks each problem with 'Тип N' where N is the EGE 2025 task number.
+    Returns None if not found.
+    """
+    text = soup.get_text()
+    m = re.search(r"Тип\s+(\d{1,2})", text)
+    if m:
+        return int(m.group(1))
+    return None
+
+
 def extract_problem_ids_from_theme(
     soup: BeautifulSoup, task_number: int
 ) -> list[str]:
@@ -365,8 +378,17 @@ def scrape_with_requests(
             if answer_match:
                 answer = answer_match.group(1).strip().rstrip(".")
 
+        # Extract actual task type from problem page (EGE 2025 numbering)
+        actual_type = extract_task_type_from_page(prob_soup)
+        effective_task = actual_type if actual_type else task_number
+        if actual_type and actual_type != task_number:
+            log.info(
+                "Problem %s: page says Тип %d (requested task %d)",
+                pid, actual_type, task_number,
+            )
+
         problem = ParsedProblem(
-            task_number=task_number,
+            task_number=effective_task,
             problem_text=problem_text,
             correct_answer=answer,
             problem_images=image_urls,  # raw URLs for hashing
@@ -384,16 +406,17 @@ def scrape_with_requests(
             problem.problem_images = process_images(
                 image_urls=image_urls,
                 source="sdamgia",
-                task_number=task_number,
+                task_number=effective_task,
                 content_hash=problem.content_hash,
                 session=session,
             )
 
         problems.append(problem)
         log.info(
-            "Parsed problem %d (id=%s, hash=%s...)",
+            "Parsed problem %d (id=%s, type=%d, hash=%s...)",
             len(problems),
             pid,
+            effective_task,
             problem.content_hash[:12],
         )
 
@@ -531,8 +554,17 @@ def scrape_with_tavily(
                 and "header" not in img.lower()
             ]
 
+            # Extract actual task type from content (EGE 2025 numbering)
+            type_match = re.search(r"Тип\s+(\d{1,2})", content)
+            effective_task = int(type_match.group(1)) if type_match else task_number
+            if type_match and effective_task != task_number:
+                log.info(
+                    "Problem %s: content says Тип %d (requested task %d)",
+                    pid, effective_task, task_number,
+                )
+
             problem = ParsedProblem(
-                task_number=task_number,
+                task_number=effective_task,
                 problem_text=problem_text,
                 correct_answer=answer,
                 problem_images=[],
@@ -550,7 +582,7 @@ def scrape_with_tavily(
                 problem.problem_images = process_images(
                     image_urls=problem_images,
                     source="sdamgia",
-                    task_number=task_number,
+                    task_number=effective_task,
                     content_hash=problem.content_hash,
                     session=session,
                 )
