@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../lib/api'
+import { useAuthStore } from '../stores/authStore'
 import MathRenderer from '../components/MathRenderer'
 
 interface TaskMastery {
@@ -90,6 +91,7 @@ const POINTS: Record<number, number> = {
 }
 
 export default function StudyPlan() {
+  const user = useAuthStore((s) => s.user)
   const [plan, setPlan] = useState<StudyPlanResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -120,7 +122,21 @@ export default function StudyPlan() {
     } catch (err: unknown) {
       const status = (err as { status?: number }).status
       if (status === 404) {
-        setPlan(null)
+        // No plan yet — auto-generate if user has a target_score
+        if (user?.target_score) {
+          try {
+            const data = await api<StudyPlanResponse>('/api/study-plan/generate', {
+              method: 'POST',
+              body: JSON.stringify({ target_score: user.target_score }),
+            })
+            setPlan(data)
+            setModalTarget(data.target_score)
+          } catch (genErr: unknown) {
+            setError((genErr as Error).message)
+          }
+        } else {
+          setPlan(null)
+        }
       } else {
         setError((err as Error).message)
       }
