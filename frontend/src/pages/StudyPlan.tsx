@@ -82,6 +82,28 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   },
 }
 
+const TASK_NAMES: Record<number, string> = {
+  1: 'Планиметрия',
+  2: 'Векторы',
+  3: 'Стереометрия',
+  4: 'Простая теория вероятностей',
+  5: 'Сложная теория вероятностей',
+  6: 'Простейшие уравнения',
+  7: 'Вычисления и преобразования',
+  8: 'Прикладные задачи (производная)',
+  9: 'Задачи с прикладным содержанием',
+  10: 'Текстовые задачи',
+  11: 'Анализ графиков',
+  12: 'Наибольшее и наименьшее значение',
+  13: 'Уравнения',
+  14: 'Стереометрия (профильная)',
+  15: 'Неравенства',
+  16: 'Экономическая задача',
+  17: 'Планиметрия (профильная)',
+  18: 'Параметры',
+  19: 'Числа и их свойства',
+}
+
 const TARGET_OPTIONS = [70, 80, 90, 100] as const
 
 const POINTS: Record<number, number> = {
@@ -533,7 +555,7 @@ export default function StudyPlan() {
               key={task.task_number}
               className={`rounded-xl border p-4 ${cfg.border} ${cfg.bg}`}
             >
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-1 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   Задание {task.task_number}
                 </h3>
@@ -541,6 +563,9 @@ export default function StudyPlan() {
                   {cfg.label}
                 </span>
               </div>
+              <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                {TASK_NAMES[task.task_number] || ''}
+              </p>
 
               {/* Score bar */}
               {task.status !== 'not_tested' && task.correct !== null && task.total !== null ? (
