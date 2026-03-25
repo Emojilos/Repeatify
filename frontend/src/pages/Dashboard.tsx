@@ -101,8 +101,8 @@ export default function Dashboard() {
   useEffect(() => {
     Promise.all([
       api<DashboardData>('/api/progress/dashboard'),
-      api<TodayData>('/api/study-plan/today').catch(() => null),
-      api<PredictedScoreData>('/api/progress/predicted-score').catch(() => null),
+      api<TodayData>('/api/study-plan/today', { silent: true }).catch(() => null),
+      api<PredictedScoreData>('/api/progress/predicted-score', { silent: true }).catch(() => null),
     ])
       .then(([dashData, todayData, predictedData]) => {
         setData(dashData)
