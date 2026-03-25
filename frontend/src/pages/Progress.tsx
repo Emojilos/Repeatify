@@ -10,7 +10,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import type { TooltipProps, TooltipValueType } from 'recharts'
 import { api } from '../lib/api'
 
 /* ------------------------------------------------------------------ */
@@ -58,7 +57,7 @@ interface FSRSStatsResponse {
   retrievability_by_task: TaskRetrievability[]
 }
 
-type ProgressTooltipFormatter = NonNullable<TooltipProps<TooltipValueType, string | number>['formatter']>
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -385,7 +384,7 @@ export default function Progress() {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
                   <Tooltip
-                    formatter={((value, _name, item) => {
+                    formatter={(value: any, _name: any, item: any) => {
                       const rawValue = Array.isArray(value) ? value[0] : value
                       const retrievability = typeof rawValue === 'number' ? rawValue : Number(rawValue ?? 0)
                       const cards = item.payload && 'cards' in item.payload
@@ -393,8 +392,8 @@ export default function Progress() {
                         : 0
 
                       return [`${retrievability}% (${cards} карт.)`, 'Retrievability']
-                    }) satisfies ProgressTooltipFormatter}
-                    labelFormatter={(label) => `Задание ${label}`}
+                    }}
+                    labelFormatter={(label: any) => `Задание ${label}`}
                   />
                   <Bar dataKey="retrievability" radius={[4, 4, 0, 0]} maxBarSize={32}>
                     {fsrsStats.retrievability_by_task.map((t, i) => {
