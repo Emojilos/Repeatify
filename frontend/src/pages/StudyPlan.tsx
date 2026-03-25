@@ -110,7 +110,7 @@ const TARGET_OPTIONS = [70, 80, 90, 100] as const
 const POINTS: Record<number, number> = {
   1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1,
   7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1,
-  13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 4, 19: 4,
+  13: 2, 14: 3, 15: 2, 16: 2, 17: 3, 18: 4, 19: 4,
 }
 
 export default function StudyPlan() {

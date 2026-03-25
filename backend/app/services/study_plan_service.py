@@ -36,8 +36,21 @@ def check_answer(
 
     return False
 
-# ROI order: easiest Part 1 tasks first (by pass rate)
-_ROI_ORDER: list[int] = [4, 1, 6, 7, 10, 3, 2, 5, 8, 9, 11, 12]
+# Recommended preparation order (by ROI: easiest → hardest, points/effort)
+# Part 1: by pass rate (easiest first)
+# Part 2: by accessibility and point efficiency
+_ROI_ORDER: list[int] = [
+    # Part 1 (1 pt each) — quick wins first
+    4, 1, 6, 7, 10, 3, 2, 5, 8, 9, 11, 12,
+    # Part 2 — most accessible first
+    13,  # Уравнения (2 pt) — natural extension of task 6
+    15,  # Неравенства (2 pt) — similar to equations
+    16,  # Экономическая задача (2 pt) — algorithmic, learnable
+    14,  # Стереометрия профильная (3 pt)
+    17,  # Планиметрия профильная (3 pt)
+    18,  # Параметры (4 pt) — hard but high reward
+    19,  # Числа и их свойства (4 pt) — hardest, requires creativity
+]
 
 # Points per task_number (EGE 2025 profile math)
 # Part 1 (1-12): 1 point each
@@ -121,7 +134,7 @@ def generate_plan(
     assessments = _get_latest_assessments(client, user_id)
 
     tasks = []
-    for tn in sorted(required):
+    for tn in _sort_by_roi(required):
         a = assessments.get(tn)
         if a:
             correct = a["correct_count"]
