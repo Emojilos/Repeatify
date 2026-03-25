@@ -286,16 +286,22 @@ def _clean_formula_alt(alt: str) -> str:
     return alt
 
 
-def extract_text_with_formulas(element: BeautifulSoup | Tag) -> str:
-    """Extract text from element, inserting formula alt/title text inline.
+def extract_text_with_formulas(
+    element: BeautifulSoup | Tag,
+    image_index_start: int = 0,
+) -> tuple[str, int]:
+    """Extract text from element, inserting {{IMG:N}} placeholders for images.
 
-    SDAMGIA renders math as <img> with alt text describing the formula.
-    By walking the DOM tree in order and inserting alt text where images
-    appear, we preserve the full problem statement.
+    SDAMGIA renders math as <img> elements.  Instead of inlining the
+    verbose alt text, we insert numbered placeholders that the frontend
+    can replace with actual <img> tags.
+
+    Returns (text, next_image_index).
     """
     from bs4 import NavigableString
 
     parts: list[str] = []
+    img_idx = image_index_start
 
     for child in element.descendants:
         if isinstance(child, NavigableString):
@@ -306,16 +312,14 @@ def extract_text_with_formulas(element: BeautifulSoup | Tag) -> str:
             if text.strip():
                 parts.append(text)
         elif child.name == "img":
-            # Insert formula alt text inline
-            alt = child.get("title") or child.get("alt") or ""
             src = child.get("src", "")
-            # Only include alt for formula/content images, not UI icons
-            if alt and ("/formula/" in src or "/get_file?" in src):
-                formula = _clean_formula_alt(alt.strip())
-                parts.append(f" {formula} ")
+            # Only placeholder for formula/content images, not UI icons
+            if "/formula/" in src or "/get_file?" in src:
+                parts.append(f" {{{{IMG:{img_idx}}}}} ")
+                img_idx += 1
 
     raw = " ".join(parts)
-    return raw
+    return raw, img_idx
 
 
 def extract_images_from_content(
@@ -493,7 +497,8 @@ def scrape_with_requests(
         # Extract images from problem body first (needed for validity check)
         image_urls = extract_images_from_content(pbody)
 
-        problem_text = clean_sdamgia_text(extract_text_with_formulas(pbody))
+        raw_text, _ = extract_text_with_formulas(pbody)
+        problem_text = clean_sdamgia_text(raw_text)
         # Accept short text if there are images (formula SVGs count as content)
         if len(problem_text) < 10 and not image_urls:
             log.warning("Problem text too short and no images for %s", pid)

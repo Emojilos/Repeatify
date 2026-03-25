@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../lib/api'
-import { proxyImageUrl } from '../lib/storage'
 import { useAuthStore } from '../stores/authStore'
-import MathRenderer from '../components/MathRenderer'
+import ProblemContent from '../components/ProblemContent'
 
 interface TaskMastery {
   task_number: number
@@ -392,15 +391,8 @@ export default function StudyPlan() {
             </span>
           )}
           <div className="mb-4 text-gray-900 dark:text-gray-100">
-            <MathRenderer content={problem.problem_text} />
+            <ProblemContent text={problem.problem_text} images={problem.problem_images} imageClassName="max-h-48 rounded-lg" />
           </div>
-          {problem.problem_images && problem.problem_images.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              {problem.problem_images.map((url, i) => (
-                <img key={i} src={proxyImageUrl(url)} alt="" className="max-h-48 rounded-lg" />
-              ))}
-            </div>
-          )}
           <div className="flex gap-3">
             <input
               type="text"

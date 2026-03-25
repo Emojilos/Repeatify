@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
-import { proxyImageUrl } from '../lib/storage'
 import MathRenderer from '../components/MathRenderer'
+import ProblemContent from '../components/ProblemContent'
 
 interface TopicProgress {
   strength_score: number
@@ -344,15 +344,12 @@ export default function TopicDetailPage() {
                       )}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      <MathRenderer content={problem.problem_text.slice(0, 200) + (problem.problem_text.length > 200 ? '...' : '')} />
+                      <ProblemContent
+                        text={problem.problem_text.slice(0, 200) + (problem.problem_text.length > 200 ? '...' : '')}
+                        images={problem.problem_images}
+                        imageClassName="h-auto max-h-24 rounded bg-white p-1 dark:invert"
+                      />
                     </div>
-                    {problem.problem_images && problem.problem_images.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {problem.problem_images.map((url, i) => (
-                          <img key={i} src={proxyImageUrl(url)} alt="Условие задачи" className="h-auto max-h-24 rounded bg-white p-1 dark:invert" />
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
