@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
+import { proxyImageUrl } from '../lib/storage'
 import MathRenderer from './MathRenderer'
 import { useXpStore, levelName } from '../stores/xpStore'
 import { useAuthStore } from '../stores/authStore'
@@ -225,7 +226,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
         {problem.problem_images && problem.problem_images.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-3">
             {problem.problem_images.map((url, i) => (
-              <img key={i} src={url} alt="Условие задачи" className="h-auto max-h-40 rounded bg-white p-1 dark:invert" />
+              <img key={i} src={proxyImageUrl(url)} alt="Условие задачи" className="h-auto max-h-40 rounded bg-white p-1 dark:invert" />
             ))}
           </div>
         )}

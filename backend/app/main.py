@@ -17,6 +17,7 @@ from app.routers import (
     problems,
     progress,
     prototypes,
+    storage,
     study_plan,
     theory,
     topics,
@@ -99,6 +100,7 @@ app.include_router(fsrs.router)
 app.include_router(study_plan.router)
 app.include_router(prototypes.router)
 app.include_router(progress.router)
+app.include_router(storage.router)
 
 
 @app.get("/health")

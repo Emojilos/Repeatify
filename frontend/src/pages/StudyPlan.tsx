@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../lib/api'
+import { proxyImageUrl } from '../lib/storage'
 import { useAuthStore } from '../stores/authStore'
 import MathRenderer from '../components/MathRenderer'
 
@@ -396,7 +397,7 @@ export default function StudyPlan() {
           {problem.problem_images && problem.problem_images.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-2">
               {problem.problem_images.map((url, i) => (
-                <img key={i} src={url} alt="" className="max-h-48 rounded-lg" />
+                <img key={i} src={proxyImageUrl(url)} alt="" className="max-h-48 rounded-lg" />
               ))}
             </div>
           )}
