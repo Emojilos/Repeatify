@@ -94,11 +94,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loadUser: async () => {
     try {
       const user = await api<User>('/api/users/me', { silent: true })
-      set({ user })
+      // Sync token in store in case it was refreshed
+      const currentToken = localStorage.getItem('access_token')
+      set({ user, token: currentToken })
     } catch {
-      // Token might be invalid
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
+      // api() handles 401 refresh + redirect automatically
       set({ user: null, token: null, isAuthenticated: false })
     }
   },

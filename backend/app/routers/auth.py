@@ -8,6 +8,7 @@ from app.db.supabase_client import get_supabase_client
 from app.models.auth import (
     AuthResponse,
     LoginRequest,
+    RefreshRequest,
     RegisterRequest,
 )
 
@@ -74,6 +75,33 @@ async def login(request: Request, body: LoginRequest) -> AuthResponse:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
+        )
+
+    return AuthResponse(
+        access_token=session.access_token,
+        refresh_token=session.refresh_token,
+        user_id=str(result.user.id),
+    )
+
+
+@router.post("/refresh", response_model=AuthResponse)
+@limiter.limit(settings.AUTH_RATE_LIMIT)
+async def refresh(request: Request, body: RefreshRequest) -> AuthResponse:
+    """Exchange a refresh token for a new access + refresh token pair."""
+    client = get_supabase_client()
+    try:
+        result = client.auth.refresh_session(body.refresh_token)
+    except AuthApiError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+        )
+
+    session = result.session
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not refresh session",
         )
 
     return AuthResponse(
