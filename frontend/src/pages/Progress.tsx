@@ -1,15 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  BarChart,
-  Bar,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts'
 import { api } from '../lib/api'
 
 /* ------------------------------------------------------------------ */
@@ -57,7 +47,6 @@ interface FSRSStatsResponse {
   retrievability_by_task: TaskRetrievability[]
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -371,39 +360,25 @@ export default function Progress() {
           {fsrsStats.retrievability_by_task.length > 0 && (
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
               <h3 className="mb-3 text-sm font-medium text-gray-600 dark:text-gray-400">Retrievability по заданиям</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart
-                  data={fsrsStats.retrievability_by_task.map((t) => ({
-                    name: `${t.task_number}`,
-                    retrievability: Math.round(t.avg_retrievability * 100),
-                    cards: t.cards_count,
-                  }))}
-                  margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
-                  <Tooltip
-                    formatter={(value: any, _name: any, item: any) => {
-                      const rawValue = Array.isArray(value) ? value[0] : value
-                      const retrievability = typeof rawValue === 'number' ? rawValue : Number(rawValue ?? 0)
-                      const cards = item.payload && 'cards' in item.payload
-                        ? Number(item.payload.cards ?? 0)
-                        : 0
-
-                      return [`${retrievability}% (${cards} карт.)`, 'Retrievability']
-                    }}
-                    labelFormatter={(label: any) => `Задание ${label}`}
-                  />
-                  <Bar dataKey="retrievability" radius={[4, 4, 0, 0]} maxBarSize={32}>
-                    {fsrsStats.retrievability_by_task.map((t, i) => {
-                      const pct = t.avg_retrievability * 100
-                      const fill = pct >= 80 ? '#22c55e' : pct >= 50 ? '#eab308' : pct > 0 ? '#f97316' : '#d1d5db'
-                      return <Cell key={i} fill={fill} />
-                    })}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="flex items-end gap-1.5" style={{ height: 200 }}>
+                {fsrsStats.retrievability_by_task.map((t) => {
+                  const pct = Math.round(t.avg_retrievability * 100)
+                  const bg = pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : pct > 0 ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-600'
+                  return (
+                    <div key={t.task_number} className="flex flex-1 flex-col items-center gap-1">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">{pct}%</span>
+                      <div className="w-full flex-1 flex flex-col justify-end">
+                        <div
+                          className={`w-full rounded-t ${bg} transition-all`}
+                          style={{ height: `${Math.max(pct, 2)}%` }}
+                          title={`Задание ${t.task_number}: ${pct}% (${t.cards_count} карт.)`}
+                        />
+                      </div>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">{t.task_number}</span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
         </section>
@@ -502,30 +477,33 @@ export default function Progress() {
 
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 11 }}
-                  interval={chartDays === 30 ? 4 : 0}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fontSize: 11 }}
-                />
-                <Tooltip
-                  formatter={(value) => [`${value} задач`, 'Решено']}
-                  labelFormatter={(label) => `Дата: ${label}`}
-                />
-                <Bar
-                  dataKey="solved"
-                  fill="#3b82f6"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={chartDays === 30 ? 16 : 40}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <div>
+              <div className="flex items-end gap-px" style={{ height: 220 }}>
+                {chartData.map((d) => {
+                  const maxSolved = Math.max(...chartData.map(x => x.solved), 1)
+                  const pct = (d.solved / maxSolved) * 100
+                  return (
+                    <div key={d.date} className="flex flex-1 flex-col items-center justify-end" style={{ height: '100%' }}>
+                      {d.solved > 0 && (
+                        <span className="mb-1 text-[9px] text-gray-500 dark:text-gray-400">{d.solved}</span>
+                      )}
+                      <div
+                        className="w-full rounded-t bg-blue-500 transition-all"
+                        style={{ height: `${Math.max(pct, d.solved > 0 ? 4 : 0)}%` }}
+                        title={`${d.label}: ${d.solved} задач`}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="mt-1 flex gap-px">
+                {chartData.map((d, i) => (
+                  <div key={d.date} className="flex-1 text-center text-[9px] text-gray-400 dark:text-gray-500">
+                    {chartDays === 30 ? (i % 5 === 0 ? d.label : '') : d.label}
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="flex h-64 items-center justify-center text-gray-400 dark:text-gray-500">
               Нет данных для отображения
