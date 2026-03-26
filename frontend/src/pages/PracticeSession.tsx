@@ -57,12 +57,6 @@ export default function PracticeSession() {
     }
   }, [cards.length, loading, fetchSession])
 
-  // Set active task for formula sheet
-  useEffect(() => {
-    if (currentCard?.task_number) setActiveTask(currentCard.task_number)
-    return () => setActiveTask(null)
-  }, [currentCard?.task_number, setActiveTask])
-
   useEffect(() => {
     if (isFinished()) {
       navigate('/practice/results')
@@ -70,6 +64,12 @@ export default function PracticeSession() {
   }, [currentIndex, cards.length, isFinished, navigate])
 
   const currentCard = cards[currentIndex]
+
+  // Set active task for formula sheet
+  useEffect(() => {
+    if (currentCard?.task_number) setActiveTask(currentCard.task_number)
+    return () => setActiveTask(null)
+  }, [currentCard?.task_number, setActiveTask])
 
   const handleSubmitOverride = useCallback(
     async (answer: string, timeSpent: number, assessment: string) => {
