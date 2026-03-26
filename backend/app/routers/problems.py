@@ -167,6 +167,27 @@ async def get_problem(
     return _row_to_detail(result.data[0])
 
 
+@router.get("/{problem_id}/solution")
+async def get_solution(
+    problem_id: str,
+    _user: dict = Depends(get_current_user),
+) -> dict:
+    """Return solution_markdown for a problem (used by Part 2 flow)."""
+    client = get_supabase_client()
+    result = (
+        client.table("problems")
+        .select("solution_markdown")
+        .eq("id", problem_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Problem not found",
+        )
+    return {"solution_markdown": result.data[0].get("solution_markdown")}
+
+
 @router.post("/{problem_id}/attempt", response_model=AttemptResponse)
 async def submit_attempt(
     problem_id: str,

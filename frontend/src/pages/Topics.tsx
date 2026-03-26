@@ -80,9 +80,6 @@ function TopicCard({ topic }: { topic: Topic }) {
         }`}>
           {label}
         </span>
-        {topic.user_progress && topic.user_progress.fire_completed && (
-          <span className="text-xs" title="FIRe пройден">🔥</span>
-        )}
       </div>
     </Link>
   )

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import ProblemCard from '../components/ProblemCard'
+import { useFormulaStore } from '../stores/formulaStore'
 
 interface Problem {
   id: string
@@ -42,6 +43,13 @@ export default function TopicPractice() {
   const [correctCount, setCorrectCount] = useState(0)
   const [totalXp, setTotalXp] = useState(0)
   const [finished, setFinished] = useState(false)
+  const setActiveTask = useFormulaStore((s) => s.setActiveTask)
+
+  // Set active task for formula sheet context
+  useEffect(() => {
+    if (topic) setActiveTask(topic.task_number)
+    return () => setActiveTask(null)
+  }, [topic, setActiveTask])
 
   useEffect(() => {
     if (!id) return

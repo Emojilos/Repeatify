@@ -148,7 +148,7 @@ export default function Dashboard() {
 
   const isNewUser = data.current_xp === 0
     && data.weekly_stats.problems_solved === 0
-    && data.topics_progress.every((t) => t.strength_score === 0 && !t.fire_completed)
+    && data.topics_progress.every((t) => t.strength_score === 0)
 
   return (
     <div className="p-8">
@@ -159,7 +159,7 @@ export default function Dashboard() {
             Добро пожаловать в Repeatify!
           </h2>
           <p className="mb-4 text-sm text-indigo-700 dark:text-indigo-300">
-            Начните с изучения первой темы. Пройдите FIRe-flow, чтобы разобрать теорию, а затем закрепите знания на практике.
+            Начните с изучения первой темы и закрепите знания на практике. Нажмите на кнопку с формулами в правом нижнем углу, чтобы открыть справочник.
           </p>
           <Link
             to="/topics"
@@ -425,9 +425,6 @@ export default function Dashboard() {
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white">
                   {topic.task_number}
                 </span>
-                {topic.fire_completed && (
-                  <span className="text-xs" title="FIRe пройден">🔥</span>
-                )}
               </div>
               <p className="mb-2 line-clamp-2 text-xs font-medium text-gray-800 dark:text-gray-200">{topic.title}</p>
               <div className="h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">

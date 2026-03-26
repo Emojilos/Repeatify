@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useSessionStore } from '../stores/sessionStore'
 import type { FSRSCard, ReviewResult } from '../stores/sessionStore'
 import ProblemCard from '../components/ProblemCard'
+import { useFormulaStore } from '../stores/formulaStore'
 
 interface Problem {
   id: string
@@ -48,11 +49,19 @@ export default function PracticeSession() {
     isFinished,
   } = useSessionStore()
 
+  const setActiveTask = useFormulaStore((s) => s.setActiveTask)
+
   useEffect(() => {
     if (cards.length === 0 && !loading) {
       fetchSession()
     }
   }, [cards.length, loading, fetchSession])
+
+  // Set active task for formula sheet
+  useEffect(() => {
+    if (currentCard?.task_number) setActiveTask(currentCard.task_number)
+    return () => setActiveTask(null)
+  }, [currentCard?.task_number, setActiveTask])
 
   useEffect(() => {
     if (isFinished()) {

@@ -75,6 +75,8 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<AttemptResponse | null>(null)
   const [showSolution, setShowSolution] = useState(false)
+  const [solutionText, setSolutionText] = useState<string | null>(null)
+  const [loadingSolution, setLoadingSolution] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedAssessment, setSelectedAssessment] = useState<SelfAssessment | null>(null)
   const [hintsShown, setHintsShown] = useState(0)
@@ -148,9 +150,18 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
     }
   }
 
-  // Part 2: Show solution, then let user self-assess
+  // Part 2: Fetch solution, then let user self-assess
   const handleShowSolution = async () => {
-    setShowSolution(true)
+    setLoadingSolution(true)
+    try {
+      const res = await api<{ solution_markdown: string | null }>(`/api/problems/${problem.id}/solution`)
+      setSolutionText(res.solution_markdown)
+    } catch {
+      // Fallback: still show assessment even without solution
+    } finally {
+      setLoadingSolution(false)
+      setShowSolution(true)
+    }
   }
 
   const handlePart2Assess = async (assessment: SelfAssessment) => {
@@ -347,18 +358,21 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
             {!showSolution && !checked ? (
               <button
                 onClick={handleShowSolution}
-                className="w-full rounded-lg bg-purple-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-700"
+                disabled={loadingSolution}
+                className="w-full rounded-lg bg-purple-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
               >
-                Показать решение
+                {loadingSolution ? 'Загрузка...' : 'Показать решение'}
               </button>
             ) : !checked ? (
               /* Solution revealed, awaiting self-assessment */
               <div>
-                <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-                  <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Решение:</div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Оцените, насколько вы смогли решить эту задачу:</p>
-                </div>
-                <div className="mb-2 text-sm text-gray-500 dark:text-gray-400">Как вы справились?</div>
+                {solutionText && (
+                  <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+                    <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Решение:</div>
+                    <MathRenderer content={solutionText} />
+                  </div>
+                )}
+                <div className="mb-2 text-sm text-gray-500 dark:text-gray-400">Оцените, как вы справились:</div>
                 <div className="flex gap-2">
                   {assessmentButtons.map((btn) => (
                     <button

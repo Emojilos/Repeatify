@@ -195,20 +195,11 @@ export default function TopicDetailPage() {
             <span className="text-gray-400 dark:text-gray-500">~{topic.estimated_study_hours} ч. на изучение</span>
           )}
           <span className={`font-medium ${strength.color}`}>{strength.text}</span>
-          {topic.user_progress?.fire_completed && (
-            <span className="text-sm" title="FIRe пройден">🔥 FIRe пройден</span>
-          )}
         </div>
       </div>
 
       {/* Action buttons */}
       <div className="mb-8 flex flex-wrap gap-3">
-        <Link
-          to={`/topics/${topic.id}/fire`}
-          className="rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
-        >
-          {topic.user_progress?.fire_completed ? 'Повторить FIRe-flow' : 'Начать FIRe-flow'}
-        </Link>
         {problems.length > 0 && (
           <Link
             to={`/topics/${topic.id}/practice`}
