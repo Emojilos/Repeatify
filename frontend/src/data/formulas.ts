@@ -646,7 +646,7 @@ const allFormulas: TaskFormulas[] = [
   },
   {
     taskNumber: 16,
-    title: 'Финансовая математика',
+    title: 'Экономическая задача',
     sections: [
       {
         title: 'Простые и сложные проценты',
