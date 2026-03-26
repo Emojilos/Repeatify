@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import ProblemCard from '../components/ProblemCard'
@@ -71,19 +71,19 @@ export default function TopicPractice() {
 
   const currentProblem = problems[currentIndex] ?? null
 
-  const handleComplete = (_assessment: string, result: { is_correct: boolean; xp_earned: number }) => {
+  const handleComplete = useCallback((_assessment: string, result: { is_correct: boolean; xp_earned: number }) => {
     setCompleted((c) => c + 1)
     if (result.is_correct) setCorrectCount((c) => c + 1)
     setTotalXp((x) => x + result.xp_earned)
 
     setTimeout(() => {
-      if (currentIndex < problems.length - 1) {
-        setCurrentIndex((i) => i + 1)
-      } else {
+      setCurrentIndex((i) => {
+        if (i < problems.length - 1) return i + 1
         setFinished(true)
-      }
+        return i
+      })
     }, 1000)
-  }
+  }, [problems.length])
 
   if (loading) {
     return (

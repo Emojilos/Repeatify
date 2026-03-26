@@ -179,12 +179,18 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
     }
   }
 
+  // Stable ref for onComplete to avoid infinite loops
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
+
   // Part 2: after picking assessment and submitting
+  const part2Completed = useRef(false)
   useEffect(() => {
-    if (isPart2 && selectedAssessment && result && onComplete) {
-      onComplete(selectedAssessment, result)
+    if (isPart2 && selectedAssessment && result && !part2Completed.current) {
+      part2Completed.current = true
+      onCompleteRef.current?.(selectedAssessment, result)
     }
-  }, [isPart2, selectedAssessment, result, onComplete])
+  }, [isPart2, selectedAssessment, result])
 
   const checked = result !== null
 
