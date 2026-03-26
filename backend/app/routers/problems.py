@@ -172,11 +172,11 @@ async def get_solution(
     problem_id: str,
     _user: dict = Depends(get_current_user),
 ) -> dict:
-    """Return solution_markdown for a problem (used by Part 2 flow)."""
+    """Return solution_markdown and correct_answer for a problem."""
     client = get_supabase_client()
     result = (
         client.table("problems")
-        .select("solution_markdown")
+        .select("solution_markdown,correct_answer")
         .eq("id", problem_id)
         .execute()
     )
@@ -185,7 +185,11 @@ async def get_solution(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Problem not found",
         )
-    return {"solution_markdown": result.data[0].get("solution_markdown")}
+    row = result.data[0]
+    return {
+        "solution_markdown": row.get("solution_markdown"),
+        "correct_answer": row.get("correct_answer"),
+    }
 
 
 @router.post("/{problem_id}/attempt", response_model=AttemptResponse)

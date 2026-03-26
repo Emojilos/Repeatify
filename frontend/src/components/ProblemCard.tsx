@@ -150,12 +150,15 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
     }
   }
 
+  const [correctAnswer, setCorrectAnswer] = useState<string | null>(null)
+
   // Part 2: Fetch solution, then let user self-assess
   const handleShowSolution = async () => {
     setLoadingSolution(true)
     try {
-      const res = await api<{ solution_markdown: string | null }>(`/api/problems/${problem.id}/solution`)
+      const res = await api<{ solution_markdown: string | null; correct_answer: string | null }>(`/api/problems/${problem.id}/solution`)
       setSolutionText(res.solution_markdown)
+      setCorrectAnswer(res.correct_answer)
     } catch {
       // Fallback: still show assessment even without solution
     } finally {
@@ -372,12 +375,25 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
             ) : !checked ? (
               /* Solution revealed, awaiting self-assessment */
               <div>
-                {solutionText && (
-                  <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-                    <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Решение:</div>
-                    <MathRenderer content={solutionText} />
-                  </div>
-                )}
+                <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+                  {solutionText ? (
+                    <>
+                      <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Решение:</div>
+                      <MathRenderer content={solutionText} />
+                    </>
+                  ) : correctAnswer ? (
+                    <>
+                      <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Ответ:</div>
+                      <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <MathRenderer content={correctAnswer} />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Решение пока не добавлено. Оцените себя самостоятельно.
+                    </div>
+                  )}
+                </div>
                 <div className="mb-2 text-sm text-gray-500 dark:text-gray-400">Оцените, как вы справились:</div>
                 <div className="flex gap-2">
                   {assessmentButtons.map((btn) => (
@@ -395,10 +411,21 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
             ) : (
               /* Part 2 result */
               <div>
-                {result.solution_markdown && (
+                {(result.solution_markdown || correctAnswer) && (
                   <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-                    <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Решение:</div>
-                    <MathRenderer content={result.solution_markdown} />
+                    {result.solution_markdown ? (
+                      <>
+                        <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Решение:</div>
+                        <MathRenderer content={result.solution_markdown} />
+                      </>
+                    ) : correctAnswer ? (
+                      <>
+                        <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Ответ:</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          <MathRenderer content={correctAnswer} />
+                        </div>
+                      </>
+                    ) : null}
                   </div>
                 )}
                 {result.xp_earned > 0 && (
