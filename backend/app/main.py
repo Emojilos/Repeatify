@@ -43,7 +43,10 @@ async def _keep_alive() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     global _db_connected
-    _db_connected = await verify_connection()
+    try:
+        _db_connected = await asyncio.wait_for(verify_connection(), timeout=10)
+    except asyncio.TimeoutError:
+        _db_connected = False
     if _db_connected:
         print("✓ Supabase connection verified")
     else:
@@ -101,6 +104,11 @@ app.include_router(study_plan.router)
 app.include_router(prototypes.router)
 app.include_router(progress.router)
 app.include_router(storage.router)
+
+
+@app.get("/")
+async def root() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 @app.get("/health")
