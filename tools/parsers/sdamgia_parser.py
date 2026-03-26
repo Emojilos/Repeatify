@@ -425,6 +425,81 @@ def parse_problem_from_theme_page(
     return problem
 
 
+def _extract_solution_markdown(element: BeautifulSoup | Tag, base_url: str = BASE_URL) -> str:
+    """Extract solution content as markdown with inline formula images.
+
+    Formula SVGs are embedded as markdown images: ![](url)
+    Content images (/get_file) are also inlined.
+    Regular text is kept as-is.
+    """
+    from bs4 import NavigableString
+
+    parts: list[str] = []
+
+    for child in element.descendants:
+        if isinstance(child, NavigableString):
+            if child.parent and child.parent.name in ("script", "style"):
+                continue
+            text = str(child).strip()
+            # Skip HTML comment remnants
+            if text and text not in ("rule_info",):
+                parts.append(text)
+        elif child.name == "img":
+            src = child.get("src", "")
+            if not src:
+                continue
+            # Make absolute URL
+            if src.startswith("//"):
+                src = "https:" + src
+            elif src.startswith("/"):
+                src = base_url + src
+
+            if "/formula/" in src or "/get_file?" in src:
+                parts.append(f" ![formula]({src}) ")
+        elif child.name == "br":
+            parts.append("\n")
+        elif child.name == "p" and parts and not parts[-1].endswith("\n"):
+            parts.append("\n\n")
+
+    return " ".join(parts)
+
+
+def _extract_solution(soup: BeautifulSoup) -> str | None:
+    """Extract solution text from a sdamgia problem page.
+
+    SDAMGIA keeps solutions in several possible containers:
+    - <div class="solution"> — most common
+    - Text between "Решение." header and "Ответ:" / "Критерии"
+    """
+    # Try dedicated solution container first
+    sol_el = soup.select_one(".solution")
+    if sol_el:
+        text = _extract_solution_markdown(sol_el)
+        text = clean_sdamgia_text(text)
+        # Strip leading "Решение." prefix (with soft hyphens and HTML comment remnants)
+        text = re.sub(r"^Ре\u00ad?ше\u00ad?ние\s*(?:rule_info)?\s*[.:]\s*", "", text)
+        text = re.sub(r"^Решение\s*(?:rule_info)?\s*[.:]\s*", "", text)
+        # Strip trailing "Ответ: ..." or "Критерии"
+        text = re.sub(r"\s*Ответ:.*$", "", text, flags=re.DOTALL)
+        text = re.sub(r"\s*Критерии оценивания.*$", "", text, flags=re.DOTALL)
+        if len(text) >= 15:
+            return text.strip()
+
+    # Fallback: regex on full page text (no images, just text)
+    page_text = soup.get_text()
+    m = re.search(
+        r"Ре\u00ad?ше\u00ad?ние[.:]\s*(.*?)(?:Ответ:|Спрятать решение|Критерии оценивания|Источник:|$)",
+        page_text,
+        re.DOTALL,
+    )
+    if m:
+        text = clean_sdamgia_text(m.group(1))
+        if len(text) >= 15:
+            return text.strip()
+
+    return None
+
+
 def scrape_with_requests(
     task_number: int,
     max_problems: int = 30,
@@ -517,6 +592,9 @@ def scrape_with_requests(
             if answer_match:
                 answer = answer_match.group(1).strip().rstrip(".")
 
+        # Extract solution
+        solution = _extract_solution(prob_soup)
+
         # Extract actual task type from problem page (EGE 2025 numbering)
         actual_type = extract_task_type_from_page(prob_soup)
         effective_task = actual_type if actual_type else task_number
@@ -530,6 +608,7 @@ def scrape_with_requests(
             task_number=effective_task,
             problem_text=problem_text,
             correct_answer=answer,
+            solution_text=solution,
             problem_images=image_urls,  # raw URLs for hashing
             source_url=prob_url,
             source_id=pid,
@@ -845,6 +924,7 @@ def upload_to_supabase(
             "difficulty": problem.difficulty,
             "problem_text": problem.problem_text,
             "correct_answer": problem.correct_answer or "",
+            "solution_markdown": problem.solution_text,
             "problem_images": images,
             "source": problem.source,
             "source_url": problem.source_url,
@@ -862,6 +942,85 @@ def upload_to_supabase(
         "Upload complete. Added: %d, Skipped (duplicates): %d", inserted, skipped
     )
     return inserted
+
+
+def backfill_solutions(
+    task_number: int | None = None,
+    max_problems: int = 200,
+) -> int:
+    """Fetch solutions from sdamgia for existing DB problems missing solution_markdown.
+
+    Looks up problems by source='sdamgia' and source_id, fetches the problem page,
+    extracts the solution, and updates the DB row.
+    """
+    from dotenv import load_dotenv
+    from supabase import create_client
+
+    load_dotenv(_project_root / ".env")
+
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_KEY")
+    if not url or not key:
+        log.error("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
+        return 0
+
+    client = create_client(url, key)
+
+    # Fetch problems missing solutions
+    query = (
+        client.table("problems")
+        .select("id,source_id,source_url,task_number")
+        .eq("source", "sdamgia")
+        .is_("solution_markdown", "null")
+    )
+    if task_number is not None:
+        query = query.eq("task_number", task_number)
+    query = query.limit(max_problems)
+
+    result = query.execute()
+    rows = result.data or []
+    log.info("Found %d problems without solutions", len(rows))
+
+    if not rows:
+        return 0
+
+    session = requests.Session()
+    updated = 0
+
+    for row in rows:
+        # Get source_id from field or extract from source_url
+        source_id = row.get("source_id")
+        if not source_id and row.get("source_url"):
+            m = re.search(r"id=(\d+)", row["source_url"])
+            if m:
+                source_id = m.group(1)
+        if not source_id:
+            continue
+
+        prob_url = PROBLEM_URL.format(problem_id=source_id)
+        log.info("Fetching solution for problem %s (id=%s)", source_id, row["id"])
+        time.sleep(REQUEST_DELAY)
+
+        soup = fetch_page(prob_url, session)
+        if soup is None:
+            continue
+
+        solution = _extract_solution(soup)
+        if not solution:
+            log.info("No solution found for %s", source_id)
+            continue
+
+        try:
+            client.table("problems").update(
+                {"solution_markdown": solution}
+            ).eq("id", row["id"]).execute()
+            updated += 1
+            log.info("Updated solution for %s (%d chars)", source_id, len(solution))
+        except Exception as e:
+            log.warning("Failed to update %s: %s", row["id"], e)
+
+    log.info("Backfill complete: %d/%d solutions updated", updated, len(rows))
+    return updated
 
 
 def save_to_json(problems: list[ParsedProblem], output_path: str) -> None:
@@ -909,8 +1068,23 @@ def main() -> None:
         action="store_true",
         help="Upload downloaded images to Supabase Storage (requires --upload)",
     )
+    parser.add_argument(
+        "--backfill-solutions",
+        action="store_true",
+        help="Fetch solutions for existing DB problems missing solution_markdown",
+    )
 
     args = parser.parse_args()
+
+    # Backfill mode: update existing problems with solutions
+    if args.backfill_solutions:
+        task_num = args.task_number if 1 <= args.task_number <= 19 else None
+        updated = backfill_solutions(
+            task_number=task_num,
+            max_problems=args.max_problems,
+        )
+        log.info("Backfill done: %d solutions added", updated)
+        return
 
     if not 1 <= args.task_number <= 19:
         log.error("Task number must be between 1 and 19")
