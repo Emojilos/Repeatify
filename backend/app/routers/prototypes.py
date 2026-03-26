@@ -261,7 +261,10 @@ async def get_prototype_problems(
             detail="Prototype not found",
         )
 
+    task_number = proto_result.data[0]["task_number"]
     offset = (page - 1) * page_size
+
+    # Try prototype-specific problems first
     result = (
         client.table("problems")
         .select("*", count="exact")
@@ -270,6 +273,17 @@ async def get_prototype_problems(
         .range(offset, offset + page_size - 1)
         .execute()
     )
+
+    # Fallback: if no problems linked to this prototype, show all for task_number
+    if not result.data:
+        result = (
+            client.table("problems")
+            .select("*", count="exact")
+            .eq("task_number", task_number)
+            .order("difficulty")
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
 
     problems = result.data or []
     total = result.count if result.count is not None else len(problems)
