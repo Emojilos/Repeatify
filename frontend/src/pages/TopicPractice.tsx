@@ -69,7 +69,7 @@ export default function TopicPractice() {
       .finally(() => setLoading(false))
   }, [id])
 
-  const currentProblem = problems[currentIndex]
+  const currentProblem = problems[currentIndex] ?? null
 
   const handleComplete = (_assessment: string, result: { is_correct: boolean; xp_earned: number }) => {
     setCompleted((c) => c + 1)
@@ -192,12 +192,14 @@ export default function TopicPractice() {
       </div>
 
       {/* Current problem */}
-      <ProblemCard
-        key={currentProblem.id}
-        problem={currentProblem}
-        onComplete={handleComplete}
-        showTimer
-      />
+      {currentProblem && (
+        <ProblemCard
+          key={currentProblem.id}
+          problem={currentProblem}
+          onComplete={handleComplete}
+          showTimer
+        />
+      )}
     </div>
   )
 }
