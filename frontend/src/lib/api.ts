@@ -35,7 +35,7 @@ async function tryRefreshToken(): Promise<boolean> {
 function clearAuth() {
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
-  window.location.href = '/auth/login'
+  window.location.href = import.meta.env.BASE_URL + '#/auth/login'
 }
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
