@@ -112,6 +112,61 @@ const POINTS: Record<number, number> = {
   13: 2, 14: 3, 15: 2, 16: 2, 17: 3, 18: 4, 19: 4,
 }
 
+interface StudyStage {
+  stage: number
+  tasks: number[]
+  focus: string
+}
+
+interface ScoreGoal {
+  target: string
+  title: string
+  description: string
+  minScore: number
+  stages: StudyStage[]
+}
+
+const STUDY_ROADMAP: ScoreGoal[] = [
+  {
+    target: '70+',
+    title: 'Железобетонная база',
+    description: 'Идеально решать первую часть и самое простое задание из второй. Ошибка в первой части стоит дорого — отработать до автоматизма.',
+    minScore: 70,
+    stages: [
+      { stage: 1, tasks: [1, 2, 3], focus: 'Простая планиметрия, векторы и базовая стереометрия' },
+      { stage: 2, tasks: [4, 5], focus: 'Теория вероятностей (от простых бросков кубика до сложных теорем)' },
+      { stage: 3, tasks: [6, 7], focus: 'Базовые уравнения и вычисления (алгебра, тригонометрия, логарифмы)' },
+      { stage: 4, tasks: [8, 11], focus: 'Производная и графики функций. Физический и геометрический смысл' },
+      { stage: 5, tasks: [9, 10], focus: 'Текстовые задачи (движение, работа, сплавы) и задачи с прикладным содержанием' },
+      { stage: 6, tasks: [12], focus: 'Поиск точек максимума/минимума и наибольшего/наименьшего значения функции' },
+      { stage: 7, tasks: [13], focus: 'Тригонометрические, показательные или логарифмические уравнения и отбор корней' },
+    ],
+  },
+  {
+    target: '80+',
+    title: 'Джентльменский набор',
+    description: 'Алгоритмичные задачи второй части, которые реально освоить за счёт усердия.',
+    minScore: 80,
+    stages: [
+      { stage: 8, tasks: [15], focus: 'Неравенства: показательные и логарифмические. Метод рационализации и обобщённый метод интервалов' },
+      { stage: 9, tasks: [16], focus: 'Экономическая задача. Кредиты (аннуитетные, дифференцированные), вклады, оптимизация' },
+      { stage: 10, tasks: [19], focus: 'Теория чисел. Первый пункт часто решается подбором примера — лёгкий первичный балл' },
+    ],
+  },
+  {
+    target: '90+',
+    title: 'Высший пилотаж',
+    description: 'Суровая математика. Конкуренция среди тех, кто уже не ошибается в задачах 1-13, 15, 16.',
+    minScore: 90,
+    stages: [
+      { stage: 11, tasks: [18], focus: 'Параметры. Графический и аналитический методы. Глубокое понимание свойств функций' },
+      { stage: 12, tasks: [19], focus: 'Сложная теория чисел и логика. Оценка плюс пример, делимость, последовательности' },
+      { stage: 13, tasks: [14], focus: 'Сложная стереометрия. Метод координат и классические пространственные построения' },
+      { stage: 14, tasks: [17], focus: 'Сложная планиметрия. Окружности, подобия, свойства треугольников' },
+    ],
+  },
+]
+
 export default function StudyPlan() {
   const user = useAuthStore((s) => s.user)
   const [plan, setPlan] = useState<StudyPlanResponse | null>(null)
@@ -539,63 +594,136 @@ export default function StudyPlan() {
         </div>
       </div>
 
-      {/* Task cards grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {tasks.map(task => {
-          const cfg = STATUS_CONFIG[task.status] || STATUS_CONFIG.not_tested
+      {/* Study roadmap */}
+      <div className="space-y-8">
+        {STUDY_ROADMAP.map(goal => {
+          // Check if this goal section is relevant to the user's target
+          const isRelevant = pd.target_score >= goal.minScore
+          // Count completed stages in this goal
+          const goalTaskNumbers = goal.stages.flatMap(s => s.tasks)
+          const goalTasks = tasks.filter(t => goalTaskNumbers.includes(t.task_number))
+          const goalMastered = goalTasks.filter(t => t.status === 'mastered' || t.status === 'good').length
+          const goalTotal = goalTasks.length
+
           return (
-            <div
-              key={task.task_number}
-              className={`rounded-xl border p-4 ${cfg.border} ${cfg.bg}`}
-            >
-              <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  Задание {task.task_number}
-                </h3>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.color} ${cfg.bg}`}>
-                  {cfg.label}
+            <div key={goal.target} className={!isRelevant ? 'opacity-50' : ''}>
+              {/* Goal header */}
+              <div className="mb-4 flex items-center gap-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white ${
+                  goal.minScore >= 90 ? 'bg-purple-600' :
+                  goal.minScore >= 80 ? 'bg-blue-600' :
+                  'bg-green-600'
+                }`}>
+                  {goal.target}
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{goal.title}</h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{goal.description}</p>
+                </div>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  {goalMastered}/{goalTotal}
                 </span>
               </div>
-              <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                {TASK_NAMES[task.task_number] || ''}
-              </p>
 
-              {/* Score bar */}
-              {task.status !== 'not_tested' && task.correct !== null && task.total !== null ? (
-                <div className="mb-3">
-                  <div className="mb-1 flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                    <span>{task.correct}/{task.total} правильно</span>
-                    <span>{Math.round((task.correct / task.total) * 100)}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-600">
-                    <div
-                      className={`h-2 rounded-full transition-all ${
-                        task.status === 'mastered' ? 'bg-emerald-500' :
-                        task.status === 'good' ? 'bg-green-500' :
-                        task.status === 'medium' ? 'bg-yellow-500' :
-                        'bg-red-500'
-                      }`}
-                      style={{ width: `${(task.correct / task.total) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="mb-3">
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Ещё не проверено</p>
-                </div>
-              )}
+              {/* Stages */}
+              <div className="relative ml-5 border-l-2 border-gray-200 pl-6 dark:border-gray-700">
+                {goal.stages.map((stage, stageIdx) => {
+                  // Find the best status among tasks in this stage
+                  const stageTasks = stage.tasks.map(tn => tasks.find(t => t.task_number === tn)).filter(Boolean) as TaskMastery[]
+                  const allMastered = stageTasks.length > 0 && stageTasks.every(t => t.status === 'mastered' || t.status === 'good')
+                  const anyTested = stageTasks.some(t => t.status !== 'not_tested')
+                  const anyWeak = stageTasks.some(t => t.status === 'weak' || t.status === 'medium')
 
-              <button
-                onClick={() => startAssessment(task.task_number)}
-                disabled={assessmentLoading}
-                className={`w-full rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                  task.status === 'not_tested'
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
-                }`}
-              >
-                {task.status === 'not_tested' ? 'Проверить знания' : 'Пройти заново'}
-              </button>
+                  // Determine stage dot color
+                  const dotColor = allMastered
+                    ? 'bg-emerald-500'
+                    : anyWeak
+                      ? 'bg-yellow-500'
+                      : anyTested
+                        ? 'bg-blue-500'
+                        : 'bg-gray-300 dark:bg-gray-600'
+
+                  const isLast = stageIdx === goal.stages.length - 1
+
+                  return (
+                    <div key={stage.stage} className={`relative ${isLast ? '' : 'pb-6'}`}>
+                      {/* Timeline dot */}
+                      <div className={`absolute -left-[31px] top-1 h-4 w-4 rounded-full border-2 border-white dark:border-gray-900 ${dotColor}`} />
+
+                      {/* Stage content */}
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                        <div className="mb-2 flex items-center gap-2">
+                          <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                            Этап {stage.stage}
+                          </span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            {stage.tasks.map(tn => `#${tn}`).join(', ')}
+                          </span>
+                          {allMastered && (
+                            <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                              Освоено
+                            </span>
+                          )}
+                        </div>
+                        <p className="mb-3 text-sm text-gray-700 dark:text-gray-300">{stage.focus}</p>
+
+                        {/* Task cards within stage */}
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {stageTasks.map(task => {
+                            const cfg = STATUS_CONFIG[task.status] || STATUS_CONFIG.not_tested
+                            return (
+                              <div
+                                key={task.task_number}
+                                className={`flex items-center justify-between rounded-lg border p-3 ${cfg.border} ${cfg.bg}`}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                      #{task.task_number}
+                                    </span>
+                                    <span className="truncate text-xs text-gray-500 dark:text-gray-400">
+                                      {TASK_NAMES[task.task_number]}
+                                    </span>
+                                  </div>
+                                  {task.status !== 'not_tested' && task.correct !== null && task.total !== null && (
+                                    <div className="mt-1 flex items-center gap-2">
+                                      <div className="h-1.5 w-16 rounded-full bg-gray-200 dark:bg-gray-600">
+                                        <div
+                                          className={`h-1.5 rounded-full ${
+                                            task.status === 'mastered' ? 'bg-emerald-500' :
+                                            task.status === 'good' ? 'bg-green-500' :
+                                            task.status === 'medium' ? 'bg-yellow-500' :
+                                            'bg-red-500'
+                                          }`}
+                                          style={{ width: `${(task.correct / task.total) * 100}%` }}
+                                        />
+                                      </div>
+                                      <span className={`text-xs font-medium ${cfg.color}`}>
+                                        {Math.round((task.correct / task.total) * 100)}%
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => startAssessment(task.task_number)}
+                                  disabled={assessmentLoading}
+                                  className={`ml-3 shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                                    task.status === 'not_tested'
+                                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                      : 'border border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+                                  }`}
+                                >
+                                  {task.status === 'not_tested' ? 'Проверить' : 'Заново'}
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )
         })}
