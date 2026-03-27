@@ -55,3 +55,14 @@
     transform: scale(1);
   }
 }
+
+@media print {
+  nav, header, aside, [data-sidebar], [data-header] {
+    display: none !important;
+  }
+  main, [data-main] {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+}

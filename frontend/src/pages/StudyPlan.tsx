@@ -184,6 +184,8 @@ export default function StudyPlan() {
   const [currentAnswer, setCurrentAnswer] = useState('')
   const [assessmentLoading, setAssessmentLoading] = useState(false)
   const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(null)
+  // Assessment mode: null = choosing, 'online' = sequential, 'print' = print view, 'print-answers' = entering answers after print
+  const [assessmentMode, setAssessmentMode] = useState<'online' | 'print' | 'print-answers' | null>(null)
 
   useEffect(() => {
     loadPlan()
@@ -246,6 +248,7 @@ export default function StudyPlan() {
     setCurrentProblemIndex(0)
     setAnswers({})
     setCurrentAnswer('')
+    setAssessmentMode(null)
     try {
       const data = await api<{ task_number: number; problems: AssessmentProblem[] }>(
         `/api/study-plan/assess/${taskNumber}`,
@@ -288,13 +291,19 @@ export default function StudyPlan() {
 
   async function submitAssessment() {
     if (assessmentTask === null) return
-    saveCurrentAnswer()
 
-    // Build final answers with current answer included
-    const currentProblem = assessmentProblems[currentProblemIndex]
+    // In online mode, save the current answer first
+    if (assessmentMode === 'online') {
+      saveCurrentAnswer()
+    }
+
+    // Build final answers
     const finalAnswers = { ...answers }
-    if (currentProblem) {
-      finalAnswers[currentProblem.id] = currentAnswer
+    if (assessmentMode === 'online') {
+      const currentProblem = assessmentProblems[currentProblemIndex]
+      if (currentProblem) {
+        finalAnswers[currentProblem.id] = currentAnswer
+      }
     }
 
     setAssessmentLoading(true)
@@ -328,6 +337,7 @@ export default function StudyPlan() {
     setCurrentProblemIndex(0)
     setAnswers({})
     setCurrentAnswer('')
+    setAssessmentMode(null)
   }
 
   // Loading skeleton
@@ -405,6 +415,186 @@ export default function StudyPlan() {
 
   // Assessment in progress — show assessment UI
   if (assessmentTask !== null && assessmentProblems.length > 0 && !assessmentResult) {
+
+    // Mode selection screen
+    if (assessmentMode === null) {
+      return (
+        <div className="p-8">
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-xl font-bold dark:text-gray-100">
+              Задание {assessmentTask} — Проверка знаний
+            </h1>
+            <button
+              onClick={closeAssessment}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              Отмена
+            </button>
+          </div>
+          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
+            {assessmentProblems.length} заданий. Выберите способ прохождения:
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <button
+              onClick={() => setAssessmentMode('online')}
+              className="rounded-xl border border-gray-200 bg-white p-6 text-left transition-colors hover:border-blue-400 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500 dark:hover:bg-blue-900/20"
+            >
+              <div className="mb-2 text-2xl">💻</div>
+              <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100">Онлайн</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Решать по одному заданию на экране</p>
+            </button>
+            <button
+              onClick={() => setAssessmentMode('print')}
+              className="rounded-xl border border-gray-200 bg-white p-6 text-left transition-colors hover:border-blue-400 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500 dark:hover:bg-blue-900/20"
+            >
+              <div className="mb-2 text-2xl">🖨️</div>
+              <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100">Распечатать</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Распечатать все задания, решить на бумаге, потом ввести ответы</p>
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    // Print view — all problems on one page, print-friendly
+    if (assessmentMode === 'print') {
+      return (
+        <div>
+          {/* Screen-only controls */}
+          <div className="flex items-center justify-between p-8 pb-4 print:hidden">
+            <h1 className="text-xl font-bold dark:text-gray-100">
+              Задание {assessmentTask} — {TASK_NAMES[assessmentTask] || ''}
+            </h1>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setAssessmentMode('print-answers')}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Ввести ответы
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Распечатать
+              </button>
+              <button
+                onClick={closeAssessment}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+
+          {/* Printable content */}
+          <div className="px-8 pb-8 print:px-0 print:pb-0">
+            {/* Print header */}
+            <div className="mb-6 hidden border-b border-gray-300 pb-4 print:block">
+              <h1 className="text-xl font-bold">
+                Проверка знаний — Задание {assessmentTask}: {TASK_NAMES[assessmentTask] || ''}
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">Repeatify | Дата: ____________</p>
+            </div>
+
+            <div className="space-y-6 print:space-y-8">
+              {assessmentProblems.map((problem, i) => (
+                <div
+                  key={problem.id}
+                  className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800 print:rounded-none print:border-0 print:border-b print:border-gray-300 print:bg-white print:p-0 print:pb-6"
+                >
+                  <div className="mb-3 flex items-center gap-3">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-700 print:bg-gray-200">
+                      {i + 1}
+                    </span>
+                    {problem.difficulty && (
+                      <span className={`rounded px-2 py-0.5 text-xs font-medium print:text-gray-600 ${
+                        problem.difficulty === 'basic' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' :
+                        problem.difficulty === 'hard' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
+                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+                      }`}>
+                        {problem.difficulty === 'basic' ? 'Базовый' : problem.difficulty === 'hard' ? 'Сложный' : 'Средний'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-gray-900 dark:text-gray-100 print:text-black">
+                    <ProblemContent text={problem.problem_text} images={problem.problem_images} imageClassName="max-h-48 rounded-lg print:max-h-64" />
+                  </div>
+                  <div className="mt-4 hidden print:block">
+                    <p className="text-sm text-gray-500">Ответ: ________________________________</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Print-answers mode — enter answers for all problems at once, then submit
+    if (assessmentMode === 'print-answers') {
+      return (
+        <div className="p-8">
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-xl font-bold dark:text-gray-100">
+              Задание {assessmentTask} — Ввод ответов
+            </h1>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setAssessmentMode('print')}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                К заданиям
+              </button>
+              <button
+                onClick={closeAssessment}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+
+          <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+            Введите ответы на все задания и нажмите «Проверить»
+          </p>
+
+          <div className="mb-6 space-y-3">
+            {assessmentProblems.map((problem, i) => (
+              <div
+                key={problem.id}
+                className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                  {i + 1}
+                </span>
+                <input
+                  type="text"
+                  value={answers[problem.id] || ''}
+                  onChange={e => setAnswers(prev => ({ ...prev, [problem.id]: e.target.value }))}
+                  placeholder={`Ответ на вопрос ${i + 1}...`}
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                />
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => {
+              // Set currentAnswer to avoid overwrite in submitAssessment
+              setCurrentAnswer(answers[assessmentProblems[currentProblemIndex]?.id] || '')
+              submitAssessment()
+            }}
+            disabled={assessmentLoading}
+            className="w-full rounded-lg bg-green-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+          >
+            {assessmentLoading ? 'Проверяем...' : 'Проверить ответы'}
+          </button>
+        </div>
+      )
+    }
+
+    // Online mode — sequential problems (existing behavior)
     const problem = assessmentProblems[currentProblemIndex]
     return (
       <div className="p-8">
