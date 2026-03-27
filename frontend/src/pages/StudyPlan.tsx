@@ -456,12 +456,38 @@ export default function StudyPlan() {
       )
     }
 
-    // Print view — all problems on one page, print-friendly
+    // Print view — all problems listed, with button to open print window
     if (assessmentMode === 'print') {
+      const handlePrint = () => {
+        const printContent = document.getElementById('print-problems')
+        if (!printContent) return
+        const win = window.open('', '_blank')
+        if (!win) return
+        win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Задание ${assessmentTask} — ${TASK_NAMES[assessmentTask] || ''}</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 40px; color: #111; }
+  .header { border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 24px; }
+  .header h1 { font-size: 18px; margin: 0; }
+  .header p { font-size: 12px; color: #666; margin: 4px 0 0; }
+  .problem { padding: 16px 0; border-bottom: 1px solid #ccc; }
+  .problem:last-child { border-bottom: none; }
+  .problem-num { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #e5e7eb; font-weight: bold; font-size: 14px; margin-right: 8px; }
+  .difficulty { font-size: 11px; color: #666; margin-left: 8px; }
+  .problem-text { margin: 8px 0; }
+  .problem-text img { max-height: 200px; margin: 8px 0; }
+  .answer-line { margin-top: 12px; font-size: 13px; color: #666; }
+  @media print { body { margin: 20px; } }
+</style></head><body>`)
+        win.document.write(printContent.innerHTML)
+        win.document.write('</body></html>')
+        win.document.close()
+        win.onload = () => { win.print() }
+      }
+
       return (
-        <div>
-          {/* Screen-only controls */}
-          <div className="flex items-center justify-between p-8 pb-4 print:hidden">
+        <div className="p-8">
+          <div className="mb-6 flex items-center justify-between">
             <h1 className="text-xl font-bold dark:text-gray-100">
               Задание {assessmentTask} — {TASK_NAMES[assessmentTask] || ''}
             </h1>
@@ -473,7 +499,7 @@ export default function StudyPlan() {
                 Ввести ответы
               </button>
               <button
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
                 Распечатать
@@ -487,28 +513,27 @@ export default function StudyPlan() {
             </div>
           </div>
 
-          {/* Printable content */}
-          <div className="px-8 pb-8 print:px-0 print:pb-0">
-            {/* Print header */}
-            <div className="mb-6 hidden border-b border-gray-300 pb-4 print:block">
-              <h1 className="text-xl font-bold">
+          {/* Content rendered on screen and used for print */}
+          <div id="print-problems">
+            <div className="header" style={{ borderBottom: '2px solid #333', paddingBottom: 12, marginBottom: 24, display: 'none' }}>
+              <h1 style={{ fontSize: 18, margin: 0 }}>
                 Проверка знаний — Задание {assessmentTask}: {TASK_NAMES[assessmentTask] || ''}
               </h1>
-              <p className="mt-1 text-sm text-gray-500">Repeatify | Дата: ____________</p>
+              <p style={{ fontSize: 12, color: '#666', margin: '4px 0 0' }}>Repeatify | Дата: ____________</p>
             </div>
 
-            <div className="space-y-6 print:space-y-8">
+            <div className="space-y-4">
               {assessmentProblems.map((problem, i) => (
                 <div
                   key={problem.id}
-                  className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800 print:rounded-none print:border-0 print:border-b print:border-gray-300 print:bg-white print:p-0 print:pb-6"
+                  className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
                 >
                   <div className="mb-3 flex items-center gap-3">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-700 print:bg-gray-200">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-700">
                       {i + 1}
                     </span>
                     {problem.difficulty && (
-                      <span className={`rounded px-2 py-0.5 text-xs font-medium print:text-gray-600 ${
+                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${
                         problem.difficulty === 'basic' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' :
                         problem.difficulty === 'hard' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
                         'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
@@ -517,11 +542,11 @@ export default function StudyPlan() {
                       </span>
                     )}
                   </div>
-                  <div className="text-gray-900 dark:text-gray-100 print:text-black">
-                    <ProblemContent text={problem.problem_text} images={problem.problem_images} imageClassName="max-h-48 rounded-lg print:max-h-64" />
+                  <div className="text-gray-900 dark:text-gray-100">
+                    <ProblemContent text={problem.problem_text} images={problem.problem_images} imageClassName="max-h-48 rounded-lg" />
                   </div>
-                  <div className="mt-4 hidden print:block">
-                    <p className="text-sm text-gray-500">Ответ: ________________________________</p>
+                  <div className="mt-4 border-t border-gray-100 pt-3 dark:border-gray-700">
+                    <p className="text-sm text-gray-400">Ответ: ________________________________</p>
                   </div>
                 </div>
               ))}
