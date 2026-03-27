@@ -60,6 +60,15 @@
   nav, header, aside, [data-sidebar], [data-header] {
     display: none !important;
   }
+  /* Reset fixed height and overflow so all content prints */
+  * {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+  body, html {
+    height: auto !important;
+  }
   main, [data-main] {
     margin: 0 !important;
     padding: 0 !important;
