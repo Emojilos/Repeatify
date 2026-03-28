@@ -39,9 +39,9 @@ interface ProblemCardProps {
 }
 
 const assessmentButtons: { value: SelfAssessment; label: string; color: string }[] = [
-  { value: 'again', label: 'Снова', color: 'bg-red-500 hover:bg-red-600' },
+  { value: 'again', label: 'Очень сложно', color: 'bg-red-500 hover:bg-red-600' },
   { value: 'hard', label: 'Сложно', color: 'bg-orange-500 hover:bg-orange-600' },
-  { value: 'good', label: 'Хорошо', color: 'bg-green-500 hover:bg-green-600' },
+  { value: 'good', label: 'Нормально', color: 'bg-green-500 hover:bg-green-600' },
   { value: 'easy', label: 'Легко', color: 'bg-blue-500 hover:bg-blue-600' },
 ]
 
