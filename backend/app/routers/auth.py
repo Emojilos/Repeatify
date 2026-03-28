@@ -10,14 +10,15 @@ from app.models.auth import (
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
+    RegisterResponse,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=AuthResponse, status_code=201)
+@router.post("/register", response_model=RegisterResponse, status_code=201)
 @limiter.limit(settings.AUTH_RATE_LIMIT)
-async def register(request: Request, body: RegisterRequest) -> AuthResponse:
+async def register(request: Request, body: RegisterRequest) -> RegisterResponse:
     """Register a new user via Supabase Auth and create users row."""
     client = get_supabase_client()
     try:
@@ -31,11 +32,15 @@ async def register(request: Request, body: RegisterRequest) -> AuthResponse:
         )
 
     session = result.session
+
+    # Email confirmation required — session is None but user was created
     if session is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Registration failed — email may be in use",
-        )
+        if result.user is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Не удалось зарегистрироваться — возможно, email уже используется",
+            )
+        return RegisterResponse(confirmation_required=True)
 
     user_id = result.user.id if result.user else session.user.id
 
@@ -48,7 +53,7 @@ async def register(request: Request, body: RegisterRequest) -> AuthResponse:
         # Row may already exist if trigger handles it
         pass
 
-    return AuthResponse(
+    return RegisterResponse(
         access_token=session.access_token,
         refresh_token=session.refresh_token,
         user_id=str(user_id),

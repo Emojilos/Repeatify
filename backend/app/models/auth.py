@@ -17,6 +17,13 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class RegisterResponse(BaseModel):
+    access_token: str | None = None
+    refresh_token: str | None = None
+    user_id: str | None = None
+    confirmation_required: bool = False
+
+
 class AuthResponse(BaseModel):
     access_token: str
     refresh_token: str

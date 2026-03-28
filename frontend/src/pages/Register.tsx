@@ -8,6 +8,7 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [confirmationSent, setConfirmationSent] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string
     password?: string
@@ -31,11 +32,42 @@ export default function Register() {
     clearError()
     if (!validate()) return
     try {
-      await register(email, password)
-      navigate('/dashboard', { replace: true })
+      const result = await register(email, password)
+      if (result.confirmationRequired) {
+        setConfirmationSent(true)
+      } else {
+        navigate('/dashboard', { replace: true })
+      }
     } catch {
       // error is set in the store
     }
+  }
+
+  if (confirmationSent) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-900">
+        <div className="w-full max-w-sm text-center">
+          <h1 className="mb-2 text-2xl font-bold text-blue-600">Repeatify</h1>
+          <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/30">
+            <svg className="mx-auto mb-4 h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+            </svg>
+            <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">Подтвердите email</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Мы отправили письмо на <span className="font-medium text-gray-900 dark:text-gray-100">{email}</span>. Перейдите по ссылке в письме, чтобы активировать аккаунт.
+            </p>
+            <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              Не получили письмо? Проверьте папку «Спам».
+            </p>
+          </div>
+          <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
+            <Link to="/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
+              Перейти ко входу
+            </Link>
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (

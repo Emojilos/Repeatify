@@ -19,6 +19,13 @@ interface AuthResponse {
   user_id: string
 }
 
+interface RegisterResponse {
+  access_token: string | null
+  refresh_token: string | null
+  user_id: string | null
+  confirmation_required: boolean
+}
+
 interface AuthState {
   user: User | null
   token: string | null
@@ -27,7 +34,7 @@ interface AuthState {
   error: string | null
 
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string) => Promise<{ confirmationRequired: boolean }>
   logout: () => Promise<void>
   loadUser: () => Promise<void>
   clearError: () => void
@@ -63,16 +70,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (email: string, password: string) => {
     set({ isLoading: true, error: null })
     try {
-      const data = await api<AuthResponse>('/auth/register', {
+      const data = await api<RegisterResponse>('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
         skipAuth: true,
         silent: true,
       })
-      localStorage.setItem('access_token', data.access_token)
-      localStorage.setItem('refresh_token', data.refresh_token)
+
+      if (data.confirmation_required) {
+        set({ isLoading: false })
+        return { confirmationRequired: true }
+      }
+
+      localStorage.setItem('access_token', data.access_token!)
+      localStorage.setItem('refresh_token', data.refresh_token!)
       set({ token: data.access_token, isAuthenticated: true, isLoading: false })
       await get().loadUser()
+      return { confirmationRequired: false }
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Ошибка регистрации'
       set({ isLoading: false, error: message })
