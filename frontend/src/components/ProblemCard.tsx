@@ -29,7 +29,7 @@ interface AttemptResponse {
   new_level_reached: number | null
 }
 
-type SelfAssessment = 'again' | 'hard' | 'good' | 'easy'
+type SelfAssessment = 'very hard' | 'hard' | 'normal' | 'easy'
 
 interface ProblemCardProps {
   problem: Problem
@@ -39,9 +39,9 @@ interface ProblemCardProps {
 }
 
 const assessmentButtons: { value: SelfAssessment; label: string; color: string }[] = [
-  { value: 'again', label: 'Очень сложно', color: 'bg-red-500 hover:bg-red-600' },
+  { value: 'very hard', label: 'Очень сложно', color: 'bg-red-500 hover:bg-red-600' },
   { value: 'hard', label: 'Сложно', color: 'bg-orange-500 hover:bg-orange-600' },
-  { value: 'good', label: 'Нормально', color: 'bg-green-500 hover:bg-green-600' },
+  { value: 'normal', label: 'Нормально', color: 'bg-green-500 hover:bg-green-600' },
   { value: 'easy', label: 'Легко', color: 'bg-blue-500 hover:bg-blue-600' },
 ]
 
@@ -144,7 +144,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
   // Part 1: Check answer first, then show SRS buttons
   const handleCheck = async () => {
     if (!answer.trim()) return
-    const res = await submitAttempt('good')
+    const res = await submitAttempt('normal')
     if (res) {
       setSelectedAssessment(null)
     }
