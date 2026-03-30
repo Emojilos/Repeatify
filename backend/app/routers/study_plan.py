@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.core.auth import get_current_user
 from app.core.config import settings
@@ -115,6 +115,7 @@ async def recalculate_study_plan(
 async def start_task_assessment(
     task_number: int,
     user: dict = Depends(get_current_user),
+    prototype_id: str | None = Query(None, description="Filter by prototype UUID"),
 ) -> AssessmentStartResponse:
     """Start an assessment test for a specific task. Returns 10 problems."""
     if task_number < 1 or task_number > 19:
@@ -124,7 +125,7 @@ async def start_task_assessment(
         )
 
     client = get_supabase_client()
-    problems = start_assessment(client, user["id"], task_number)
+    problems = start_assessment(client, user["id"], task_number, prototype_id=prototype_id)
 
     if not problems:
         raise HTTPException(

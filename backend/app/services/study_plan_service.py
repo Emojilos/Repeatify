@@ -185,17 +185,20 @@ def generate_plan(
     }
 
 
-def start_assessment(client, user_id: str, task_number: int) -> list[dict]:
+def start_assessment(client, user_id: str, task_number: int, prototype_id: str | None = None) -> list[dict]:
     """Select 10 random problems for a task assessment.
 
     Returns list of problem dicts (without correct_answer).
+    Optionally filter by prototype_id.
     """
-    result = (
+    query = (
         client.table("problems")
         .select("id,task_number,difficulty,problem_text,problem_images,hints")
         .eq("task_number", task_number)
-        .execute()
     )
+    if prototype_id:
+        query = query.eq("prototype_id", prototype_id)
+    result = query.execute()
     problems = result.data or []
 
     if len(problems) <= ASSESSMENT_SIZE:

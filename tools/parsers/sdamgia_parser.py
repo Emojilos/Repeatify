@@ -65,7 +65,7 @@ HEADERS = {
 # "Тип N" = current format, "Тип ДN" = deprecated format.
 # Gathered from https://math-ege.sdamgia.ru/prob-catalog
 TASK_TO_THEME_IDS: dict[int, list[int]] = {
-    1: [55, 56, 57, 58, 59],                # Планиметрия (Тип 1)
+    1: [79, 90, 96, 102, 94, 111, 112, 113, 114],  # Планиметрия (Тип 1)
     2: [10],                                  # Векторы (Тип 2)
     3: [11, 12, 13, 14],                     # Стереометрия (Тип 3)
     4: [61, 62, 63],                          # Вероятности (Тип 4)
@@ -84,6 +84,21 @@ TASK_TO_THEME_IDS: dict[int, list[int]] = {
     17: [276, 277, 278, 279],                 # Планиметрия (Тип 17)
     18: [207, 208, 235, 266, 268, 269, 270], # Параметр (Тип 18)
     19: [209, 210, 217],                      # Числа и их свойства (Тип 19)
+}
+
+# Mapping from sdamgia theme ID to prototype_code.
+# Used to assign problems to prototypes during import.
+THEME_TO_PROTOTYPE: dict[int, str] = {
+    # Task 1: Планиметрия
+    79: "1.1",   # Решение прямоугольного треугольника
+    90: "1.2",   # Решение равнобедренного треугольника
+    96: "1.3",   # Треугольники общего вида
+    102: "1.4",  # Параллелограммы
+    94: "1.5",   # Трапеция
+    111: "1.6",  # Центральные и вписанные углы
+    112: "1.7",  # Касательная, хорда, секущая
+    113: "1.8",  # Вписанные окружности
+    114: "1.9",  # Описанные окружности
 }
 
 # Direct problem IDs for EGE 2025 types that don't have reliable theme mappings.
@@ -173,6 +188,7 @@ class ParsedProblem:
     source_id: str = ""
     content_hash: str = ""
     difficulty: str = "medium"
+    prototype_code: str = ""
 
     def compute_hash(self) -> None:
         """Compute SHA-256 hash of problem text + images for deduplication.
@@ -510,6 +526,8 @@ def scrape_with_requests(
     """
     session = requests.Session()
     problem_ids: list[str] = []
+    # Track which theme each problem came from (for prototype assignment)
+    pid_to_theme: dict[str, int] = {}
 
     # First try seed problem IDs (reliable for missing types 2,3,4,5,9)
     seed_ids = SEED_PROBLEM_IDS.get(task_number, [])
@@ -531,6 +549,7 @@ def scrape_with_requests(
         for pid in ids:
             if pid not in problem_ids:
                 problem_ids.append(pid)
+                pid_to_theme[pid] = theme_id
         log.info("Found %d problem IDs from theme %d", len(ids), theme_id)
         time.sleep(REQUEST_DELAY)
 
@@ -604,6 +623,10 @@ def scrape_with_requests(
                 pid, actual_type, task_number,
             )
 
+        # Determine prototype from theme
+        theme_id = pid_to_theme.get(pid)
+        proto_code = THEME_TO_PROTOTYPE.get(theme_id, "") if theme_id else ""
+
         problem = ParsedProblem(
             task_number=effective_task,
             problem_text=problem_text,
@@ -612,6 +635,7 @@ def scrape_with_requests(
             problem_images=image_urls,  # raw URLs for hashing
             source_url=prob_url,
             source_id=pid,
+            prototype_code=proto_code,
         )
         problem.compute_hash()
 
@@ -892,6 +916,12 @@ def upload_to_supabase(
     for row in topics_resp.data or []:
         topic_map[row["task_number"]] = row["id"]
 
+    # Build prototype_code -> prototype_id map
+    protos_resp = client.table("prototypes").select("id,prototype_code,task_number").execute()
+    proto_map: dict[str, str] = {}
+    for row in protos_resp.data or []:
+        proto_map[row["prototype_code"]] = row["id"]
+
     inserted = 0
     skipped = 0
 
@@ -918,6 +948,9 @@ def upload_to_supabase(
                 images, "sdamgia", problem.task_number
             )
 
+        # Resolve prototype_id from prototype_code
+        prototype_id = proto_map.get(problem.prototype_code) if problem.prototype_code else None
+
         row = {
             "topic_id": topic_id,
             "task_number": problem.task_number,
@@ -930,6 +963,8 @@ def upload_to_supabase(
             "source_url": problem.source_url,
             "content_hash": problem.content_hash,
         }
+        if prototype_id:
+            row["prototype_id"] = prototype_id
 
         try:
             client.table("problems").insert(row).execute()

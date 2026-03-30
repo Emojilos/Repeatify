@@ -187,6 +187,19 @@ export default function StudyPlan() {
   // Assessment mode: null = choosing, 'online' = sequential, 'print' = print view, 'print-answers' = entering answers after print
   const [assessmentMode, setAssessmentMode] = useState<'online' | 'print' | 'print-answers' | null>(null)
 
+  // Prototype selection
+  interface Prototype {
+    id: string
+    task_number: number
+    prototype_code: string
+    title: string
+    difficulty_within_task: string
+    order_index: number
+  }
+  const [prototypePickerTask, setPrototypePickerTask] = useState<number | null>(null)
+  const [prototypes, setPrototypes] = useState<Prototype[]>([])
+  const [prototypesLoading, setPrototypesLoading] = useState(false)
+
   useEffect(() => {
     loadPlan()
   }, [])
@@ -242,7 +255,21 @@ export default function StudyPlan() {
     }
   }
 
-  const startAssessment = useCallback(async (taskNumber: number) => {
+  const openPrototypePicker = useCallback(async (taskNumber: number) => {
+    setPrototypesLoading(true)
+    setPrototypePickerTask(taskNumber)
+    try {
+      const data = await api<{ items: Prototype[] }>(`/api/prototypes?task_number=${taskNumber}`)
+      setPrototypes(data.items || [])
+    } catch {
+      setPrototypes([])
+    } finally {
+      setPrototypesLoading(false)
+    }
+  }, [])
+
+  const startAssessment = useCallback(async (taskNumber: number, prototypeId?: string) => {
+    setPrototypePickerTask(null)
     setAssessmentLoading(true)
     setAssessmentResult(null)
     setCurrentProblemIndex(0)
@@ -250,8 +277,11 @@ export default function StudyPlan() {
     setCurrentAnswer('')
     setAssessmentMode(null)
     try {
+      const url = prototypeId
+        ? `/api/study-plan/assess/${taskNumber}?prototype_id=${prototypeId}`
+        : `/api/study-plan/assess/${taskNumber}`
       const data = await api<{ task_number: number; problems: AssessmentProblem[] }>(
-        `/api/study-plan/assess/${taskNumber}`,
+        url,
         { method: 'POST' },
       )
       setAssessmentTask(taskNumber)
@@ -769,7 +799,7 @@ export default function StudyPlan() {
           <button
             onClick={() => {
               closeAssessment()
-              if (assessmentResult) startAssessment(assessmentResult.task_number)
+              if (assessmentResult) openPrototypePicker(assessmentResult.task_number)
             }}
             className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
           >
@@ -920,7 +950,7 @@ export default function StudyPlan() {
                                   )}
                                 </div>
                                 <button
-                                  onClick={() => startAssessment(task.task_number)}
+                                  onClick={() => openPrototypePicker(task.task_number)}
                                   disabled={assessmentLoading}
                                   className={`ml-3 shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                                     task.status === 'not_tested'
@@ -943,6 +973,61 @@ export default function StudyPlan() {
           )
         })}
       </div>
+
+      {/* Prototype picker modal */}
+      {prototypePickerTask !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setPrototypePickerTask(null)}>
+          <div
+            className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="mb-1 text-lg font-bold dark:text-gray-100">
+              Задание {prototypePickerTask} — {TASK_NAMES[prototypePickerTask]}
+            </h2>
+            <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">Выберите прототип или решайте всё вперемешку</p>
+
+            {prototypesLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-10 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-700" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <button
+                  onClick={() => startAssessment(prototypePickerTask)}
+                  className="w-full rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-left text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                >
+                  Все вперемешку
+                </button>
+                {prototypes.map(proto => (
+                  <button
+                    key={proto.id}
+                    onClick={() => startAssessment(prototypePickerTask, proto.id)}
+                    className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
+                  >
+                    <span className="font-medium text-gray-900 dark:text-gray-100">{proto.prototype_code}. {proto.title}</span>
+                    <span className={`ml-2 text-xs ${
+                      proto.difficulty_within_task === 'easy' ? 'text-green-600 dark:text-green-400' :
+                      proto.difficulty_within_task === 'hard' ? 'text-red-600 dark:text-red-400' :
+                      'text-yellow-600 dark:text-yellow-400'
+                    }`}>
+                      {proto.difficulty_within_task === 'easy' ? 'Лёгкий' : proto.difficulty_within_task === 'hard' ? 'Сложный' : 'Средний'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => setPrototypePickerTask(null)}
+              className="mt-4 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Target score modal */}
       {showTargetModal && (
