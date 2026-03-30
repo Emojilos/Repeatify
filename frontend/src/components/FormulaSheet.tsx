@@ -1,12 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useFormulaStore } from '../stores/formulaStore'
 import allFormulas from '../data/formulas'
 import MathRenderer from './MathRenderer'
 
+const MIN_WIDTH = 360
+const DEFAULT_WIDTH_RATIO = 0.42
+
 export default function FormulaSheet() {
   const { isOpen, activeTaskNumber, close, toggle } = useFormulaStore()
-  const modalRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const [selectedTask, setSelectedTask] = useState<number | null>(null)
+  const [panelWidth, setPanelWidth] = useState(() =>
+    Math.max(MIN_WIDTH, Math.round(window.innerWidth * DEFAULT_WIDTH_RATIO)),
+  )
+  const isResizing = useRef(false)
 
   // Sync selectedTask with activeTaskNumber when modal opens
   useEffect(() => {
@@ -23,6 +30,31 @@ export default function FormulaSheet() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [isOpen, close])
+
+  // Resize handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    isResizing.current = true
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current) return
+      const newWidth = window.innerWidth - e.clientX
+      setPanelWidth(Math.max(MIN_WIDTH, Math.min(newWidth, window.innerWidth * 0.85)))
+    }
+
+    const handleMouseUp = () => {
+      isResizing.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+  }, [])
 
   const formulasToShow = selectedTask
     ? allFormulas.filter((f) => f.taskNumber === selectedTask)
@@ -42,33 +74,40 @@ export default function FormulaSheet() {
         </svg>
       </button>
 
-      {/* Modal overlay */}
+      {/* Side panel */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <>
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]"
             onClick={close}
           />
 
-          {/* Modal */}
+          {/* Panel */}
           <div
-            ref={modalRef}
-            className="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-800"
-            style={{ animation: 'formula-in 0.25s ease-out' }}
+            ref={panelRef}
+            className="fixed inset-y-0 right-0 z-50 flex flex-col bg-white shadow-2xl dark:bg-gray-800"
+            style={{
+              width: panelWidth,
+              animation: 'formula-slide-in 0.25s ease-out',
+            }}
           >
+            {/* Resize handle */}
+            <div
+              onMouseDown={handleMouseDown}
+              className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize bg-transparent transition-colors hover:bg-indigo-400/50"
+            />
+
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4 dark:border-gray-700">
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg font-bold text-white">
-                  {selectedTask
-                    ? `Задание ${selectedTask} — ${allFormulas.find((f) => f.taskNumber === selectedTask)?.title || ''}`
-                    : 'Все формулы ЕГЭ'}
-                </h2>
-              </div>
+            <div className="flex items-center justify-between bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-3">
+              <h2 className="truncate text-base font-bold text-white">
+                {selectedTask
+                  ? `Задание ${selectedTask} — ${allFormulas.find((f) => f.taskNumber === selectedTask)?.title || ''}`
+                  : 'Все формулы ЕГЭ'}
+              </h2>
               <button
                 onClick={close}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+                className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
                   <path d="M18 6L6 18M6 6l12 12" />
@@ -77,10 +116,10 @@ export default function FormulaSheet() {
             </div>
 
             {/* Task tabs */}
-            <div className="flex gap-1.5 overflow-x-auto border-b border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-gray-700 dark:bg-gray-900/50">
+            <div className="flex flex-wrap gap-1.5 border-b border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-gray-700 dark:bg-gray-900/50">
               <button
                 onClick={() => setSelectedTask(null)}
-                className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                   selectedTask === null
                     ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700'
@@ -92,7 +131,7 @@ export default function FormulaSheet() {
                 <button
                   key={f.taskNumber}
                   onClick={() => setSelectedTask(f.taskNumber)}
-                  className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                     selectedTask === f.taskNumber
                       ? 'bg-indigo-600 text-white shadow-sm'
                       : 'text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700'
@@ -104,7 +143,7 @@ export default function FormulaSheet() {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="flex-1 overflow-y-auto px-5 py-5">
               <div className="space-y-8">
                 {formulasToShow.map((task) => (
                   <div key={task.taskNumber}>
@@ -152,7 +191,7 @@ export default function FormulaSheet() {
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </>
   )
