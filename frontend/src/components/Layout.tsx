@@ -5,6 +5,7 @@ import XpPopup from './XpPopup'
 import LevelUpModal from './LevelUpModal'
 import ErrorBoundary from './ErrorBoundary'
 import FormulaSheet from './FormulaSheet'
+import FormulaSheetButton from './FormulaSheetButton'
 
 export default function Layout() {
   return (
@@ -12,14 +13,15 @@ export default function Layout() {
       <Header />
       <XpPopup />
       <LevelUpModal />
-      <FormulaSheet />
+      <FormulaSheetButton />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-6 dark:bg-gray-900">
+        <main className="min-w-0 flex-1 overflow-y-auto bg-gray-50 p-6 dark:bg-gray-900">
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
         </main>
+        <FormulaSheet />
       </div>
     </div>
   )
