@@ -6,7 +6,6 @@
 @theme {
   --animate-xp-popup: xp-popup 2.5s ease-out forwards;
   --animate-level-up: level-up 0.4s ease-out;
-  --animate-formula-in: formula-in 0.25s ease-out;
 }
 
 @keyframes xp-popup {
@@ -31,27 +30,6 @@
   }
 }
 
-@keyframes formula-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-@keyframes formula-slide-in {
-  0% {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
 
 @keyframes level-up {
   0% {

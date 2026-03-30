@@ -77,20 +77,11 @@ export default function FormulaSheet() {
       {/* Side panel */}
       {isOpen && (
         <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]"
-            onClick={close}
-          />
-
-          {/* Panel */}
+          {/* Panel — no backdrop, main content stays interactive */}
           <div
             ref={panelRef}
-            className="fixed inset-y-0 right-0 z-50 flex flex-col bg-white shadow-2xl dark:bg-gray-800"
-            style={{
-              width: panelWidth,
-              animation: 'formula-slide-in 0.25s ease-out',
-            }}
+            className="fixed inset-y-0 right-0 z-50 flex flex-col border-l border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+            style={{ width: panelWidth }}
           >
             {/* Resize handle */}
             <div
