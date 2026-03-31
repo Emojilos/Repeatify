@@ -41,7 +41,9 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 BASE_URL = "https://math-ege.sdamgia.ru"
-# Theme page lists problems for a given EGE task number
+# Category page lists ALL problems for a given category (with filter=all)
+CATEGORY_URL = BASE_URL + "/test?category_id={category_id}&filter=all"
+# Legacy theme URL (kept for backward compat)
 THEME_URL = BASE_URL + "/test?theme={theme_id}"
 # Individual problem page
 PROBLEM_URL = BASE_URL + "/problem?id={problem_id}"
@@ -60,35 +62,35 @@ HEADERS = {
     "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
 }
 
-# Mapping from EGE task number (1-19) to sdamgia internal theme IDs.
+# Mapping from EGE task number (1-19) to sdamgia category IDs.
+# Use with CATEGORY_URL: /test?category_id={id}&filter=all
 # Each task may have multiple subtopics; we list the main ones.
-# "Тип N" = current format, "Тип ДN" = deprecated format.
 # Gathered from https://math-ege.sdamgia.ru/prob-catalog
-TASK_TO_THEME_IDS: dict[int, list[int]] = {
+TASK_TO_CATEGORY_IDS: dict[int, list[int]] = {
     1: [79, 90, 96, 102, 94, 111, 112, 113, 114],  # Планиметрия (Тип 1)
-    2: [10],                                  # Векторы (Тип 2)
-    3: [11, 12, 13, 14],                     # Стереометрия (Тип 3)
-    4: [61, 62, 63],                          # Вероятности (Тип 4)
-    5: [64, 65],                              # Вероятности (Тип 5)
-    6: [68, 69, 70],                          # Уравнения (Тип 6)
-    7: [60],                                  # Вычисления (Тип 7)
-    8: [7, 8, 9],                             # Производная (Тип 8)
-    9: [90],                                  # Задачи с прикладным содержанием (Тип 9)
-    10: [84, 85, 86, 87, 88, 89],            # Текстовые задачи (Тип 10)
+    2: [128],                                  # Векторы (Тип 2)
+    3: [192, 193, 180, 148, 140, 178, 177, 197, 194, 144, 151],                     # Стереометрия (Тип 3)
+    4: [166],                          # Вероятности (Тип 4)
+    5: [185, 265],                              # Вероятности (Тип 5)
+    6: [14, 9, 10, 11, 12, 13],                          # Уравнения (Тип 6)
+    7: [60, 55, 57, 62, 56, 61, 58, 63, 65, 59, 64],                                  # Вычисления (Тип 7)
+    8: [69, 68, 70, 183],                             # Производная (Тип 8)
+    9: [71, 72, 76, 77, 73, 74, 75, 184],                                  # Задачи с прикладным содержанием (Тип 9)
+    10: [88, 84, 85, 86, 87, 89],            # Текстовые задачи (Тип 10)
     11: [122, 125, 191, 267, 272, 294, 296], # Графики функций (Тип 11)
-    12: [78, 80, 81, 82, 83],                # Наибольшее/наименьшее значение (Тип 12)
-    13: [201, 202, 275, 290, 291],           # Уравнения (Тип 13)
-    14: [206, 257, 280, 281, 282, 283],      # Стереометрия (Тип 14)
-    15: [237, 238, 239, 242, 243, 244, 245], # Неравенства (Тип 15)
+    12: [78, 80, 81, 82, 83, 175],                # Наибольшее/наименьшее значение (Тип 12)
+    13: [201, 202, 275, 290, 291, 305, 304, 303, 306, 302, 167, 186, 330],           # Уравнения (Тип 13)
+    14: [206, 257, 280, 281, 282, 283, 307, 308, 309, 311, 284, 285, 310, 331],      # Стереометрия (Тип 14)
+    15: [237, 238, 239, 242, 243, 244, 245, 317, 316, 320, 318, 313, 319, 315, 314], # Неравенства (Тип 15)
     16: [221, 247, 292, 293],                 # Экономическая задача (Тип 16)
-    17: [276, 277, 278, 279],                 # Планиметрия (Тип 17)
-    18: [207, 208, 235, 266, 268, 269, 270], # Параметр (Тип 18)
-    19: [209, 210, 217],                      # Числа и их свойства (Тип 19)
+    17: [276, 277, 278, 279, 321, 322, 323, 325, 326, 324],                 # Планиметрия (Тип 17)
+    18: [207, 208, 235, 266, 268, 269, 270, 171, 328, 327, 273, 274, 329, 271], # Параметр (Тип 18)
+    19: [209, 210, 217, 172],                      # Числа и их свойства (Тип 19)
 }
 
 # Mapping from sdamgia theme ID to prototype_code.
 # Used to assign problems to prototypes during import.
-THEME_TO_PROTOTYPE: dict[int, str] = {
+CATEGORY_TO_PROTOTYPE: dict[int, str] = {
     # Task 1: Планиметрия
     79: "1.1",   # Решение прямоугольного треугольника
     90: "1.2",   # Решение равнобедренного треугольника
@@ -99,6 +101,161 @@ THEME_TO_PROTOTYPE: dict[int, str] = {
     112: "1.7",  # Касательная, хорда, секущая
     113: "1.8",  # Вписанные окружности
     114: "1.9",  # Описанные окружности
+    # Task 2: Векторы
+    128: "2.1",  # Векторы и операции с ними
+    # Task 3: Стереометрия
+    192: "3.1",   # Куб
+    193: "3.2",   # Прямоугольный параллелепипед
+    180: "3.3",   # Элементы составных многогранников
+    148: "3.4",   # Площадь поверхности составного многогранника
+    140: "3.5",   # Объем составного многогранника
+    178: "3.6",   # Призма
+    177: "3.7",   # Пирамида
+    197: "3.8",   # Комбинации тел
+    194: "3.9",   # Цилиндр
+    144: "3.10",  # Конус
+    151: "3.11",  # Шар
+    # Task 4: Вероятности
+    166: "4.1",  # Классическое определение вероятности
+    # Task 5: Сложная вероятность
+    185: "5.1",  # Теоремы о вероятностях событий
+    265: "5.2",  # Новые задания банка MathЕГЭ
+    # Task 6: Простейшие уравнения
+    14: "6.1",   # Линейные, квадратные, кубические
+    9: "6.2",    # Рациональные уравнения
+    10: "6.3",   # Иррациональные уравнения
+    11: "6.4",   # Показательные уравнения
+    12: "6.5",   # Логарифмические уравнения
+    13: "6.6",   # Тригонометрические уравнения
+    # Task 7: Вычисления и преобразования
+    60: "7.1",   # Алгебраические выражения и дроби
+    55: "7.2",   # Числовые рациональные выражения
+    57: "7.3",   # Степенные выражения
+    62: "7.4",   # Действия со степенями
+    56: "7.5",   # Числовые иррациональные выражения
+    61: "7.6",   # Буквенные иррациональные выражения
+    58: "7.7",   # Числовые логарифмические выражения
+    63: "7.8",   # Буквенные логарифмические выражения
+    65: "7.9",   # Тригонометрические вычисления
+    59: "7.10",  # Числовые тригонометрические выражения
+    64: "7.11",  # Буквенные тригонометрические выражения
+    # Task 8: Производная
+    69: "8.1",   # Физический смысл производной
+    68: "8.2",   # Геометрический смысл производной
+    70: "8.3",   # Применение производной к исследованию
+    183: "8.4",  # Первообразная
+    # Task 9: Задачи с прикладным содержанием
+    71: "9.1",   # Линейные уравнения и неравенства
+    72: "9.2",   # Квадратные и степенные
+    76: "9.3",   # Рациональные
+    77: "9.4",   # Иррациональные
+    73: "9.5",   # Показательные
+    74: "9.6",   # Логарифмические
+    75: "9.7",   # Тригонометрические
+    184: "9.8",  # Разные задачи
+    # Task 10: Текстовые задачи
+    88: "10.1",  # Проценты, сплавы и смеси
+    84: "10.2",  # Движение по прямой
+    85: "10.3",  # Движение по окружности
+    86: "10.4",  # Движение по воде
+    87: "10.5",  # Совместная работа
+    89: "10.6",  # Прогрессии
+    # Task 11: Анализ графиков
+    122: "11.1",  # Корни
+    125: "11.2",  # Гиперболы
+    191: "11.3",  # Тригонометрические функции
+    267: "11.4",  # Линейные функции
+    272: "11.5",  # Показательные и логарифмические
+    294: "11.6",  # Параболы
+    296: "11.7",  # Комбинированные задачи
+    # Task 12: Наибольшее/наименьшее значение
+    78: "12.1",   # Тригонометрические функции
+    80: "12.2",   # Показательные и логарифмические
+    81: "12.3",   # Степенные и иррациональные
+    82: "12.4",   # Произведения
+    83: "12.5",   # Частные
+    175: "12.6",  # Без производной
+    # Task 13: Уравнения (профиль)
+    201: "13.1",   # Тригонометрия и иррациональности
+    202: "13.2",   # Тригонометрические, ОДЗ
+    275: "13.3",   # Иррациональные
+    290: "13.4",   # Рациональные
+    291: "13.5",   # Тригонометрические, разложение
+    305: "13.6",   # Смешанные
+    304: "13.7",   # Тригонометрия и показательные
+    303: "13.8",   # Тригонометрия и логарифмы
+    306: "13.9",   # Тригонометрические разные
+    302: "13.10",  # Однородные
+    167: "13.11",  # Сводимые к квадратным
+    186: "13.12",  # Логарифмические
+    330: "13.13",  # Показательные
+    # Task 14: Стереометрия (профиль)
+    206: "14.1",   # Круглые тела
+    257: "14.2",   # Объёмы многогранников
+    280: "14.3",   # Расстояние между прямыми и плоскостями
+    281: "14.4",   # Расстояние от точки до прямой
+    282: "14.5",   # Сечения пирамид
+    283: "14.6",   # Угол между плоскостями
+    307: "14.7",   # Расстояние от точки до плоскости
+    308: "14.8",   # Сечения призм
+    309: "14.9",   # Сечения параллелепипедов
+    311: "14.10",  # Угол между плоскостями граней
+    284: "14.11",  # Угол между прямой и плоскостью
+    285: "14.12",  # Угол между скрещивающимися
+    310: "14.13",  # Сечения круглых тел
+    331: "14.14",  # Комбинации фигур
+    # Task 15: Неравенства
+    237: "15.1",   # Показательные
+    238: "15.2",   # Логарифмические 1-2 степени
+    239: "15.3",   # Лог по переменному основанию
+    242: "15.4",   # Рациональные
+    243: "15.5",   # С радикалами
+    244: "15.6",   # С модулем
+    245: "15.7",   # Лог и показательные
+    317: "15.8",   # Смешанные
+    316: "15.9",   # С тригонометрией
+    320: "15.10",  # Рациональные отн. показательной
+    318: "15.11",  # Рациональные отн. логарифмической
+    313: "15.12",  # Рационализация
+    319: "15.13",  # Логарифмические разные
+    315: "15.14",  # Показательные и иррациональности
+    314: "15.15",  # Логарифмы и иррациональности
+    # Task 16: Экономическая задача
+    221: "16.1",  # Разные задачи
+    247: "16.2",  # Оптимальный выбор
+    292: "16.3",  # Кредиты
+    293: "16.4",  # Вклады
+    # Task 17: Планиметрия (профиль)
+    276: "17.1",   # Треугольники и их свойства
+    277: "17.2",   # Окружности и системы окружностей
+    278: "17.3",   # Вписанные окружности и треугольники
+    279: "17.4",   # Вписанные окружности и четырёхугольники
+    321: "17.5",   # Четырёхугольники и их свойства
+    322: "17.6",   # Описанные окружности и треугольники
+    323: "17.7",   # Окружности и треугольники, разные
+    325: "17.8",   # Описанные окружности и четырёхугольники
+    326: "17.9",   # Окружности и четырёхугольники, разные
+    324: "17.10",  # Разные задачи о многоугольниках
+    # Task 18: Параметры
+    207: "18.1",   # Корни квадратного трёхчлена
+    208: "18.2",   # Монотонность и оценки
+    235: "18.3",   # Функции от параметра
+    266: "18.4",   # Уравнение окружности
+    268: "18.5",   # Системы с параметром
+    269: "18.6",   # Расстояние между точками
+    270: "18.7",   # Неравенства с параметром
+    171: "18.8",   # Уравнения с параметром
+    328: "18.9",   # Уравнения с модулем
+    327: "18.10",  # Уравнения с радикалами
+    273: "18.11",  # Симметрии
+    274: "18.12",  # Аналитическое решение
+    329: "18.13",  # Аналитическое решение систем
+    271: "18.14",  # Координаты (x, a)
+    # Task 19: Числа и их свойства
+    209: "19.1",  # Последовательности и прогрессии
+    210: "19.2",  # Сюжетные задачи
+    217: "19.3",  # Числовые наборы на карточках
+    172: "19.4",  # Числа и их свойства
 }
 
 # Direct problem IDs for EGE 2025 types that don't have reliable theme mappings.
@@ -189,6 +346,7 @@ class ParsedProblem:
     content_hash: str = ""
     difficulty: str = "medium"
     prototype_code: str = ""
+    source_category_id: int = 0
 
     def compute_hash(self) -> None:
         """Compute SHA-256 hash of problem text + images for deduplication.
@@ -535,13 +693,13 @@ def scrape_with_requests(
         problem_ids.extend(seed_ids)
         log.info("Using %d seed problem IDs for task %d", len(seed_ids), task_number)
 
-    # Also collect from theme pages
-    theme_ids = TASK_TO_THEME_IDS.get(task_number, [])
-    for theme_id in theme_ids:
-        theme_url = THEME_URL.format(theme_id=theme_id)
-        log.info("Fetching theme page: %s", theme_url)
+    # Collect from category pages (category_id with filter=all)
+    category_ids = TASK_TO_CATEGORY_IDS.get(task_number, [])
+    for cat_id in category_ids:
+        cat_url = CATEGORY_URL.format(category_id=cat_id)
+        log.info("Fetching category page: %s", cat_url)
 
-        soup = fetch_page(theme_url, session)
+        soup = fetch_page(cat_url, session)
         if soup is None:
             continue
 
@@ -549,8 +707,8 @@ def scrape_with_requests(
         for pid in ids:
             if pid not in problem_ids:
                 problem_ids.append(pid)
-                pid_to_theme[pid] = theme_id
-        log.info("Found %d problem IDs from theme %d", len(ids), theme_id)
+                pid_to_theme[pid] = cat_id
+        log.info("Found %d problem IDs from category %d", len(ids), cat_id)
         time.sleep(REQUEST_DELAY)
 
     log.info("Total %d unique problem IDs for task %d", len(problem_ids), task_number)
@@ -623,9 +781,9 @@ def scrape_with_requests(
                 pid, actual_type, task_number,
             )
 
-        # Determine prototype from theme
-        theme_id = pid_to_theme.get(pid)
-        proto_code = THEME_TO_PROTOTYPE.get(theme_id, "") if theme_id else ""
+        # Determine prototype from category
+        cat_id = pid_to_theme.get(pid, 0)
+        proto_code = CATEGORY_TO_PROTOTYPE.get(cat_id, "") if cat_id else ""
 
         problem = ParsedProblem(
             task_number=effective_task,
@@ -636,6 +794,7 @@ def scrape_with_requests(
             source_url=prob_url,
             source_id=pid,
             prototype_code=proto_code,
+            source_category_id=cat_id,
         )
         problem.compute_hash()
 
@@ -683,22 +842,22 @@ def scrape_with_tavily(
         log.error("TAVILY_API_KEY is required for Tavily extraction")
         return []
 
-    theme_ids = TASK_TO_THEME_IDS.get(task_number, [])
-    if not theme_ids:
-        log.error("No theme IDs mapped for task %d", task_number)
+    category_ids = TASK_TO_CATEGORY_IDS.get(task_number, [])
+    if not category_ids:
+        log.error("No category IDs mapped for task %d", task_number)
         return []
 
-    theme_urls = [
-        THEME_URL.format(theme_id=tid) for tid in theme_ids
+    cat_urls = [
+        CATEGORY_URL.format(category_id=cid) for cid in category_ids
     ]
-    log.info("Extracting %d theme pages via Tavily", len(theme_urls))
+    log.info("Extracting %d category pages via Tavily", len(cat_urls))
 
     # Extract theme pages to get problem IDs
     try:
         resp = requests.post(
             "https://api.tavily.com/extract",
             json={
-                "urls": theme_urls,
+                "urls": cat_urls,
                 "api_key": api_key,
                 "extract_depth": "advanced",
                 "include_images": True,
@@ -917,10 +1076,40 @@ def upload_to_supabase(
         topic_map[row["task_number"]] = row["id"]
 
     # Build prototype_code -> prototype_id map
-    protos_resp = client.table("prototypes").select("id,prototype_code,task_number").execute()
+    protos_resp = (
+        client.table("prototypes")
+        .select("id,prototype_code,task_number,order_index")
+        .order("task_number")
+        .order("order_index")
+        .execute()
+    )
     proto_map: dict[str, str] = {}
+    # Also group prototypes by task_number for auto-assignment
+    protos_by_task: dict[int, list[str]] = {}
     for row in protos_resp.data or []:
         proto_map[row["prototype_code"]] = row["id"]
+        protos_by_task.setdefault(row["task_number"], []).append(row["id"])
+
+    # Build category_id -> prototype_id auto-mapping for all tasks.
+    # For tasks in CATEGORY_TO_PROTOTYPE (explicit), use that.
+    # For others, distribute categories evenly across prototypes by index.
+    cat_to_proto_id: dict[int, str] = {}
+    for cat_id, proto_code in CATEGORY_TO_PROTOTYPE.items():
+        if proto_code in proto_map:
+            cat_to_proto_id[cat_id] = proto_map[proto_code]
+
+    for task_num, cat_ids in TASK_TO_CATEGORY_IDS.items():
+        task_protos = protos_by_task.get(task_num, [])
+        if not task_protos:
+            continue
+        for i, cat_id in enumerate(cat_ids):
+            if cat_id in cat_to_proto_id:
+                continue  # already mapped explicitly
+            # Round-robin assign to prototypes
+            proto_id = task_protos[i % len(task_protos)]
+            cat_to_proto_id[cat_id] = proto_id
+
+    log.info("Built category->prototype mapping: %d entries", len(cat_to_proto_id))
 
     inserted = 0
     skipped = 0
@@ -948,8 +1137,12 @@ def upload_to_supabase(
                 images, "sdamgia", problem.task_number
             )
 
-        # Resolve prototype_id from prototype_code
-        prototype_id = proto_map.get(problem.prototype_code) if problem.prototype_code else None
+        # Resolve prototype_id: first try explicit code, then auto-mapping by category
+        prototype_id = None
+        if problem.prototype_code and problem.prototype_code in proto_map:
+            prototype_id = proto_map[problem.prototype_code]
+        elif problem.source_category_id and problem.source_category_id in cat_to_proto_id:
+            prototype_id = cat_to_proto_id[problem.source_category_id]
 
         row = {
             "topic_id": topic_id,
