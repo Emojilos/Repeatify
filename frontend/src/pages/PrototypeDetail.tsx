@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import MathRenderer from '../components/MathRenderer'
+import ProblemContent from '../components/ProblemContent'
 import YouTubePlayer from '../components/YouTubePlayer'
 
 interface PrototypeResponse {
@@ -37,6 +38,7 @@ interface Problem {
   task_number: number
   difficulty: string
   problem_text: string
+  problem_images?: string[] | null
   source: string | null
   max_points: number | null
 }
@@ -326,8 +328,8 @@ export default function PrototypeDetail() {
                     <span className="text-xs text-gray-400 dark:text-gray-500">{problem.source}</span>
                   )}
                 </div>
-                <div className="line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
-                  <MathRenderer content={problem.problem_text.slice(0, 200) + (problem.problem_text.length > 200 ? '...' : '')} />
+                <div className="line-clamp-3 text-sm text-gray-600 dark:text-gray-400">
+                  <ProblemContent text={problem.problem_text} images={problem.problem_images} imageClassName="inline-block h-12 align-middle" />
                 </div>
               </div>
             ))}
