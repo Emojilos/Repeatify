@@ -683,15 +683,14 @@ def scrape_with_requests(
     This works for sdamgia pages that render server-side.
     """
     session = requests.Session()
-    problem_ids: list[str] = []
     # Track which theme each problem came from (for prototype assignment)
     pid_to_theme: dict[str, int] = {}
 
+    # Collect IDs per category so we can distribute max_problems evenly
+    ids_per_category: dict[int, list[str]] = {}
+
     # First try seed problem IDs (reliable for missing types 2,3,4,5,9)
     seed_ids = SEED_PROBLEM_IDS.get(task_number, [])
-    if seed_ids:
-        problem_ids.extend(seed_ids)
-        log.info("Using %d seed problem IDs for task %d", len(seed_ids), task_number)
 
     # Collect from category pages (category_id with filter=all)
     category_ids = TASK_TO_CATEGORY_IDS.get(task_number, [])
@@ -704,14 +703,50 @@ def scrape_with_requests(
             continue
 
         ids = extract_problem_ids_from_theme(soup, task_number)
+        cat_ids = []
         for pid in ids:
-            if pid not in problem_ids:
-                problem_ids.append(pid)
-                pid_to_theme[pid] = cat_id
+            cat_ids.append(pid)
+            pid_to_theme[pid] = cat_id
+        ids_per_category[cat_id] = cat_ids
         log.info("Found %d problem IDs from category %d", len(ids), cat_id)
         time.sleep(REQUEST_DELAY)
 
-    log.info("Total %d unique problem IDs for task %d", len(problem_ids), task_number)
+    # Distribute max_problems evenly across categories (round-robin)
+    problem_ids: list[str] = []
+    seen: set[str] = set()
+    num_cats = len(ids_per_category)
+    if num_cats > 0:
+        per_cat = max(1, max_problems // num_cats)
+        # First pass: take up to per_cat from each category
+        for cat_id, cat_ids in ids_per_category.items():
+            taken = 0
+            for pid in cat_ids:
+                if pid not in seen and taken < per_cat:
+                    problem_ids.append(pid)
+                    seen.add(pid)
+                    taken += 1
+        # Second pass: fill remaining slots from categories that have more
+        if len(problem_ids) < max_problems:
+            for cat_id, cat_ids in ids_per_category.items():
+                for pid in cat_ids:
+                    if len(problem_ids) >= max_problems:
+                        break
+                    if pid not in seen:
+                        problem_ids.append(pid)
+                        seen.add(pid)
+
+    # Add seed IDs if we still have room
+    if seed_ids:
+        for pid in seed_ids:
+            if len(problem_ids) >= max_problems:
+                break
+            if pid not in seen:
+                problem_ids.append(pid)
+                seen.add(pid)
+        log.info("Added seed problem IDs for task %d", task_number)
+
+    log.info("Total %d unique problem IDs for task %d (distributed across %d categories)",
+             len(problem_ids), task_number, num_cats)
 
     if not problem_ids:
         log.error("No problem IDs found for task %d", task_number)
