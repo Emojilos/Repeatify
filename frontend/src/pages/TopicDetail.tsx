@@ -281,7 +281,7 @@ export default function TopicDetailPage() {
                     Теория
                   </Link>
                   <Link
-                    to={`/prototypes/${proto.id}`}
+                    to={`/topics/${id}/practice`}
                     className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                   >
                     Практика
