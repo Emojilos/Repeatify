@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useEffect, useState, useCallback } from 'react'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import ProblemContent from '../components/ProblemContent'
+import MathRenderer from '../components/MathRenderer'
 
 interface Problem {
   id: string
@@ -21,10 +22,37 @@ interface ProblemListResponse {
   page_size: number
 }
 
+interface SolutionResponse {
+  solution_markdown: string | null
+  correct_answer: string | null
+}
+
+interface CheckedProblem {
+  problemId: string
+  userAnswer: string
+  correctAnswer: string
+  isCorrect: boolean
+  solution: string | null
+}
+
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const shuffled = [...arr]
+  let s = seed
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    const j = ((s >>> 0) % (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
 export default function PrintProblems() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const taskNumber = parseInt(searchParams.get('task') || '1', 10)
-  const count = parseInt(searchParams.get('count') || '10', 10)
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+
+  const paramTask = parseInt(searchParams.get('task') || '0', 10)
+  const paramCount = parseInt(searchParams.get('count') || '0', 10)
+  const paramSeed = parseInt(searchParams.get('seed') || '0', 10)
 
   const [problems, setProblems] = useState<Problem[]>([])
   const [totalAvailable, setTotalAvailable] = useState(0)
@@ -32,48 +60,92 @@ export default function PrintProblems() {
   const [error, setError] = useState<string | null>(null)
   const [fetched, setFetched] = useState(false)
 
-  // Form state (before fetching)
-  const [formTask, setFormTask] = useState(taskNumber)
-  const [formCount, setFormCount] = useState(count)
+  const [formTask, setFormTask] = useState(paramTask || 1)
+  const [formCount, setFormCount] = useState(paramCount || 10)
 
-  function shuffleArray<T>(arr: T[]): T[] {
-    const shuffled = [...arr]
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-    }
-    return shuffled
-  }
+  // Answer checking
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [checked, setChecked] = useState<Record<string, CheckedProblem>>({})
+  const [checking, setChecking] = useState(false)
 
-  function handleGenerate() {
-    setSearchParams({ task: String(formTask), count: String(formCount), _t: String(Date.now()) })
-  }
+  const handleGenerate = useCallback(() => {
+    const seed = Math.floor(Math.random() * 1000000)
+    navigate(`/print?task=${formTask}&count=${formCount}&seed=${seed}`)
+  }, [formTask, formCount, navigate])
 
   useEffect(() => {
-    const task = parseInt(searchParams.get('task') || '0', 10)
-    const cnt = parseInt(searchParams.get('count') || '0', 10)
-    if (!task || !cnt) return
+    if (!paramTask || !paramCount || !paramSeed) return
 
-    setFormTask(task)
-    setFormCount(cnt)
+    setFormTask(paramTask)
+    setFormCount(paramCount)
     setLoading(true)
     setError(null)
+    setChecked({})
+    setAnswers({})
 
-    // Fetch all problems for this task, then pick random ones
-    api<ProblemListResponse>(`/api/problems?task_number=${task}&page_size=100`)
+    api<ProblemListResponse>(`/api/problems?task_number=${paramTask}&page_size=100`)
       .then((data) => {
-        const shuffled = shuffleArray(data.items)
-        setProblems(shuffled.slice(0, cnt))
+        const shuffled = seededShuffle(data.items, paramSeed)
+        setProblems(shuffled.slice(0, paramCount))
         setTotalAvailable(data.total)
         setFetched(true)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [searchParams])
+  }, [paramTask, paramCount, paramSeed])
 
-  function handlePrint() {
-    window.print()
+  function setAnswer(problemId: string, value: string) {
+    setAnswers((prev) => ({ ...prev, [problemId]: value }))
+    // Clear previous check for this problem
+    setChecked((prev) => {
+      const next = { ...prev }
+      delete next[problemId]
+      return next
+    })
   }
+
+  async function handleCheckAll() {
+    setChecking(true)
+    const results: Record<string, CheckedProblem> = {}
+
+    await Promise.all(
+      problems.map(async (problem) => {
+        const userAnswer = (answers[problem.id] || '').trim()
+        if (!userAnswer) return
+
+        try {
+          const solution = await api<SolutionResponse>(`/api/problems/${problem.id}/solution`)
+          const correct = (solution.correct_answer || '').trim()
+
+          let isCorrect = false
+          if (correct) {
+            if (userAnswer.toLowerCase() === correct.toLowerCase()) {
+              isCorrect = true
+            } else {
+              try {
+                isCorrect = Math.abs(parseFloat(userAnswer) - parseFloat(correct)) < 0.001
+              } catch { /* not numeric */ }
+            }
+          }
+
+          results[problem.id] = {
+            problemId: problem.id,
+            userAnswer,
+            correctAnswer: correct,
+            isCorrect,
+            solution: solution.solution_markdown,
+          }
+        } catch { /* skip on error */ }
+      }),
+    )
+
+    setChecked(results)
+    setChecking(false)
+  }
+
+  const answeredCount = problems.filter((p) => (answers[p.id] || '').trim()).length
+  const checkedCount = Object.keys(checked).length
+  const correctCount = Object.values(checked).filter((c) => c.isCorrect).length
 
   return (
     <div>
@@ -123,14 +195,45 @@ export default function PrintProblems() {
           </button>
 
           {fetched && problems.length > 0 && (
-            <button
-              onClick={handlePrint}
-              className="rounded-lg border border-gray-300 bg-white px-5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-            >
-              Распечатать
-            </button>
+            <>
+              <button
+                onClick={() => window.print()}
+                className="rounded-lg border border-gray-300 bg-white px-5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              >
+                Распечатать
+              </button>
+              {answeredCount > 0 && (
+                <button
+                  onClick={handleCheckAll}
+                  disabled={checking}
+                  className="rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+                >
+                  {checking ? 'Проверяю...' : 'Проверить ответы'}
+                </button>
+              )}
+            </>
           )}
         </div>
+
+        {/* Results summary */}
+        {checkedCount > 0 && (
+          <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Результат: <strong className="text-green-600">{correctCount}</strong> / {checkedCount} правильно
+              </span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                <div
+                  className="h-full rounded-full bg-green-500 transition-all"
+                  style={{ width: `${checkedCount > 0 ? (correctCount / checkedCount) * 100 : 0}%` }}
+                />
+              </div>
+              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                {checkedCount > 0 ? Math.round((correctCount / checkedCount) * 100) : 0}%
+              </span>
+            </div>
+          </div>
+        )}
 
         {loading && (
           <div className="space-y-3">
@@ -149,9 +252,9 @@ export default function PrintProblems() {
         )}
       </div>
 
-      {/* Printable area */}
+      {/* Problems */}
       {fetched && problems.length > 0 && (
-        <div ref={printRef} className="print:p-0 px-8 pb-8">
+        <div className="print:p-0 px-8 pb-8">
           {/* Print header — visible only when printing */}
           <div className="hidden print:block mb-6">
             <h1 className="text-xl font-bold">Задание {formTask} — Вариант ({problems.length} задач)</h1>
@@ -159,28 +262,76 @@ export default function PrintProblems() {
           </div>
 
           <div className="space-y-6 print:space-y-4">
-            {problems.map((problem, idx) => (
-              <div
-                key={problem.id}
-                className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800 print:rounded-none print:border-0 print:border-b print:border-gray-300 print:p-4 print:bg-white"
-                style={{ pageBreakInside: 'avoid' }}
-              >
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100 print:text-black">
-                    {idx + 1}.
-                  </span>
-                </div>
-                <div className="text-sm text-gray-800 dark:text-gray-200 print:text-black">
-                  <ProblemContent
-                    text={problem.problem_text}
-                    images={problem.problem_images}
-                    imageClassName="h-auto max-h-48 rounded bg-white p-1 print:max-h-40"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+            {problems.map((problem, idx) => {
+              const check = checked[problem.id]
+              return (
+                <div
+                  key={problem.id}
+                  className={`rounded-lg border bg-white p-5 dark:bg-gray-800 print:rounded-none print:border-0 print:border-b print:border-gray-300 print:p-4 print:bg-white ${
+                    check
+                      ? check.isCorrect
+                        ? 'border-green-300 dark:border-green-700'
+                        : 'border-red-300 dark:border-red-700'
+                      : 'border-gray-200 dark:border-gray-700'
+                  }`}
+                  style={{ pageBreakInside: 'avoid' }}
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100 print:text-black">
+                      {idx + 1}.
+                    </span>
+                    {check && (
+                      <span className={`text-xs font-medium ${check.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                        {check.isCorrect ? 'Верно' : 'Неверно'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-800 dark:text-gray-200 print:text-black">
+                    <ProblemContent
+                      text={problem.problem_text}
+                      images={problem.problem_images}
+                      imageClassName="h-auto max-h-48 rounded bg-white p-1 print:max-h-40"
+                    />
+                  </div>
 
+                  {/* Answer input — hidden when printing */}
+                  <div className="print:hidden mt-3">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Ответ:</label>
+                      <input
+                        type="text"
+                        value={answers[problem.id] || ''}
+                        onChange={(e) => setAnswer(problem.id, e.target.value)}
+                        placeholder="Введите ответ"
+                        className={`w-48 rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 dark:bg-gray-800 dark:text-gray-100 ${
+                          check
+                            ? check.isCorrect
+                              ? 'border-green-400 bg-green-50 focus:ring-green-400 dark:border-green-700 dark:bg-green-900/20'
+                              : 'border-red-400 bg-red-50 focus:ring-red-400 dark:border-red-700 dark:bg-red-900/20'
+                            : 'border-gray-300 focus:ring-blue-400 dark:border-gray-600'
+                        }`}
+                      />
+                      {check && !check.isCorrect && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          Правильный ответ: <strong className="text-green-600">{check.correctAnswer}</strong>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Solution explanation for wrong answers */}
+                    {check && !check.isCorrect && check.solution && (
+                      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+                        <div className="mb-2 text-xs font-semibold text-red-700 dark:text-red-300">Разбор</div>
+                        <div className="text-sm text-red-900 dark:text-red-100">
+                          <MathRenderer content={check.solution} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
