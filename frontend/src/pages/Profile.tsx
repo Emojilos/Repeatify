@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuthStore } from '../stores/authStore'
 
@@ -12,6 +13,15 @@ interface UserStats {
   current_streak: number
   longest_streak: number
   total_problems_solved: number
+}
+
+interface SavedVariant {
+  id: string
+  name: string
+  task_number: number
+  problem_count: number
+  seed: number
+  created_at: string
 }
 
 interface DailyActivity {
@@ -123,6 +133,7 @@ export default function Profile() {
 
   const [stats, setStats] = useState<UserStats | null>(null)
   const [calendar, setCalendar] = useState<ActivityCalendarResponse | null>(null)
+  const [variants, setVariants] = useState<SavedVariant[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -138,10 +149,12 @@ export default function Profile() {
     Promise.all([
       api<UserStats>('/api/users/me/stats'),
       api<ActivityCalendarResponse>('/api/progress/activity-calendar'),
+      api<{ items: SavedVariant[] }>('/api/variants'),
     ])
-      .then(([s, cal]) => {
+      .then(([s, cal, v]) => {
         setStats(s)
         setCalendar(cal)
+        setVariants(v.items)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
@@ -384,6 +397,43 @@ export default function Profile() {
           </div>
         </div>
       </section>
+
+      {/* ====== Saved variants ====== */}
+      {variants.length > 0 && (
+        <section className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Сохранённые варианты</h2>
+          <div className="space-y-2">
+            {variants.map((v) => (
+              <div key={v.id} className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
+                  {v.task_number}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{v.name}</div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500">
+                    {v.problem_count} задач &middot; {new Date(v.created_at).toLocaleDateString('ru-RU')}
+                  </div>
+                </div>
+                <Link
+                  to={`/print?task=${v.task_number}&count=${v.problem_count}&seed=${v.seed}`}
+                  className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                >
+                  Открыть
+                </Link>
+                <button
+                  onClick={async () => {
+                    await api(`/api/variants/${v.id}`, { method: 'DELETE' })
+                    setVariants((prev) => prev.filter((x) => x.id !== v.id))
+                  }}
+                  className="shrink-0 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                >
+                  Удалить
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ====== Score conversion table ====== */}
       <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">

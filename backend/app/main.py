@@ -22,6 +22,7 @@ from app.routers import (
     theory,
     topics,
     users,
+    variants,
 )
 
 _db_connected = False
@@ -104,6 +105,7 @@ app.include_router(study_plan.router)
 app.include_router(prototypes.router)
 app.include_router(progress.router)
 app.include_router(storage.router)
+app.include_router(variants.router)
 
 
 @app.get("/")

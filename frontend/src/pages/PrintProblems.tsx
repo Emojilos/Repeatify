@@ -68,6 +68,12 @@ export default function PrintProblems() {
   const [checked, setChecked] = useState<Record<string, CheckedProblem>>({})
   const [checking, setChecking] = useState(false)
 
+  // Save variant
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [saveName, setSaveName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+
   const handleGenerate = useCallback(() => {
     const seed = Math.floor(Math.random() * 1000000)
     navigate(`/print?task=${formTask}&count=${formCount}&seed=${seed}`)
@@ -143,6 +149,29 @@ export default function PrintProblems() {
     setChecking(false)
   }
 
+  async function handleSave() {
+    if (!saveName.trim() || !paramTask || !paramSeed) return
+    setSaving(true)
+    try {
+      await api('/api/variants', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: saveName.trim(),
+          task_number: paramTask,
+          problem_count: paramCount,
+          seed: paramSeed,
+        }),
+      })
+      setSaveSuccess(true)
+      setTimeout(() => {
+        setShowSaveModal(false)
+        setSaveSuccess(false)
+        setSaveName('')
+      }, 1500)
+    } catch { /* toast handles it */ }
+    finally { setSaving(false) }
+  }
+
   const answeredCount = problems.filter((p) => (answers[p.id] || '').trim()).length
   const checkedCount = Object.keys(checked).length
   const correctCount = Object.values(checked).filter((c) => c.isCorrect).length
@@ -201,6 +230,12 @@ export default function PrintProblems() {
                 className="rounded-lg border border-gray-300 bg-white px-5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
               >
                 Распечатать
+              </button>
+              <button
+                onClick={() => { setSaveName(`Задание ${paramTask} — ${paramCount} задач`); setShowSaveModal(true) }}
+                className="rounded-lg border border-blue-300 bg-blue-50 px-5 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+              >
+                Сохранить
               </button>
               {answeredCount > 0 && (
                 <button
@@ -331,6 +366,48 @@ export default function PrintProblems() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Save modal */}
+      {showSaveModal && (
+        <div className="print:hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowSaveModal(false)}>
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" onClick={(e) => e.stopPropagation()}>
+            {saveSuccess ? (
+              <div className="text-center">
+                <div className="mb-2 text-3xl">&#10003;</div>
+                <p className="text-sm font-medium text-green-600">Вариант сохранён!</p>
+              </div>
+            ) : (
+              <>
+                <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Сохранить вариант</h3>
+                <input
+                  type="text"
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  placeholder="Название варианта"
+                  autoFocus
+                  className="mb-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setShowSaveModal(false)}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || !saveName.trim()}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {saving ? 'Сохранение...' : 'Сохранить'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
