@@ -20,7 +20,7 @@ export default function MathRenderer({ content, inline }: MathRendererProps) {
     )
   }
   return (
-    <div className="math-renderer prose prose-neutral max-w-none dark:prose-invert">
+    <div className="math-renderer prose prose-neutral max-w-none dark:prose-invert [&>:first-child]:mt-0">
       <Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
         {content}
       </Markdown>
