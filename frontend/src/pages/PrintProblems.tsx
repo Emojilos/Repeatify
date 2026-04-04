@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import ProblemContent from '../components/ProblemContent'
@@ -36,10 +36,17 @@ export default function PrintProblems() {
   const [formTask, setFormTask] = useState(taskNumber)
   const [formCount, setFormCount] = useState(count)
 
-  const printRef = useRef<HTMLDivElement>(null)
+  function shuffleArray<T>(arr: T[]): T[] {
+    const shuffled = [...arr]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    return shuffled
+  }
 
   function handleGenerate() {
-    setSearchParams({ task: String(formTask), count: String(formCount) })
+    setSearchParams({ task: String(formTask), count: String(formCount), _t: String(Date.now()) })
   }
 
   useEffect(() => {
@@ -52,9 +59,11 @@ export default function PrintProblems() {
     setLoading(true)
     setError(null)
 
-    api<ProblemListResponse>(`/api/problems?task_number=${task}&page_size=${cnt}`)
+    // Fetch all problems for this task, then pick random ones
+    api<ProblemListResponse>(`/api/problems?task_number=${task}&page_size=100`)
       .then((data) => {
-        setProblems(data.items)
+        const shuffled = shuffleArray(data.items)
+        setProblems(shuffled.slice(0, cnt))
         setTotalAvailable(data.total)
         setFetched(true)
       })
@@ -172,34 +181,6 @@ export default function PrintProblems() {
             ))}
           </div>
 
-          {/* Answer key — on a new page when printing */}
-          <div className="mt-8 print:mt-0" style={{ pageBreakBefore: 'always' }}>
-            <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-200 print:text-black">
-              Место для ответов
-            </h2>
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-medium text-gray-700 print:text-black">
-                    №
-                  </th>
-                  <th className="border border-gray-300 px-3 py-2 text-left font-medium text-gray-700 print:text-black">
-                    Ответ
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {problems.map((_, idx) => (
-                  <tr key={idx}>
-                    <td className="border border-gray-300 px-3 py-2 text-gray-800 print:text-black w-16">
-                      {idx + 1}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 min-h-[2rem]">&nbsp;</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
     </div>
