@@ -80,13 +80,15 @@ async def activity_calendar(
     )
 
 
-def _recommend_action(strength: float, error_count: int, fire_completed: bool) -> str:
+def _recommend_action(strength: float, error_count: int, _fire_completed: bool) -> str:
     """Pick a recommended action based on topic state."""
-    if not fire_completed and strength < 0.3:
-        return "Пройти FIRe-flow заново"
+    if strength < 0.3:
+        return "Изучить теорию"
     if strength < 0.5 or error_count >= 5:
         return "Повторить теорию"
-    return "Решить 5 задач"
+    if strength < 0.7:
+        return "Решить 5 задач"
+    return "Закрепить практикой"
 
 
 @router.get("/gap-map", response_model=GapMapResponse)
