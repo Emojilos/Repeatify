@@ -301,14 +301,24 @@ export default function PrototypeDetail() {
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             Задачи <span className="text-sm font-normal text-gray-400 dark:text-gray-500">({problemsTotal})</span>
           </h2>
-          {problemsTotal > 0 && (
-            <Link
-              to={`/topics/${problems[0]?.topic_id}/practice`}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-            >
-              Практика
-            </Link>
-          )}
+          <div className="flex gap-2">
+            {problemsTotal > 0 && (
+              <Link
+                to={`/topics/${problems[0]?.topic_id}/practice`}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+              >
+                Практика
+              </Link>
+            )}
+            {prototype && (
+              <Link
+                to={`/print?task=${prototype.task_number}&count=10`}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              >
+                Распечатать
+              </Link>
+            )}
+          </div>
         </div>
         {problems.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">Задачи для этого прототипа пока не добавлены.</p>

@@ -9,19 +9,25 @@ import FormulaSheetButton from './FormulaSheetButton'
 
 export default function Layout() {
   return (
-    <div className="flex h-screen flex-col bg-white dark:bg-gray-900">
-      <Header />
-      <XpPopup />
-      <LevelUpModal />
-      <FormulaSheetButton />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="min-w-0 flex-1 overflow-y-auto bg-gray-50 p-6 dark:bg-gray-900">
+    <div className="flex h-screen flex-col bg-white dark:bg-gray-900 print:block print:h-auto">
+      <div className="print:hidden">
+        <Header />
+        <XpPopup />
+        <LevelUpModal />
+        <FormulaSheetButton />
+      </div>
+      <div className="flex flex-1 overflow-hidden print:block print:overflow-visible">
+        <div className="print:hidden">
+          <Sidebar />
+        </div>
+        <main className="min-w-0 flex-1 overflow-y-auto bg-gray-50 p-6 dark:bg-gray-900 print:bg-white print:p-0 print:overflow-visible">
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
         </main>
-        <FormulaSheet />
+        <div className="print:hidden">
+          <FormulaSheet />
+        </div>
       </div>
     </div>
   )

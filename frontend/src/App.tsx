@@ -17,6 +17,7 @@ import Profile from './pages/Profile'
 import Onboarding from './pages/Onboarding'
 import StudyPlan from './pages/StudyPlan'
 import PrototypeDetail from './pages/PrototypeDetail'
+import PrintProblems from './pages/PrintProblems'
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
               <Route path="/progress" element={<Progress />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/prototypes/:id" element={<PrototypeDetail />} />
+              <Route path="/print" element={<PrintProblems />} />
             </Route>
           </Route>
         </Route>

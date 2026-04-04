@@ -208,6 +208,12 @@ export default function TopicDetailPage() {
             Решать задания
           </Link>
         )}
+        <Link
+          to={`/print?task=${topic.task_number}&count=10`}
+          className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+        >
+          Распечатать задания
+        </Link>
       </div>
 
       {/* User progress stats */}

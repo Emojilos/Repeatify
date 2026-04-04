@@ -44,3 +44,29 @@
     transform: scale(1);
   }
 }
+
+@media print {
+  /* Hide sidebar, header, and navigation */
+  nav, header, aside, [data-sidebar] {
+    display: none !important;
+  }
+
+  /* Remove background colors and shadows */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Remove dark mode inversions for images */
+  img {
+    filter: none !important;
+  }
+
+  /* Ensure content fills the page */
+  main, [role="main"] {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
