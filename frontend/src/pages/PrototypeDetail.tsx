@@ -338,8 +338,8 @@ export default function PrototypeDetail() {
                     <span className="text-xs text-gray-400 dark:text-gray-500">{problem.source}</span>
                   )}
                 </div>
-                <div className="line-clamp-3 text-sm text-gray-600 dark:text-gray-400">
-                  <ProblemContent text={problem.problem_text} images={problem.problem_images} imageClassName="inline-block h-12 align-middle" />
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <ProblemContent text={problem.problem_text} images={problem.problem_images} imageClassName="h-5 w-auto dark:invert" />
                 </div>
               </div>
             ))}

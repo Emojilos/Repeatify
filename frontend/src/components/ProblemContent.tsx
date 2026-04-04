@@ -29,7 +29,7 @@ export default function ProblemContent({ text, images, imageClassName = 'h-auto 
           // Split each line by {{IMG:N}} placeholders and interleave with images
           const parts = line.split(/(\{\{IMG:\d+\}\})/)
           return (
-            <div key={lineIdx}>
+            <div key={lineIdx} className="leading-relaxed">
               {parts.map((part, i) => {
                 const match = part.match(/^\{\{IMG:(\d+)\}\}$/)
                 if (match) {
@@ -41,15 +41,14 @@ export default function ProblemContent({ text, images, imageClassName = 'h-auto 
                         key={i}
                         src={proxyImageUrl(url)}
                         alt=""
-                        className={imageClassName}
-                        style={{ display: 'inline-block', verticalAlign: 'middle', margin: '4px 2px' }}
+                        className={`inline-block align-middle ${imageClassName}`}
                       />
                     )
                   }
                   return null
                 }
                 if (part.trim()) {
-                  return <MathRenderer key={i} content={part} />
+                  return <MathRenderer key={i} content={part} inline />
                 }
                 return null
               })}

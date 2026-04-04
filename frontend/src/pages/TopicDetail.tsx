@@ -344,7 +344,7 @@ export default function TopicDetailPage() {
                       <ProblemContent
                         text={problem.problem_text.slice(0, 200) + (problem.problem_text.length > 200 ? '...' : '')}
                         images={problem.problem_images}
-                        imageClassName="h-auto max-h-24 rounded bg-white p-1 dark:invert"
+                        imageClassName="h-5 w-auto dark:invert"
                       />
                     </div>
                   </div>
