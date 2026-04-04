@@ -47,6 +47,46 @@ interface FSRSStatsResponse {
   retrievability_by_task: TaskRetrievability[]
 }
 
+interface DashboardResponse {
+  exam_countdown: number | null
+  today_review_count: number
+  weekly_stats: { problems_solved: number; problems_correct: number }
+  recommendations: string[]
+  current_xp: number
+  current_level: number
+  current_streak: number
+}
+
+interface PriorityTopic {
+  task_number: number
+  title: string
+  max_points: number
+  strength_score: number
+  fire_completed: boolean
+  priority_score: number
+  recommended_action: string
+}
+
+interface ExamReadinessResponse {
+  readiness_percent: number
+  exam_countdown: number | null
+  priority_topics: PriorityTopic[]
+  summary: string
+}
+
+interface TaskScoreBreakdown {
+  cards_count: number
+  avg_retrievability: number
+  is_mastered: boolean
+  points: number
+}
+
+interface PredictedScoreResponse {
+  predicted_primary_score: number
+  predicted_test_score: number
+  breakdown: Record<number, TaskScoreBreakdown>
+}
+
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -59,11 +99,11 @@ function strengthColor(s: number): string {
   return 'text-gray-400 dark:text-gray-500'
 }
 
-function strengthBg(s: number): string {
-  if (s >= 70) return 'bg-green-100 dark:bg-green-900/40'
-  if (s >= 40) return 'bg-yellow-100 dark:bg-yellow-900/40'
-  if (s > 0) return 'bg-orange-100 dark:bg-orange-900/40'
-  return 'bg-gray-50 dark:bg-gray-800'
+function strengthBarColor(s: number): string {
+  if (s >= 70) return 'bg-green-500'
+  if (s >= 40) return 'bg-yellow-500'
+  if (s > 0) return 'bg-orange-500'
+  return 'bg-gray-300 dark:bg-gray-600'
 }
 
 function actionColor(action: string): string {
@@ -73,24 +113,24 @@ function actionColor(action: string): string {
 }
 
 function buildHeatmapData(activities: DailyActivity[]) {
-  const activityMap = new Map<string, number>()
+  const activityMap = new Map<string, DailyActivity>()
   for (const a of activities) {
-    activityMap.set(a.date, a.problems_solved)
+    activityMap.set(a.date, a)
   }
 
   const today = new Date()
-  const weeks: { date: Date; count: number }[][] = []
+  const weeks: { date: Date; activity: DailyActivity | null }[][] = []
   const start = new Date(today)
   start.setDate(start.getDate() - 363)
   while (start.getDay() !== 1) {
     start.setDate(start.getDate() - 1)
   }
 
-  let currentWeek: { date: Date; count: number }[] = []
+  let currentWeek: { date: Date; activity: DailyActivity | null }[] = []
   const cursor = new Date(start)
   while (cursor <= today) {
     const key = cursor.toISOString().slice(0, 10)
-    currentWeek.push({ date: new Date(cursor), count: activityMap.get(key) ?? 0 })
+    currentWeek.push({ date: new Date(cursor), activity: activityMap.get(key) ?? null })
     if (currentWeek.length === 7) {
       weeks.push(currentWeek)
       currentWeek = []
@@ -111,35 +151,39 @@ function heatmapCellColor(count: number): string {
   return 'bg-green-700'
 }
 
-const MONTH_LABELS = [
-  '\u042F\u043D\u0432', '\u0424\u0435\u0432', '\u041C\u0430\u0440', '\u0410\u043F\u0440', '\u041C\u0430\u0439', '\u0418\u044E\u043D',
-  '\u0418\u044E\u043B', '\u0410\u0432\u0433', '\u0421\u0435\u043D', '\u041E\u043A\u0442', '\u041D\u043E\u044F', '\u0414\u0435\u043A',
-]
+const MONTH_LABELS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
 
 function buildChartData(activities: DailyActivity[], days: number) {
   const today = new Date()
   const since = new Date(today)
   since.setDate(since.getDate() - days + 1)
 
-  const activityMap = new Map<string, number>()
+  const activityMap = new Map<string, DailyActivity>()
   for (const a of activities) {
-    activityMap.set(a.date, a.problems_solved)
+    activityMap.set(a.date, a)
   }
 
-  const result: { date: string; label: string; solved: number }[] = []
+  const result: { date: string; label: string; solved: number; xp: number }[] = []
   const cursor = new Date(since)
   while (cursor <= today) {
     const key = cursor.toISOString().slice(0, 10)
-    const day = cursor.getDate()
-    const month = cursor.getMonth()
+    const act = activityMap.get(key)
     result.push({
       date: key,
-      label: `${day}.${String(month + 1).padStart(2, '0')}`,
-      solved: activityMap.get(key) ?? 0,
+      label: `${cursor.getDate()}.${String(cursor.getMonth() + 1).padStart(2, '0')}`,
+      solved: act?.problems_solved ?? 0,
+      xp: act?.xp_earned ?? 0,
     })
     cursor.setDate(cursor.getDate() + 1)
   }
   return result
+}
+
+function readinessGradient(pct: number): string {
+  if (pct >= 80) return 'from-green-500 to-emerald-500'
+  if (pct >= 60) return 'from-blue-500 to-cyan-500'
+  if (pct >= 40) return 'from-yellow-500 to-amber-500'
+  return 'from-orange-500 to-red-500'
 }
 
 /* ------------------------------------------------------------------ */
@@ -150,24 +194,33 @@ export default function Progress() {
   const [gapMap, setGapMap] = useState<GapMapEntry[]>([])
   const [calendar, setCalendar] = useState<ActivityCalendarResponse | null>(null)
   const [fsrsStats, setFsrsStats] = useState<FSRSStatsResponse | null>(null)
+  const [dashboard, setDashboard] = useState<DashboardResponse | null>(null)
+  const [readiness, setReadiness] = useState<ExamReadinessResponse | null>(null)
+  const [predicted, setPredicted] = useState<PredictedScoreResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [filterTask, setFilterTask] = useState<string>('')
-  const [filterMinStr, setFilterMinStr] = useState<string>('')
-  const [filterMaxStr, setFilterMaxStr] = useState<string>('')
   const [chartDays, setChartDays] = useState<7 | 30>(7)
+  const [chartMode, setChartMode] = useState<'solved' | 'xp'>('solved')
+  const [gapSort, setGapSort] = useState<'strength' | 'errors'>('strength')
+  const [showAllGap, setShowAllGap] = useState(false)
 
   useEffect(() => {
     Promise.all([
       api<GapMapResponse>('/api/progress/gap-map'),
       api<ActivityCalendarResponse>('/api/progress/activity-calendar'),
       api<FSRSStatsResponse>('/api/progress/fsrs-stats'),
+      api<DashboardResponse>('/api/progress/dashboard'),
+      api<ExamReadinessResponse>('/api/progress/exam-readiness'),
+      api<PredictedScoreResponse>('/api/progress/predicted-score').catch(() => null),
     ])
-      .then(([gm, cal, fs]) => {
+      .then(([gm, cal, fs, db, er, ps]) => {
         setGapMap(gm.entries)
         setCalendar(cal)
         setFsrsStats(fs)
+        setDashboard(db)
+        setReadiness(er)
+        if (ps) setPredicted(ps)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
@@ -178,8 +231,12 @@ export default function Progress() {
       <div className="p-8">
         <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Прогресс</h1>
         <div className="space-y-6">
-          <div className="h-64 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
-          <div className="h-40 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-24 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+            ))}
+          </div>
+          <div className="h-48 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
           <div className="h-64 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
         </div>
       </div>
@@ -195,198 +252,195 @@ export default function Progress() {
     )
   }
 
-  const filtered = gapMap.filter((e) => {
-    if (filterTask && e.task_number !== Number(filterTask)) return false
-    if (filterMinStr && e.strength < Number(filterMinStr)) return false
-    if (filterMaxStr && e.strength > Number(filterMaxStr)) return false
-    return true
-  })
-
   const heatmapWeeks = calendar ? buildHeatmapData(calendar.activities) : []
   const chartData = calendar ? buildChartData(calendar.activities, chartDays) : []
 
+  const totalXpWeek = chartData.reduce((s, d) => s + d.xp, 0)
+  const totalSolvedWeek = chartData.reduce((s, d) => s + d.solved, 0)
+
+  const sortedGap = [...gapMap].sort((a, b) => {
+    if (gapSort === 'errors') return b.error_count - a.error_count
+    return a.strength - b.strength
+  })
+  const visibleGap = showAllGap ? sortedGap : sortedGap.slice(0, 8)
+
+  const weeklyAccuracy = dashboard && dashboard.weekly_stats.problems_solved > 0
+    ? Math.round((dashboard.weekly_stats.problems_correct / dashboard.weekly_stats.problems_solved) * 100)
+    : null
+
   return (
-    <div className="p-8">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Прогресс</h1>
+    <div className="p-8 space-y-8">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Прогресс</h1>
 
-      {/* ====== Section 1: Gap Map ====== */}
-      <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Карта пробелов</h2>
-
-        <div className="mb-4 flex flex-wrap items-end gap-4">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Номер задания</label>
-            <select
-              value={filterTask}
-              onChange={(e) => setFilterTask(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            >
-              <option value="">Все</option>
-              {Array.from({ length: 19 }, (_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  Задание {i + 1}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Сила от (%)</label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={filterMinStr}
-              onChange={(e) => setFilterMinStr(e.target.value)}
-              placeholder="0"
-              className="w-20 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Сила до (%)</label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={filterMaxStr}
-              onChange={(e) => setFilterMaxStr(e.target.value)}
-              placeholder="100"
-              className="w-20 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            />
-          </div>
-          {(filterTask || filterMinStr || filterMaxStr) && (
-            <button
-              onClick={() => { setFilterTask(''); setFilterMinStr(''); setFilterMaxStr('') }}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Сбросить
-            </button>
-          )}
-        </div>
-
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
-              <tr>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">#</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Тема</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Сила</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Ошибки (30д)</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Посл. ошибка</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Рекомендация</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
-                    Нет данных по заданным фильтрам
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((e) => (
-                  <tr key={e.task_number} className="border-b border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700">
-                    <td className="px-4 py-3">
-                      <Link
-                        to={`/topics`}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white"
-                      >
-                        {e.task_number}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{e.topic}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`rounded-full px-2 py-0.5 text-xs font-semibold ${strengthBg(e.strength)} ${strengthColor(e.strength)}`}>
-                          {e.strength}%
-                        </div>
-                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              e.strength >= 70 ? 'bg-green-500' : e.strength >= 40 ? 'bg-yellow-500' : e.strength > 0 ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-600'
-                            }`}
-                            style={{ width: `${e.strength}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {e.error_count > 0 ? (
-                        <span className="font-medium text-red-600">{e.error_count}</span>
-                      ) : (
-                        <span className="text-gray-400 dark:text-gray-500">0</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                      {e.last_error_date ?? '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${actionColor(e.recommended_action)}`}>
-                        {e.recommended_action}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* ====== Section 2: FSRS Statistics ====== */}
-      {fsrsStats && (
-        <section className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">FSRS-аналитика</h2>
-          <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* ====== Overview Cards ====== */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        {dashboard && (
+          <>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{fsrsStats.total_cards}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Всего карточек</div>
+              <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">Уровень</div>
+              <div className="text-3xl font-bold text-blue-600">{dashboard.current_level}</div>
+              <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">{dashboard.current_xp} XP</div>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <div className="text-2xl font-bold text-blue-600">{fsrsStats.cards_in_review}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">На повторении</div>
+              <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">Серия</div>
+              <div className="text-3xl font-bold text-orange-500">{dashboard.current_streak}</div>
+              <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                макс. {calendar?.longest_streak ?? 0}
+              </div>
             </div>
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{fsrsStats.avg_stability}д</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Ср. стабильность</div>
+            {dashboard.exam_countdown !== null && (
+              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">До экзамена</div>
+                <div className={`text-3xl font-bold ${dashboard.exam_countdown <= 14 ? 'text-red-600' : dashboard.exam_countdown <= 30 ? 'text-yellow-600' : 'text-gray-900 dark:text-gray-100'}`}>
+                  {dashboard.exam_countdown}
+                </div>
+                <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">дней</div>
+              </div>
+            )}
+          </>
+        )}
+        {predicted && (
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">Прогноз балла</div>
+            <div className="text-3xl font-bold text-purple-600">{predicted.predicted_test_score}</div>
+            <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+              перв. {predicted.predicted_primary_score}
             </div>
+          </div>
+        )}
+        {fsrsStats && (
+          <>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <div className={`text-2xl font-bold ${fsrsStats.cards_due_today > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+              <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">К повторению</div>
+              <div className={`text-3xl font-bold ${fsrsStats.cards_due_today > 0 ? 'text-orange-600' : 'text-green-600'}`}>
                 {fsrsStats.cards_due_today}
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">К повторению сегодня</div>
+              <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">сегодня</div>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">Точность (7д)</div>
+              <div className="text-3xl font-bold text-green-600">{weeklyAccuracy !== null ? `${weeklyAccuracy}%` : '-'}</div>
+              <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                {dashboard?.weekly_stats.problems_correct ?? 0}/{dashboard?.weekly_stats.problems_solved ?? 0} задач
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ====== Exam Readiness ====== */}
+      {readiness && (
+        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+            {/* Readiness circle */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="relative flex h-32 w-32 items-center justify-center">
+                <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="8"
+                    className="text-gray-100 dark:text-gray-700" />
+                  <circle cx="60" cy="60" r="52" fill="none" strokeWidth="8" strokeLinecap="round"
+                    strokeDasharray={`${readiness.readiness_percent * 3.267} 326.7`}
+                    className={`bg-gradient-to-r ${readinessGradient(readiness.readiness_percent)}`}
+                    style={{
+                      stroke: readiness.readiness_percent >= 80 ? '#22c55e'
+                        : readiness.readiness_percent >= 60 ? '#3b82f6'
+                        : readiness.readiness_percent >= 40 ? '#eab308'
+                        : '#f97316'
+                    }}
+                  />
+                </svg>
+                <div className="absolute text-center">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {Math.round(readiness.readiness_percent)}%
+                  </div>
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400">готовность</div>
+                </div>
+              </div>
+              <p className="max-w-xs text-center text-xs text-gray-500 dark:text-gray-400">{readiness.summary}</p>
+            </div>
+
+            {/* Priority topics */}
+            <div className="flex-1">
+              <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Приоритетные темы</h3>
+              <div className="space-y-2">
+                {readiness.priority_topics.map((t) => (
+                  <div key={t.task_number} className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800/50">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white">
+                      {t.task_number}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{t.title}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-20 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                          <div className={`h-full rounded-full ${strengthBarColor(t.strength_score * 100)}`}
+                            style={{ width: `${t.strength_score * 100}%` }} />
+                        </div>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">{Math.round(t.strength_score * 100)}%</span>
+                      </div>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${actionColor(t.recommended_action)}`}>
+                      {t.recommended_action}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {fsrsStats.retrievability_by_task.length > 0 && (
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <h3 className="mb-3 text-sm font-medium text-gray-600 dark:text-gray-400">Retrievability по заданиям</h3>
-              <div className="flex items-end gap-1.5" style={{ height: 200 }}>
-                {fsrsStats.retrievability_by_task.map((t) => {
-                  const pct = Math.round(t.avg_retrievability * 100)
-                  const bg = pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : pct > 0 ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-600'
-                  return (
-                    <div key={t.task_number} className="flex flex-1 flex-col items-center gap-1">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">{pct}%</span>
-                      <div className="w-full flex-1 flex flex-col justify-end">
-                        <div
-                          className={`w-full rounded-t ${bg} transition-all`}
-                          style={{ height: `${Math.max(pct, 2)}%` }}
-                          title={`Задание ${t.task_number}: ${pct}% (${t.cards_count} карт.)`}
-                        />
-                      </div>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">{t.task_number}</span>
-                    </div>
-                  )
-                })}
-              </div>
+          {/* Recommendations */}
+          {dashboard && dashboard.recommendations.length > 0 && (
+            <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-900/20">
+              <div className="mb-1 text-xs font-semibold text-blue-700 dark:text-blue-300">Рекомендации</div>
+              <ul className="space-y-1">
+                {dashboard.recommendations.map((r, i) => (
+                  <li key={i} className="text-xs text-blue-600 dark:text-blue-400">{r}</li>
+                ))}
+              </ul>
             </div>
           )}
         </section>
       )}
 
-      {/* ====== Section 3: Activity Heatmap ====== */}
-      <section className="mb-8">
-        <div className="mb-4 flex items-center justify-between">
+      {/* ====== Predicted Score Breakdown ====== */}
+      {predicted && Object.keys(predicted.breakdown).length > 0 && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Прогноз по заданиям</h2>
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-end gap-1 p-4" style={{ height: 200 }}>
+              {Array.from({ length: 19 }, (_, i) => i + 1).map((tn) => {
+                const entry = predicted.breakdown[tn]
+                const maxPts = entry?.points ?? 0
+                const r = entry ? Math.round(entry.avg_retrievability * 100) : 0
+                const mastered = entry?.is_mastered ?? false
+                return (
+                  <div key={tn} className="flex flex-1 flex-col items-center gap-1">
+                    <span className="text-[9px] text-gray-500 dark:text-gray-400">
+                      {maxPts > 0 ? `${maxPts}б` : '-'}
+                    </span>
+                    <div className="w-full flex-1 flex flex-col justify-end">
+                      <div
+                        className={`w-full rounded-t transition-all ${mastered ? 'bg-green-500' : r >= 50 ? 'bg-blue-500' : r > 0 ? 'bg-orange-400' : 'bg-gray-200 dark:bg-gray-700'}`}
+                        style={{ height: `${Math.max(r, 2)}%` }}
+                        title={`Задание ${tn}: ${r}% retrievability, ${maxPts} баллов`}
+                      />
+                    </div>
+                    <span className={`text-[10px] font-medium ${mastered ? 'text-green-600' : 'text-gray-500 dark:text-gray-400'}`}>{tn}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-4 border-t border-gray-100 px-4 py-2 text-[10px] text-gray-400 dark:border-gray-700 dark:text-gray-500">
+              <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-sm bg-green-500" /> Освоено</span>
+              <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-sm bg-blue-500" /> В процессе</span>
+              <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-sm bg-orange-400" /> Слабо</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ====== Activity Heatmap ====== */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Активность</h2>
           {calendar && (
             <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
@@ -416,18 +470,19 @@ export default function Progress() {
             })}
           </div>
 
-          {['\u041F\u043D', '', '\u0421\u0440', '', '\u041F\u0442', '', ''].map((dayLabel, dayIdx) => (
+          {['Пн', '', 'Ср', '', 'Пт', '', ''].map((dayLabel, dayIdx) => (
             <div key={dayIdx} className="flex items-center">
               <div className="w-8 shrink-0 text-[10px] text-gray-400 dark:text-gray-500">{dayLabel}</div>
               {heatmapWeeks.map((week, wi) => {
                 const cell = week[dayIdx]
                 if (!cell) return <div key={wi} style={{ width: 14, height: 14, margin: 1 }} />
                 const isFuture = cell.date > new Date()
+                const count = cell.activity?.problems_solved ?? 0
                 return (
                   <div
                     key={wi}
-                    title={`${cell.date.toISOString().slice(0, 10)}: ${cell.count} задач`}
-                    className={`rounded-sm ${isFuture ? 'bg-transparent' : heatmapCellColor(cell.count)}`}
+                    title={`${cell.date.toISOString().slice(0, 10)}: ${count} задач`}
+                    className={`rounded-sm ${isFuture ? 'bg-transparent' : heatmapCellColor(count)}`}
                     style={{ width: 12, height: 12, margin: 1 }}
                   />
                 )
@@ -447,50 +502,75 @@ export default function Progress() {
         </div>
       </section>
 
-      {/* ====== Section 4: Activity Chart ====== */}
+      {/* ====== Activity Chart ====== */}
       <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Динамика решений</h2>
-          <div className="flex gap-1 rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
-            <button
-              onClick={() => setChartDays(7)}
-              className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-                chartDays === 7
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
-              }`}
-            >
-              7 дней
-            </button>
-            <button
-              onClick={() => setChartDays(30)}
-              className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-                chartDays === 30
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
-              }`}
-            >
-              30 дней
-            </button>
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Динамика</h2>
+            <div className="flex gap-1 rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
+              <button
+                onClick={() => setChartMode('solved')}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  chartMode === 'solved' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+                }`}
+              >
+                Задачи
+              </button>
+              <button
+                onClick={() => setChartMode('xp')}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  chartMode === 'xp' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+                }`}
+              >
+                XP
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              Итого: <strong className="text-gray-900 dark:text-gray-100">{chartMode === 'solved' ? totalSolvedWeek : totalXpWeek}</strong>
+              {chartMode === 'solved' ? ' задач' : ' XP'}
+            </span>
+            <div className="flex gap-1 rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
+              <button
+                onClick={() => setChartDays(7)}
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                  chartDays === 7 ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+                }`}
+              >
+                7д
+              </button>
+              <button
+                onClick={() => setChartDays(30)}
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                  chartDays === 30 ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+                }`}
+              >
+                30д
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           {chartData.length > 0 ? (
             <div>
-              <div className="flex items-end gap-px" style={{ height: 220 }}>
+              <div className="flex items-end gap-px" style={{ height: 200 }}>
                 {chartData.map((d) => {
-                  const maxSolved = Math.max(...chartData.map(x => x.solved), 1)
-                  const pct = (d.solved / maxSolved) * 100
+                  const values = chartData.map(x => chartMode === 'solved' ? x.solved : x.xp)
+                  const maxVal = Math.max(...values, 1)
+                  const val = chartMode === 'solved' ? d.solved : d.xp
+                  const pct = (val / maxVal) * 100
+                  const barColor = chartMode === 'solved' ? 'bg-blue-500' : 'bg-purple-500'
                   return (
                     <div key={d.date} className="flex flex-1 flex-col items-center justify-end" style={{ height: '100%' }}>
-                      {d.solved > 0 && (
-                        <span className="mb-1 text-[9px] text-gray-500 dark:text-gray-400">{d.solved}</span>
+                      {val > 0 && (
+                        <span className="mb-1 text-[9px] text-gray-500 dark:text-gray-400">{val}</span>
                       )}
                       <div
-                        className="w-full rounded-t bg-blue-500 transition-all"
-                        style={{ height: `${Math.max(pct, d.solved > 0 ? 4 : 0)}%` }}
-                        title={`${d.label}: ${d.solved} задач`}
+                        className={`w-full rounded-t ${barColor} transition-all`}
+                        style={{ height: `${Math.max(pct, val > 0 ? 4 : 0)}%` }}
+                        title={`${d.label}: ${val} ${chartMode === 'solved' ? 'задач' : 'XP'}`}
                       />
                     </div>
                   )
@@ -505,11 +585,120 @@ export default function Progress() {
               </div>
             </div>
           ) : (
-            <div className="flex h-64 items-center justify-center text-gray-400 dark:text-gray-500">
+            <div className="flex h-48 items-center justify-center text-gray-400 dark:text-gray-500">
               Нет данных для отображения
             </div>
           )}
         </div>
+      </section>
+
+      {/* ====== FSRS Retrievability ====== */}
+      {fsrsStats && fsrsStats.retrievability_by_task.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Запоминание по заданиям</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+            {fsrsStats.retrievability_by_task.map((t) => {
+              const pct = Math.round(t.avg_retrievability * 100)
+              const ring = pct >= 80 ? 'border-green-400' : pct >= 50 ? 'border-blue-400' : pct > 0 ? 'border-orange-400' : 'border-gray-200 dark:border-gray-700'
+              return (
+                <div key={t.task_number} className={`rounded-xl border-2 ${ring} bg-white p-3 text-center dark:bg-gray-800`}>
+                  <div className="mb-1 text-xs text-gray-400 dark:text-gray-500">Задание {t.task_number}</div>
+                  <div className={`text-2xl font-bold ${pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-blue-600' : pct > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
+                    {pct}%
+                  </div>
+                  <div className="text-[10px] text-gray-400 dark:text-gray-500">{t.cards_count} карт.</div>
+                </div>
+              )
+            })}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
+              <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{fsrsStats.total_cards}</div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">Всего карточек</div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
+              <div className="text-lg font-bold text-blue-600">{fsrsStats.cards_in_review}</div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">На повторении</div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
+              <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{fsrsStats.avg_stability}д</div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">Ср. стабильность</div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
+              <div className={`text-lg font-bold ${fsrsStats.cards_due_today > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                {fsrsStats.cards_due_today}
+              </div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">К повторению</div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ====== Gap Map ====== */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Карта пробелов</h2>
+          <div className="flex gap-1 rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
+            <button
+              onClick={() => setGapSort('strength')}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                gapSort === 'strength' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+              }`}
+            >
+              По силе
+            </button>
+            <button
+              onClick={() => setGapSort('errors')}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                gapSort === 'errors' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+              }`}
+            >
+              По ошибкам
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {visibleGap.map((e) => (
+            <div key={e.task_number} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <Link
+                to="/topics"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white"
+              >
+                {e.task_number}
+              </Link>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{e.topic}</span>
+                  {e.error_count > 0 && (
+                    <span className="shrink-0 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                      {e.error_count} ош.
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div className={`h-full rounded-full transition-all ${strengthBarColor(e.strength)}`}
+                      style={{ width: `${Math.max(e.strength, 1)}%` }} />
+                  </div>
+                  <span className={`text-xs font-semibold ${strengthColor(e.strength)}`}>{e.strength}%</span>
+                </div>
+              </div>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${actionColor(e.recommended_action)}`}>
+                {e.recommended_action}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {sortedGap.length > 8 && (
+          <button
+            onClick={() => setShowAllGap(!showAllGap)}
+            className="mt-3 w-full rounded-lg border border-gray-200 bg-white py-2 text-sm font-medium text-blue-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+          >
+            {showAllGap ? 'Свернуть' : `Показать все (${sortedGap.length})`}
+          </button>
+        )}
       </section>
     </div>
   )
