@@ -329,40 +329,41 @@ export default function PrintProblems() {
                     />
                   </div>
 
-                  {/* Answer input — hidden when printing */}
-                  <div className="print:hidden mt-3">
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Ответ:</label>
-                      <input
-                        type="text"
-                        value={answers[problem.id] || ''}
-                        onChange={(e) => setAnswer(problem.id, e.target.value)}
-                        placeholder="Введите ответ"
-                        className={`w-48 rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 dark:bg-gray-800 dark:text-gray-100 ${
-                          check
-                            ? check.isCorrect
-                              ? 'border-green-400 bg-green-50 focus:ring-green-400 dark:border-green-700 dark:bg-green-900/20'
-                              : 'border-red-400 bg-red-50 focus:ring-red-400 dark:border-red-700 dark:bg-red-900/20'
-                            : 'border-gray-300 focus:ring-blue-400 dark:border-gray-600'
-                        }`}
-                      />
-                      {check && !check.isCorrect && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          Правильный ответ: <strong className="text-green-600">{check.correctAnswer}</strong>
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Solution explanation for wrong answers */}
-                    {check && !check.isCorrect && check.solution && (
-                      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
-                        <div className="mb-2 text-xs font-semibold text-red-700 dark:text-red-300">Разбор</div>
-                        <div className="text-sm text-red-900 dark:text-red-100">
-                          <MathRenderer content={check.solution} />
-                        </div>
-                      </div>
+                  {/* Answer input — right after problem text, hidden when printing */}
+                  <div className="print:hidden mt-3 flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Ответ:</label>
+                    <input
+                      type="text"
+                      value={answers[problem.id] || ''}
+                      onChange={(e) => setAnswer(problem.id, e.target.value)}
+                      placeholder="..."
+                      className={`w-40 rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 dark:bg-gray-800 dark:text-gray-100 ${
+                        check
+                          ? check.isCorrect
+                            ? 'border-green-400 bg-green-50 focus:ring-green-400 dark:border-green-700 dark:bg-green-900/20'
+                            : 'border-red-400 bg-red-50 focus:ring-red-400 dark:border-red-700 dark:bg-red-900/20'
+                          : 'border-gray-300 focus:ring-blue-400 dark:border-gray-600'
+                      }`}
+                    />
+                    {check && !check.isCorrect && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        Правильно: <strong className="text-green-600">{check.correctAnswer}</strong>
+                      </span>
+                    )}
+                    {check && check.isCorrect && (
+                      <span className="text-xs text-green-600 font-medium">&#10003;</span>
                     )}
                   </div>
+
+                  {/* Solution explanation for wrong answers */}
+                  {check && !check.isCorrect && check.solution && (
+                    <div className="print:hidden mt-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+                      <div className="mb-2 text-xs font-semibold text-red-700 dark:text-red-300">Разбор</div>
+                      <div className="text-sm text-red-900 dark:text-red-100">
+                        <MathRenderer content={check.solution} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}
