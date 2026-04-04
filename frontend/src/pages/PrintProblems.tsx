@@ -296,36 +296,25 @@ export default function PrintProblems() {
             <div className="mt-1 text-sm text-gray-500">Repeatify</div>
           </div>
 
-          <div className="space-y-6 print:space-y-4">
-            {problems.map((problem, idx) => {
-              const check = checked[problem.id]
-              return (
+          <div className="space-y-4 print:space-y-2">
+            {problems.map((problem, idx) => (
                 <div
                   key={problem.id}
-                  className={`rounded-lg border bg-white p-5 dark:bg-gray-800 print:rounded-none print:border-0 print:border-b print:border-gray-300 print:p-4 print:bg-white ${
-                    check
-                      ? check.isCorrect
-                        ? 'border-green-300 dark:border-green-700'
-                        : 'border-red-300 dark:border-red-700'
-                      : 'border-gray-200 dark:border-gray-700'
-                  }`}
+                  className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 print:rounded-none print:border-0 print:border-b print:border-gray-300 print:px-0 print:py-2 print:bg-white"
                   style={{ pageBreakInside: 'avoid' }}
                 >
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100 print:text-black">
-                      {idx + 1}.
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-800 dark:text-gray-200 print:text-black">
-                    <ProblemContent
-                      text={problem.problem_text}
-                      images={problem.problem_images}
-                      imageClassName="h-auto max-h-48 rounded bg-white p-1 print:max-h-40"
-                    />
+                  <div className="text-sm text-gray-800 dark:text-gray-200 print:text-black flex gap-1.5">
+                    <span className="font-bold text-gray-900 dark:text-gray-100 print:text-black shrink-0">{idx + 1}.</span>
+                    <div className="min-w-0">
+                      <ProblemContent
+                        text={problem.problem_text}
+                        images={problem.problem_images}
+                        imageClassName="h-auto max-h-48 rounded bg-white p-1 print:max-h-40"
+                      />
+                    </div>
                   </div>
                 </div>
-              )
-            })}
+            ))}
           </div>
 
           {/* Answer section after all problems — hidden when printing */}
