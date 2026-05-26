@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Ping backend health endpoint
         env:
-          RENDER_HEALTHCHECK_URL: ${{ vars.RENDER_HEALTHCHECK_URL || 'https://repeatify.onrender.com/health' }}
+          RENDER_HEALTHCHECK_URL: ${{ vars.RENDER_HEALTHCHECK_URL || 'https://repeatify.duckdns.org/health' }}
         run: |
           echo "Pinging ${RENDER_HEALTHCHECK_URL}"
           curl --fail --silent --show-error \
