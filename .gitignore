@@ -11,3 +11,10 @@ tasks.json
 tools
 prd 
 ralph.sh
+
+# Shkolkovo parser generated data
+data/raw/shkolkovo/html/
+data/raw/shkolkovo/task_*.json
+data/raw/shkolkovo/run_report_*.json
+data/raw/shkolkovo/debug/
+data/raw/shkolkovo/*_debug.json
