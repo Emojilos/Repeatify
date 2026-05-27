@@ -31,3 +31,8 @@ dev = [
     "pytest>=9.0.2",
     "ruff>=0.15.5",
 ]
+parser = [
+    "httpx>=0.28.1",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=5.0.0",
+]
