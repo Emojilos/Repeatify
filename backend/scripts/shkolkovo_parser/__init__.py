@@ -12,6 +12,17 @@ from scripts.shkolkovo_parser.config import (
     shkolkovo_data_dir,
     shkolkovo_data_path,
 )
+from scripts.shkolkovo_parser.exporter import (
+    DEFAULT_DIFFICULTY,
+    DEFAULT_SOURCE,
+    ExportResult,
+    build_dataset_record,
+    build_error_record,
+    content_hash_for_problem,
+    export_task_files,
+    task_errors_filename,
+    task_filename,
+)
 from scripts.shkolkovo_parser.fetcher import (
     CollectionStoppedError,
     FetchError,
@@ -47,6 +58,9 @@ __all__ = [
     "CatalogParseError",
     "CatalogProblemLink",
     "CollectionStoppedError",
+    "DEFAULT_DIFFICULTY",
+    "DEFAULT_SOURCE",
+    "ExportResult",
     "FetchError",
     "FetchResult",
     "INVALID_TASK_NUMBER",
@@ -60,6 +74,10 @@ __all__ = [
     "ShkolkovoFetcher",
     "ValidatedProblemRecord",
     "__version__",
+    "build_dataset_record",
+    "build_error_record",
+    "content_hash_for_problem",
+    "export_task_files",
     "parse_catalog_html",
     "parse_problem_html",
     "normalize_plain_text",
@@ -70,5 +88,7 @@ __all__ = [
     "shkolkovo_data_path",
     "snapshot_filename_for_url",
     "source_id_from_url",
+    "task_errors_filename",
+    "task_filename",
     "validate_problem",
 ]
