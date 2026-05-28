@@ -18,6 +18,8 @@ def test_readme_documents_parser_path_commands_and_outputs() -> None:
     assert f"{TEST_COMMAND} --task-number 6" in readme
     assert f"{TEST_COMMAND} --task-number 6 --per-subcategory 1" in readme
     assert ALL_COMMAND in readme
+    assert "offline all-mode run over bundled fixtures" in readme
+    assert "not approval to run a full live" in readme
     assert (
         "uv run --group parser python -m scripts.shkolkovo_parser "
         "--task-number 6 --max-pages 1 --max-problems 3 --debug"
@@ -34,5 +36,6 @@ def test_readme_documents_access_limits_and_playwright_note() -> None:
     assert "uv run --group parser playwright install chromium" in readme
     assert "does not import data into Supabase" in readme
     assert "public unauthenticated content" in readme
+    assert "TASK-032 remains gated by the live smoke" in readme
     assert "It must not use\ncredentials" in readme
     assert "CAPTCHA" in readme

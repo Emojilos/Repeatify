@@ -109,6 +109,14 @@ Because the required smoke was blocked, full live collection was not started.
 The blocked state must stay visible in reports/progress instead of being treated
 as a successful full run.
 
+The TASK-032 preflight was repeated on 2026-05-28 before closing the parser
+iteration. The required live smoke command again produced `status=blocked`,
+`0 parsed records`, and one `task_6_errors.json` entry. A direct `curl -I` check
+of the same catalog URL returned HTTP 503 with an `ngenix_jscc_*` JavaScript
+challenge cookie. The fixture `--mode all` command successfully wrote an
+aggregate offline report, but that report is not a live public catalog
+collection and does not satisfy the smoke gate for a full official run.
+
 ## Safety Rules For Later Tasks
 
 - Do not accept credentials, cookies, or authorization headers.

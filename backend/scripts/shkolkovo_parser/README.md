@@ -51,6 +51,10 @@ All available fixture catalogs:
 uv run --group parser python -m scripts.shkolkovo_parser --mode all
 ```
 
+This command is an offline all-mode run over bundled fixtures. It is useful for
+checking exports and aggregate reports, but it is not approval to run a full live
+collection against the official catalog.
+
 Controlled live smoke:
 
 ```text
@@ -61,6 +65,14 @@ The live smoke is intentionally separate from the unit-test suite. It must follo
 the access-stop rules in `DISCOVERY.md` and may produce a blocked report when the
 official site returns a browser check, CAPTCHA, 429, repeated 403, or another
 access limitation.
+
+## Full Live Collection Status
+
+TASK-032 remains gated by the live smoke. On 2026-05-28, the official catalog
+still returned HTTP 503/browser-check responses during the acceptance smoke, so
+the full live collection was not started. A later full run must first produce a
+successful unauthenticated live smoke and document the access decision in the
+run report.
 
 ## Generated Paths
 
