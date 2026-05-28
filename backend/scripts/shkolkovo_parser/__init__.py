@@ -12,6 +12,10 @@ from scripts.shkolkovo_parser.config import (
     shkolkovo_data_dir,
     shkolkovo_data_path,
 )
+from scripts.shkolkovo_parser.debug import (
+    DebugArtifactResult,
+    write_debug_artifacts,
+)
 from scripts.shkolkovo_parser.exporter import (
     DEFAULT_DIFFICULTY,
     DEFAULT_SOURCE,
@@ -98,6 +102,7 @@ __all__ = [
     "DEFAULT_DIFFICULTY",
     "DEFAULT_SOURCE",
     "DEFAULT_TEST_TASK_NUMBER",
+    "DebugArtifactResult",
     "ExportResult",
     "FetchError",
     "FetchResult",
@@ -157,4 +162,5 @@ __all__ = [
     "validate_public_http_url",
     "write_task_report",
     "write_run_report",
+    "write_debug_artifacts",
 ]

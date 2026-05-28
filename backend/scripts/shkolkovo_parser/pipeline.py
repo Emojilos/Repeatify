@@ -9,6 +9,7 @@ from pathlib import Path
 
 from scripts.shkolkovo_parser.catalog_parser import ParsedCatalog, parse_catalog_html
 from scripts.shkolkovo_parser.config import repository_root
+from scripts.shkolkovo_parser.debug import DebugArtifactResult, write_debug_artifacts
 from scripts.shkolkovo_parser.exporter import ExportResult, export_task_files
 from scripts.shkolkovo_parser.problem_parser import parse_problem_html
 from scripts.shkolkovo_parser.reporter import (
@@ -40,6 +41,7 @@ class OfflinePipelineResult:
     pages_visited: int
     skipped: int
     report: ReportResult
+    debug: DebugArtifactResult | None = None
 
     @property
     def duplicates_skipped(self) -> int:
@@ -67,6 +69,7 @@ def run_fixture_pipeline(
     fixture_dir: Path | None = None,
     output_dir: Path | None = None,
     progress: ProgressReporter | None = None,
+    debug: bool = False,
 ) -> OfflinePipelineResult:
     """Run the parser pipeline on bundled local HTML fixtures."""
     fixture_dir = fixture_dir or default_fixture_dir()
@@ -81,6 +84,7 @@ def run_fixture_pipeline(
         per_subcategory=per_subcategory,
         output_dir=output_dir,
         progress=progress,
+        debug=debug,
     )
 
 
@@ -91,6 +95,7 @@ def run_all_fixture_pipeline(
     output_dir: Path | None = None,
     progress: ProgressReporter | None = None,
     parameters: dict[str, object] | None = None,
+    debug: bool = False,
 ) -> OfflineAllPipelineResult:
     """Run the offline pipeline for every task number found in fixtures."""
     fixture_dir = fixture_dir or default_fixture_dir()
@@ -105,6 +110,7 @@ def run_all_fixture_pipeline(
         output_dir=output_dir,
         progress=progress,
         parameters=parameters,
+        debug=debug,
     )
 
 
@@ -116,6 +122,7 @@ def run_all_offline_pipeline(
     output_dir: Path | None = None,
     progress: ProgressReporter | None = None,
     parameters: dict[str, object] | None = None,
+    debug: bool = False,
 ) -> OfflineAllPipelineResult:
     """Parse saved catalog/problem HTML for all discovered task numbers."""
     started_at = datetime.now(UTC)
@@ -135,6 +142,7 @@ def run_all_offline_pipeline(
             per_subcategory=per_subcategory,
             output_dir=output_dir,
             progress=progress,
+            debug=debug,
         )
         for task_number in task_numbers
     )
@@ -160,6 +168,7 @@ def run_offline_pipeline(
     per_subcategory: int | None = None,
     output_dir: Path | None = None,
     progress: ProgressReporter | None = None,
+    debug: bool = False,
 ) -> OfflinePipelineResult:
     """Parse saved catalog/problem HTML and export one task dataset."""
     started_at = datetime.now(UTC)
@@ -268,6 +277,21 @@ def run_offline_pipeline(
         skipped=skipped,
         output_dir=output_dir,
     )
+    debug_result = (
+        write_debug_artifacts(
+            task_number=task_number,
+            catalog_html=catalog_html,
+            problem_pages=problem_pages,
+            catalog=catalog,
+            records=tuple(records),
+            errors=tuple(errors),
+            output_dir=output_dir,
+        )
+        if debug
+        else None
+    )
+    if debug_result is not None:
+        _report_progress(progress, f"Debug: {debug_result.debug_dir}")
     return OfflinePipelineResult(
         task_number=task_number,
         export=export,
@@ -277,6 +301,7 @@ def run_offline_pipeline(
         pages_visited=pages_visited,
         skipped=skipped,
         report=report,
+        debug=debug_result,
     )
 
 

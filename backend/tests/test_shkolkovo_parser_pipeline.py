@@ -171,6 +171,34 @@ def test_fixture_pipeline_reports_console_progress(tmp_path: Path) -> None:
     )
 
 
+def test_fixture_pipeline_writes_debug_artifacts_without_dataset_debug_fields(
+    tmp_path: Path,
+) -> None:
+    result = run_fixture_pipeline(output_dir=tmp_path, debug=True)
+
+    assert result.debug is not None
+    assert result.debug.debug_dir == tmp_path / "debug" / "task_6"
+    assert (result.debug.debug_dir / "catalog_raw.html").exists()
+    assert (result.debug.debug_dir / "catalog_parsed.json").exists()
+    assert (result.debug.debug_dir / "validated_records.json").exists()
+    assert (result.debug.debug_dir / "validation_errors.json").exists()
+    assert (
+        result.debug.debug_dir / "problem_pages" / "100601_raw.html"
+    ).exists()
+
+    debug_catalog = json.loads(
+        (result.debug.debug_dir / "catalog_parsed.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+    records = json.loads(result.export.output_file.read_text(encoding="utf-8"))
+
+    assert debug_catalog["problems"][0]["source_id"] == "100601"
+    assert "raw" not in records[0]
+    assert "debug" not in records[0]
+    assert all("html" not in key for record in records for key in record)
+
+
 def test_all_fixture_pipeline_exports_each_discovered_task_and_run_report(
     tmp_path: Path,
 ) -> None:
@@ -239,6 +267,17 @@ def test_cli_all_mode_runs_all_discovered_fixture_tasks() -> None:
     assert "Task 7: output=" in result.stdout
     assert "Run report:" in result.stdout
     assert "run_report_" in result.stdout
+
+
+def test_cli_debug_mode_writes_default_debug_artifacts() -> None:
+    backend_dir = Path(__file__).resolve().parents[1]
+    debug_dir = backend_dir.parent / "data" / "raw" / "shkolkovo" / "debug"
+
+    result = run_parser_cli("--mode", "test", "--debug")
+
+    assert result.returncode == 0
+    assert "Debug:" in result.stdout
+    assert (debug_dir / "task_6" / "catalog_raw.html").exists()
 
 
 def test_cli_passes_per_subcategory_limit_to_fixture_pipeline() -> None:

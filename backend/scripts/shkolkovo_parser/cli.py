@@ -163,6 +163,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             task_number=options.task_number or DEFAULT_TEST_TASK_NUMBER,
             per_subcategory=options.per_subcategory,
             progress=print,
+            debug=options.debug,
         )
         print(
             "Offline test pipeline completed: "
@@ -173,12 +174,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Output: {result.export.output_file}")
         print(f"Errors: {result.export.errors_file}")
         print(f"Report: {result.report.report_file}")
+        if result.debug is not None:
+            print(f"Debug: {result.debug.debug_dir}")
         return 0
 
     result = run_all_fixture_pipeline(
         per_subcategory=options.per_subcategory,
         progress=print,
         parameters=_run_parameters(options),
+        debug=options.debug,
     )
     _print_all_result(result)
     return 0
@@ -203,7 +207,8 @@ def _print_task_result(result: OfflinePipelineResult) -> None:
         f"Task {result.task_number}: "
         f"output={result.export.output_file}, "
         f"errors={result.export.errors_file}, "
-        f"report={result.report.report_file}",
+        f"report={result.report.report_file}"
+        f"{_debug_suffix(result)}",
     )
 
 
@@ -219,6 +224,12 @@ def _run_parameters(options: ParserOptions) -> dict[str, object]:
         "image_workers": options.image_workers,
         "debug": options.debug,
     }
+
+
+def _debug_suffix(result: OfflinePipelineResult) -> str:
+    if result.debug is None:
+        return ""
+    return f", debug={result.debug.debug_dir}"
 
 
 def _positive_int(value: str) -> int:
