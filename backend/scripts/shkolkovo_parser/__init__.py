@@ -19,6 +19,11 @@ from scripts.shkolkovo_parser.fetcher import (
     ShkolkovoFetcher,
     snapshot_filename_for_url,
 )
+from scripts.shkolkovo_parser.normalizer import (
+    normalize_plain_text,
+    normalize_problem_html,
+    normalize_problem_text,
+)
 from scripts.shkolkovo_parser.problem_parser import (
     ParsedProblem,
     parse_problem_html,
@@ -40,6 +45,9 @@ __all__ = [
     "__version__",
     "parse_catalog_html",
     "parse_problem_html",
+    "normalize_plain_text",
+    "normalize_problem_html",
+    "normalize_problem_text",
     "repository_root",
     "shkolkovo_data_dir",
     "shkolkovo_data_path",

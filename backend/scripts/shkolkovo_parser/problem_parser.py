@@ -8,6 +8,11 @@ from urllib.parse import parse_qs, urlparse
 
 from bs4 import BeautifulSoup, Tag
 
+from scripts.shkolkovo_parser.normalizer import (
+    normalize_plain_text,
+    normalize_problem_text,
+)
+
 PROBLEM_ID_PATTERN = re.compile(r"/problem/(\d+)(?:\D|$)")
 
 
@@ -37,14 +42,14 @@ def _extract_problem_text(soup: BeautifulSoup) -> str:
     problem_node = soup.select_one(".problem-text")
     if problem_node is None:
         return ""
-    return _normalized_text(problem_node)
+    return normalize_problem_text(problem_node)
 
 
 def _extract_correct_answer(soup: BeautifulSoup) -> str | None:
     answer_node = soup.select_one(".correct-answer")
     if answer_node is None:
         return None
-    answer = _normalized_text(answer_node)
+    answer = normalize_plain_text(answer_node)
     return answer or None
 
 
@@ -79,7 +84,3 @@ def _first_attr(soup: BeautifulSoup, attr_name: str) -> str | None:
         return None
     value = value.strip()
     return value or None
-
-
-def _normalized_text(node: Tag) -> str:
-    return " ".join(node.get_text(" ", strip=True).split())
