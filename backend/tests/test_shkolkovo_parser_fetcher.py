@@ -236,3 +236,44 @@ def test_fetcher_sends_no_credentials_by_default(tmp_path: Path) -> None:
     assert "authorization" not in seen_headers[0]
     assert "cookie" not in seen_headers[0]
     assert "proxy-authorization" not in seen_headers[0]
+
+
+def test_fetcher_rejects_non_http_urls_before_request(tmp_path: Path) -> None:
+    requests_seen = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal requests_seen
+        requests_seen += 1
+        return httpx.Response(200, text="<html>should not fetch</html>")
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    fetcher = ShkolkovoFetcher(client=client, snapshot_dir=tmp_path, delay=0)
+
+    for url in ("file:///tmp/problem.html", "javascript:alert(1)"):
+        with pytest.raises(FetchError, match="must use http or https") as exc_info:
+            fetcher.fetch(url)
+
+        assert exc_info.value.url == url
+        assert exc_info.value.attempts == 0
+
+    assert requests_seen == 0
+    assert not list(tmp_path.iterdir())
+
+
+def test_fetcher_rejects_snapshot_path_traversal(tmp_path: Path) -> None:
+    outside_file = tmp_path.parent / "escape.html"
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="<html>public</html>")
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    fetcher = ShkolkovoFetcher(client=client, snapshot_dir=tmp_path, delay=0)
+
+    with pytest.raises(FetchError, match="plain filename"):
+        fetcher.fetch(
+            "https://example.test/public/problem/1",
+            snapshot_name="../escape.html",
+        )
+
+    assert not outside_file.exists()
+    assert not list(tmp_path.iterdir())

@@ -71,6 +71,11 @@ from scripts.shkolkovo_parser.reporter import (
     write_run_report,
     write_task_report,
 )
+from scripts.shkolkovo_parser.security import (
+    ParserSecurityError,
+    safe_child_file,
+    validate_public_http_url,
+)
 from scripts.shkolkovo_parser.validator import (
     IMAGE_DOWNLOAD_FAILED,
     INVALID_TASK_NUMBER,
@@ -108,6 +113,7 @@ __all__ = [
     "OfflinePipelineResult",
     "ParsedCatalog",
     "ParsedProblem",
+    "ParserSecurityError",
     "ParseStatus",
     "ProblemValidationError",
     "ProblemValidationResult",
@@ -139,6 +145,7 @@ __all__ = [
     "run_fixture_pipeline",
     "run_offline_pipeline",
     "run_report_filename",
+    "safe_child_file",
     "shkolkovo_data_dir",
     "shkolkovo_data_path",
     "snapshot_filename_for_url",
@@ -147,6 +154,7 @@ __all__ = [
     "task_filename",
     "task_report_filename",
     "validate_problem",
+    "validate_public_http_url",
     "write_task_report",
     "write_run_report",
 ]

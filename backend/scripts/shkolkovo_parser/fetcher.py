@@ -12,6 +12,11 @@ from urllib.parse import urlparse
 import httpx
 
 from scripts.shkolkovo_parser.config import shkolkovo_data_path
+from scripts.shkolkovo_parser.security import (
+    ParserSecurityError,
+    safe_child_file,
+    validate_public_http_url,
+)
 
 DEFAULT_USER_AGENT = "Repeatify-Shkolkovo-Parser/0.1"
 TEMPORARY_STATUS_CODES = frozenset({500, 502, 503, 504})
@@ -137,6 +142,11 @@ class ShkolkovoFetcher:
 
     def fetch(self, url: str, *, snapshot_name: str | None = None) -> FetchResult:
         """Fetch one HTML URL, retry temporary failures, and write a snapshot."""
+        try:
+            url = validate_public_http_url(url, context="fetch URL")
+        except ParserSecurityError as exc:
+            raise FetchError(str(exc), url=url, attempts=0) from exc
+
         max_attempts = self._max_retries + 1
         last_status_code: int | None = None
         last_error: Exception | None = None
@@ -273,7 +283,10 @@ class ShkolkovoFetcher:
         snapshot_dir = self._snapshot_dir or shkolkovo_data_path("html")
         snapshot_dir.mkdir(parents=True, exist_ok=True)
         filename = snapshot_name or snapshot_filename_for_url(url)
-        path = snapshot_dir / filename
+        try:
+            path = safe_child_file(snapshot_dir, filename, context="snapshot")
+        except ParserSecurityError as exc:
+            raise FetchError(str(exc), url=url, attempts=0) from exc
         path.write_text(html, encoding="utf-8")
         return path
 

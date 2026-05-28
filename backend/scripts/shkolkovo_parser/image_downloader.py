@@ -11,6 +11,11 @@ import httpx
 
 from scripts.shkolkovo_parser.config import repository_root, shkolkovo_data_dir
 from scripts.shkolkovo_parser.fetcher import DEFAULT_USER_AGENT
+from scripts.shkolkovo_parser.security import (
+    ParserSecurityError,
+    safe_child_file,
+    validate_public_http_url,
+)
 from scripts.shkolkovo_parser.validator import (
     IMAGE_DOWNLOAD_FAILED,
     ValidatedProblemRecord,
@@ -90,19 +95,33 @@ def download_problem_images(
             seen_urls.add(source_url)
 
             try:
+                source_url = validate_public_http_url(
+                    source_url,
+                    context="source image URL",
+                )
                 response = http_client.get(source_url)
                 response.raise_for_status()
-            except httpx.HTTPError as exc:
+            except (httpx.HTTPError, ParserSecurityError) as exc:
                 failures.append(
                     ImageDownloadFailure(source_url=source_url, error=str(exc)),
                 )
                 continue
 
-            local_path = image_dir / image_filename_for_url(
-                source_url,
-                source_id=record.source_id,
-                content_type=response.headers.get("content-type"),
-            )
+            try:
+                local_path = safe_child_file(
+                    image_dir,
+                    image_filename_for_url(
+                        source_url,
+                        source_id=record.source_id,
+                        content_type=response.headers.get("content-type"),
+                    ),
+                    context="image",
+                )
+            except ParserSecurityError as exc:
+                failures.append(
+                    ImageDownloadFailure(source_url=source_url, error=str(exc)),
+                )
+                continue
             local_path.write_bytes(response.content)
             relative_path = local_path.relative_to(repo_root).as_posix()
             problem_images.append(relative_path)

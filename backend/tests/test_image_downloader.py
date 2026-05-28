@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import cast
 
@@ -235,3 +236,70 @@ def test_partial_image_download_record_stays_in_dataset_export(
         image_download_failed_error(failed_url),
     ]
     assert errors == []
+
+
+def test_image_downloader_rejects_non_http_urls_without_request(
+    tmp_path: Path,
+) -> None:
+    requests_seen = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal requests_seen
+        requests_seen += 1
+        return httpx.Response(200, content=b"png")
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    file_url = "file:///tmp/problem.png"
+    javascript_url = "javascript:alert(1)"
+
+    result = download_problem_images(
+        _validated_record((file_url, javascript_url)),
+        client=client,
+        data_dir=tmp_path / "data" / "raw" / "shkolkovo",
+        repository_root_path=tmp_path,
+    )
+
+    assert requests_seen == 0
+    assert result.downloads == ()
+    assert [failure.source_url for failure in result.failures] == [
+        file_url,
+        javascript_url,
+    ]
+    assert result.record.parse_status == "partial"
+    assert result.record.problem_images == ()
+    assert result.record.parse_errors == (
+        image_download_failed_error(file_url),
+        image_download_failed_error(javascript_url),
+    )
+
+
+def test_image_downloader_sanitizes_traversal_like_source_id(
+    tmp_path: Path,
+) -> None:
+    image_url = "https://3.shkolkovo.online/media/problems/100601/triangle.png"
+    record = _validated_record((image_url,))
+    record = replace(record, source_id="../100601")
+    client = httpx.Client(
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                content=b"png",
+                headers={"content-type": "image/png"},
+                request=request,
+            ),
+        ),
+    )
+    data_dir = tmp_path / "data" / "raw" / "shkolkovo"
+
+    result = download_problem_images(
+        record,
+        client=client,
+        data_dir=data_dir,
+        repository_root_path=tmp_path,
+    )
+
+    assert len(result.downloads) == 1
+    assert result.downloads[0].local_path.parent == data_dir / "images" / "task_6"
+    assert ".." not in result.downloads[0].local_path.name
+    assert "/" not in result.downloads[0].local_path.name
+    assert not (data_dir / "images" / "100601").exists()
