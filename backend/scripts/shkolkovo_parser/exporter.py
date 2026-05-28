@@ -28,6 +28,7 @@ class ExportResult:
     errors_file: Path
     records_written: int
     errors_written: int
+    duplicates_skipped: int = 0
 
 
 def export_task_files(
@@ -39,13 +40,18 @@ def export_task_files(
 ) -> ExportResult:
     """Write task_N.json and task_N_errors.json for one task number."""
     _validate_task_number(task_number)
-    task_records = [build_dataset_record(record) for record in records]
-    error_records = [build_error_record(error) for error in errors]
-
     target_dir = output_dir or shkolkovo_data_dir()
     target_dir.mkdir(parents=True, exist_ok=True)
     output_file = target_dir / task_filename(task_number)
     errors_file = target_dir / task_errors_filename(task_number)
+
+    existing_task_records = _read_json_array(output_file)
+    new_task_records = [build_dataset_record(record) for record in records]
+    task_records, duplicates_skipped = _merge_unique_records(
+        existing_task_records=existing_task_records,
+        new_task_records=new_task_records,
+    )
+    error_records = [build_error_record(error) for error in errors]
 
     _write_json_array(output_file, task_records)
     _write_json_array(errors_file, error_records)
@@ -56,6 +62,7 @@ def export_task_files(
         errors_file=errors_file,
         records_written=len(task_records),
         errors_written=len(error_records),
+        duplicates_skipped=duplicates_skipped,
     )
 
 
@@ -133,6 +140,54 @@ def _write_json_array(path: Path, records: list[dict[str, Any]]) -> None:
         json.dumps(records, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+
+
+def _read_json_array(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+
+    raw_records = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw_records, list):
+        msg = f"{path} must contain a JSON array"
+        raise ValueError(msg)
+
+    records: list[dict[str, Any]] = []
+    for raw_record in raw_records:
+        if not isinstance(raw_record, dict):
+            msg = f"{path} must contain only JSON objects"
+            raise ValueError(msg)
+        records.append(raw_record)
+    return records
+
+
+def _merge_unique_records(
+    *,
+    existing_task_records: list[dict[str, Any]],
+    new_task_records: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], int]:
+    records = list(existing_task_records)
+    seen_hashes = _record_hashes(existing_task_records)
+    duplicates_skipped = 0
+
+    for record in new_task_records:
+        content_hash = record.get("content_hash")
+        if isinstance(content_hash, str) and content_hash in seen_hashes:
+            duplicates_skipped += 1
+            continue
+
+        records.append(record)
+        if isinstance(content_hash, str):
+            seen_hashes.add(content_hash)
+
+    return records, duplicates_skipped
+
+
+def _record_hashes(records: list[dict[str, Any]]) -> set[str]:
+    return {
+        content_hash
+        for record in records
+        if isinstance(content_hash := record.get("content_hash"), str)
+    }
 
 
 def _validate_task_number(task_number: int) -> None:

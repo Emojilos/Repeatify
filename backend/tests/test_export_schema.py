@@ -25,6 +25,7 @@ from scripts.shkolkovo_parser.validator import (
 def _validated_record(
     *,
     correct_answer: str | None = "10",
+    source_url: str = "https://3.shkolkovo.online/problem/100601?SubjectId=1",
     parse_status: str = "ok",
     parse_errors: tuple[str, ...] = (),
     source_image_urls: tuple[str, ...] = (),
@@ -33,7 +34,7 @@ def _validated_record(
         task_number=6,
         problem_text="В треугольнике ABC найдите AB.",
         correct_answer=correct_answer,
-        source_url="https://3.shkolkovo.online/problem/100601?SubjectId=1",
+        source_url=source_url,
         source_id="100601",
         category="Планиметрия",
         subcategory="Треугольники",
@@ -158,3 +159,51 @@ def test_export_task_files_writes_valid_json_arrays_for_task_number(
     assert task_records[0]["hints"] == []
     assert task_records[0]["solution_images"] == []
     assert error_records[0]["error"] == MISSING_PROBLEM_TEXT
+
+
+def test_export_task_files_skips_existing_content_hash_without_overwrite(
+    tmp_path: Path,
+) -> None:
+    existing_record = build_dataset_record(
+        _validated_record(correct_answer="old-answer"),
+    )
+    existing_record["source_url"] = "https://existing.example/problem/100601"
+    output_file = tmp_path / "task_6.json"
+    output_file.write_text(
+        json.dumps([existing_record], ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    result = export_task_files(
+        task_number=6,
+        records=(
+            _validated_record(
+                correct_answer="new-answer",
+                source_url="https://new.example/problem/100601",
+            ),
+        ),
+        output_dir=tmp_path,
+    )
+
+    task_records = json.loads(output_file.read_text(encoding="utf-8"))
+    assert result.records_written == 1
+    assert result.duplicates_skipped == 1
+    assert task_records == [existing_record]
+
+
+def test_export_task_files_skips_duplicate_hashes_within_same_export(
+    tmp_path: Path,
+) -> None:
+    result = export_task_files(
+        task_number=6,
+        records=(
+            _validated_record(source_url="https://first.example/problem/100601"),
+            _validated_record(source_url="https://second.example/problem/100601"),
+        ),
+        output_dir=tmp_path,
+    )
+
+    task_records = json.loads(result.output_file.read_text(encoding="utf-8"))
+    assert result.records_written == 1
+    assert result.duplicates_skipped == 1
+    assert task_records[0]["source_url"] == "https://first.example/problem/100601"

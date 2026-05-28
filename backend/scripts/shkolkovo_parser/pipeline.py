@@ -29,6 +29,11 @@ class OfflinePipelineResult:
     errors: tuple[ProblemValidationError, ...]
     catalog_links_found: int
 
+    @property
+    def duplicates_skipped(self) -> int:
+        """Number of dataset records skipped because they already existed."""
+        return self.export.duplicates_skipped
+
 
 def run_fixture_pipeline(
     *,

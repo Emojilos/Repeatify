@@ -163,7 +163,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             "Offline test pipeline completed: "
             f"{result.export.records_written} records, "
-            f"{result.export.errors_written} errors.",
+            f"{result.export.errors_written} errors, "
+            f"{result.duplicates_skipped} duplicates skipped.",
         )
         print(f"Output: {result.export.output_file}")
         print(f"Errors: {result.export.errors_file}")

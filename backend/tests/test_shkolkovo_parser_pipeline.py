@@ -25,6 +25,7 @@ def test_fixture_pipeline_exports_task_6_json_files(tmp_path: Path) -> None:
     assert result.export.errors_file == tmp_path / "task_6_errors.json"
     assert result.export.records_written == 3
     assert result.export.errors_written == 0
+    assert result.duplicates_skipped == 0
     assert sorted(path.name for path in tmp_path.glob("task_*.json")) == [
         "task_6.json",
         "task_6_errors.json",
@@ -65,6 +66,25 @@ def test_offline_pipeline_records_missing_problem_snapshot(
 
     errors = json.loads(result.export.errors_file.read_text(encoding="utf-8"))
     assert {error["error"] for error in errors} == {MISSING_OFFLINE_SNAPSHOT}
+
+
+def test_fixture_pipeline_repeat_run_skips_existing_records(
+    tmp_path: Path,
+) -> None:
+    first_result = run_fixture_pipeline(output_dir=tmp_path)
+    second_result = run_fixture_pipeline(output_dir=tmp_path)
+
+    assert first_result.export.records_written == 3
+    assert first_result.duplicates_skipped == 0
+    assert second_result.export.records_written == 3
+    assert second_result.duplicates_skipped == 3
+
+    records = json.loads(second_result.export.output_file.read_text(encoding="utf-8"))
+    assert [record["source_id"] for record in records] == [
+        "100601",
+        "100602",
+        "100603",
+    ]
 
 
 def test_fixture_pipeline_limits_records_per_subcategory(
@@ -119,7 +139,8 @@ def test_cli_passes_per_subcategory_limit_to_fixture_pipeline() -> None:
     )
 
     assert result.returncode == 0
-    assert "Offline test pipeline completed: 2 records, 0 errors." in result.stdout
+    assert "Offline test pipeline completed:" in result.stdout
+    assert "duplicates skipped." in result.stdout
 
 
 def test_cli_per_prototype_alias_limits_fixture_pipeline() -> None:
@@ -133,7 +154,8 @@ def test_cli_per_prototype_alias_limits_fixture_pipeline() -> None:
     )
 
     assert result.returncode == 0
-    assert "Offline test pipeline completed: 2 records, 0 errors." in result.stdout
+    assert "Offline test pipeline completed:" in result.stdout
+    assert "duplicates skipped." in result.stdout
 
 
 def run_parser_cli(*args: str) -> subprocess.CompletedProcess[str]:
