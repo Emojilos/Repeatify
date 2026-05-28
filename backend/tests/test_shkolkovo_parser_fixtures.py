@@ -23,9 +23,12 @@ def test_catalog_fixture_contains_task_links_and_classification() -> None:
 
     assert 'data-fixture="shkolkovo-catalog"' in html
     assert 'data-task-number="6"' in html
+    assert 'data-task-number="7"' in html
     assert 'data-category="Планиметрия"' in html
+    assert 'data-category="Анализ функций"' in html
     assert 'data-subcategory="Треугольники"' in html
     assert 'data-subcategory="Окружности"' in html
+    assert 'data-subcategory="Физический смысл производной"' in html
     assert 'class="problem-link"' in html
     assert "https://3.shkolkovo.online/problem/100601?SubjectId=1" in html
 

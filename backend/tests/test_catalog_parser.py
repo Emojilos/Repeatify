@@ -39,6 +39,13 @@ def test_catalog_parser_extracts_problem_links_and_classification() -> None:
             subcategory="Окружности",
             source_id="100603",
         ),
+        CatalogProblemLink(
+            source_url="https://3.shkolkovo.online/problem/100701?SubjectId=1",
+            task_number=7,
+            category="Анализ функций",
+            subcategory="Физический смысл производной",
+            source_id="100701",
+        ),
     )
 
 
@@ -47,7 +54,7 @@ def test_catalog_parser_rejects_links_with_out_of_range_task_number() -> None:
 
     catalog = parse_catalog_html(html)
 
-    assert len(catalog.problems) == 3
+    assert len(catalog.problems) == 4
     assert len(catalog.errors) == 1
     assert catalog.errors[0].reason == "task_number_out_of_range"
     assert catalog.errors[0].source_url == (

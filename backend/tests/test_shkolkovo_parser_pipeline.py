@@ -20,11 +20,15 @@ def test_fixture_pipeline_exports_task_6_json_files(tmp_path: Path) -> None:
     result = run_fixture_pipeline(output_dir=tmp_path)
 
     assert result.task_number == 6
-    assert result.catalog_links_found == 3
+    assert result.catalog_links_found == 4
     assert result.export.output_file == tmp_path / "task_6.json"
     assert result.export.errors_file == tmp_path / "task_6_errors.json"
     assert result.export.records_written == 3
     assert result.export.errors_written == 0
+    assert sorted(path.name for path in tmp_path.glob("task_*.json")) == [
+        "task_6.json",
+        "task_6_errors.json",
+    ]
 
     records = json.loads(result.export.output_file.read_text(encoding="utf-8"))
     errors = json.loads(result.export.errors_file.read_text(encoding="utf-8"))
@@ -35,6 +39,7 @@ def test_fixture_pipeline_exports_task_6_json_files(tmp_path: Path) -> None:
         "100602",
         "100603",
     ]
+    assert {record["task_number"] for record in records} == {6}
     assert records[0]["parse_status"] == "ok"
     assert records[1]["parse_status"] == "partial"
     assert records[1]["parse_errors"] == ["missing_correct_answer"]
