@@ -7,6 +7,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from scripts.shkolkovo_parser import __version__
+from scripts.shkolkovo_parser.pipeline import (
+    DEFAULT_TEST_TASK_NUMBER,
+    run_fixture_pipeline,
+)
 
 MIN_TASK_NUMBER = 1
 MAX_TASK_NUMBER = 19
@@ -151,6 +155,19 @@ def parse_args(argv: Sequence[str] | None = None) -> ParserOptions:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the parser CLI."""
     options = parse_args(argv)
+    if options.mode == "test":
+        result = run_fixture_pipeline(
+            task_number=options.task_number or DEFAULT_TEST_TASK_NUMBER,
+        )
+        print(
+            "Offline test pipeline completed: "
+            f"{result.export.records_written} records, "
+            f"{result.export.errors_written} errors.",
+        )
+        print(f"Output: {result.export.output_file}")
+        print(f"Errors: {result.export.errors_file}")
+        return 0
+
     print(f"Shkolkovo parser CLI configured for {options.mode!r} mode.")
     return 0
 
