@@ -7,10 +7,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.shkolkovo_parser.fetcher import CollectionStoppedError, FetchResult
 from scripts.shkolkovo_parser.pipeline import (
+    LIVE_CATALOG_URL,
     MISSING_OFFLINE_SNAPSHOT,
     run_all_fixture_pipeline,
     run_fixture_pipeline,
+    run_live_smoke_pipeline,
     run_offline_pipeline,
 )
 
@@ -280,6 +283,91 @@ def test_cli_debug_mode_writes_default_debug_artifacts() -> None:
     assert (debug_dir / "task_6" / "catalog_raw.html").exists()
 
 
+def test_live_smoke_writes_blocked_report_on_access_stop(tmp_path: Path) -> None:
+    stale_debug_file = tmp_path / "debug" / "task_6" / "problem_pages" / "stale.html"
+    stale_debug_file.parent.mkdir(parents=True)
+    stale_debug_file.write_text("stale", encoding="utf-8")
+    fetcher = FakeFetcher(
+        failures=[
+            CollectionStoppedError(
+                "collection stopped for browser check",
+                url=LIVE_CATALOG_URL,
+                attempts=1,
+                status_code=503,
+                reason="captcha_or_browser_check",
+            ),
+        ],
+    )
+
+    result = run_live_smoke_pipeline(
+        task_number=6,
+        max_pages=1,
+        max_problems=3,
+        output_dir=tmp_path,
+        debug=True,
+        fetcher_factory=lambda: fetcher,
+    )
+
+    records = json.loads(result.export.output_file.read_text(encoding="utf-8"))
+    errors = json.loads(result.export.errors_file.read_text(encoding="utf-8"))
+    report = json.loads(result.report.report_file.read_text(encoding="utf-8"))
+
+    assert records == []
+    assert errors[0]["error"] == "captcha_or_browser_check"
+    assert report["status"] == "blocked"
+    assert report["critical_errors"][0]["reason"] == "captcha_or_browser_check"
+    assert report["pages_visited"] == 1
+    assert result.debug is not None
+    assert (result.debug.debug_dir / "catalog_raw.html").exists()
+    assert not stale_debug_file.exists()
+    assert not (result.debug.debug_dir / "problem_pages" / "stale.html").exists()
+    assert fetcher.closed
+
+
+def test_live_smoke_parses_limited_public_sample(tmp_path: Path) -> None:
+    catalog_html = (FIXTURE_DIR / "catalog_task_6.html").read_text(
+        encoding="utf-8",
+    )
+    problem_html = (FIXTURE_DIR / "problem_basic.html").read_text(
+        encoding="utf-8",
+    )
+    fetcher = FakeFetcher(
+        results=[
+            FetchResult(
+                url=LIVE_CATALOG_URL,
+                status_code=200,
+                html=catalog_html,
+                snapshot_path=tmp_path / "catalog.html",
+                attempts=1,
+            ),
+            FetchResult(
+                url="https://3.shkolkovo.online/problem/100601?SubjectId=1",
+                status_code=200,
+                html=problem_html,
+                snapshot_path=tmp_path / "problem.html",
+                attempts=1,
+            ),
+        ],
+    )
+
+    result = run_live_smoke_pipeline(
+        task_number=6,
+        max_pages=1,
+        max_problems=1,
+        output_dir=tmp_path,
+        fetcher_factory=lambda: fetcher,
+    )
+
+    records = json.loads(result.export.output_file.read_text(encoding="utf-8"))
+    report = json.loads(result.report.report_file.read_text(encoding="utf-8"))
+
+    assert [record["source_id"] for record in records] == ["100601"]
+    assert report["status"] == "completed"
+    assert report["links_found"] == 4
+    assert report["parsed_ok"] == 1
+    assert result.pages_visited == 2
+
+
 def test_cli_passes_per_subcategory_limit_to_fixture_pipeline() -> None:
     result = run_parser_cli(
         "--mode",
@@ -319,3 +407,24 @@ def run_parser_cli(*args: str) -> subprocess.CompletedProcess[str]:
         check=False,
         text=True,
     )
+
+
+class FakeFetcher:
+    def __init__(
+        self,
+        *,
+        results: list[FetchResult] | None = None,
+        failures: list[CollectionStoppedError] | None = None,
+    ) -> None:
+        self.results = results or []
+        self.failures = failures or []
+        self.closed = False
+
+    def fetch(self, _url: str, *, snapshot_name: str | None = None) -> FetchResult:
+        _ = snapshot_name
+        if self.failures:
+            raise self.failures.pop(0)
+        return self.results.pop(0)
+
+    def close(self) -> None:
+        self.closed = True

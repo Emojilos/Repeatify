@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -70,6 +71,8 @@ def write_debug_artifacts(
 def _debug_task_dir(*, task_number: int, output_dir: Path | None) -> Path:
     target_dir = output_dir or shkolkovo_data_dir()
     debug_dir = target_dir / "debug" / f"task_{task_number}"
+    if debug_dir.exists():
+        shutil.rmtree(debug_dir)
     debug_dir.mkdir(parents=True, exist_ok=True)
     return debug_dir
 

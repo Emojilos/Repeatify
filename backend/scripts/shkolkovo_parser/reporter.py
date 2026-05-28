@@ -33,6 +33,8 @@ class TaskRunReport:
     images_failed: int
     output_file: Path
     errors_file: Path
+    status: str = "completed"
+    critical_errors: tuple[dict[str, Any], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -62,6 +64,8 @@ def write_task_report(
     export: ExportResult,
     skipped: int,
     output_dir: Path | None = None,
+    status: str = "completed",
+    critical_errors: tuple[dict[str, Any], ...] = (),
 ) -> ReportResult:
     """Write task_N_report.json for one parser run."""
     target_dir = output_dir or shkolkovo_data_dir()
@@ -84,6 +88,8 @@ def write_task_report(
             images_failed=sum(_image_failures(record) for record in records),
             output_file=export.output_file,
             errors_file=export.errors_file,
+            status=status,
+            critical_errors=critical_errors,
         ),
     )
     report_file.write_text(
@@ -138,6 +144,8 @@ def build_task_report(report: TaskRunReport) -> dict[str, Any]:
         "images_failed": report.images_failed,
         "output_file": _repo_relative_path(report.output_file),
         "errors_file": _repo_relative_path(report.errors_file),
+        "status": report.status,
+        "critical_errors": list(report.critical_errors),
     }
 
 

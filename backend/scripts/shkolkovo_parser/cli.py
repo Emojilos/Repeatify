@@ -13,6 +13,7 @@ from scripts.shkolkovo_parser.pipeline import (
     OfflinePipelineResult,
     run_all_fixture_pipeline,
     run_fixture_pipeline,
+    run_live_smoke_pipeline,
 )
 
 MIN_TASK_NUMBER = 1
@@ -158,6 +159,29 @@ def parse_args(argv: Sequence[str] | None = None) -> ParserOptions:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the parser CLI."""
     options = parse_args(argv)
+    if _is_live_smoke(options):
+        result = run_live_smoke_pipeline(
+            task_number=options.task_number or DEFAULT_TEST_TASK_NUMBER,
+            max_pages=options.max_pages or 1,
+            max_problems=options.max_problems or 3,
+            delay=options.delay,
+            max_retries=options.max_retries,
+            progress=print,
+            debug=options.debug,
+        )
+        print(
+            "Live smoke completed: "
+            f"{result.export.records_written} records, "
+            f"{result.export.errors_written} errors, "
+            f"status={result.report.report['status']}."
+        )
+        print(f"Output: {result.export.output_file}")
+        print(f"Errors: {result.export.errors_file}")
+        print(f"Report: {result.report.report_file}")
+        if result.debug is not None:
+            print(f"Debug: {result.debug.debug_dir}")
+        return 0
+
     if options.mode == "test":
         result = run_fixture_pipeline(
             task_number=options.task_number or DEFAULT_TEST_TASK_NUMBER,
@@ -224,6 +248,16 @@ def _run_parameters(options: ParserOptions) -> dict[str, object]:
         "image_workers": options.image_workers,
         "debug": options.debug,
     }
+
+
+def _is_live_smoke(options: ParserOptions) -> bool:
+    return (
+        options.mode == "test"
+        and options.task_number is not None
+        and options.max_pages == 1
+        and options.max_problems == 3
+        and options.debug
+    )
 
 
 def _debug_suffix(result: OfflinePipelineResult) -> str:

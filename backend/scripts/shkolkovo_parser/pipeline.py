@@ -11,6 +11,12 @@ from scripts.shkolkovo_parser.catalog_parser import ParsedCatalog, parse_catalog
 from scripts.shkolkovo_parser.config import repository_root
 from scripts.shkolkovo_parser.debug import DebugArtifactResult, write_debug_artifacts
 from scripts.shkolkovo_parser.exporter import ExportResult, export_task_files
+from scripts.shkolkovo_parser.fetcher import (
+    CollectionStoppedError,
+    FetchError,
+    FetchResult,
+    ShkolkovoFetcher,
+)
 from scripts.shkolkovo_parser.problem_parser import parse_problem_html
 from scripts.shkolkovo_parser.reporter import (
     ReportResult,
@@ -25,8 +31,11 @@ from scripts.shkolkovo_parser.validator import (
 )
 
 DEFAULT_TEST_TASK_NUMBER = 6
+LIVE_CATALOG_URL = "https://3.shkolkovo.online/catalog?SubjectId=1"
 MISSING_OFFLINE_SNAPSHOT = "missing_offline_snapshot"
+LIVE_FETCH_FAILED = "live_fetch_failed"
 ProgressReporter = Callable[[str], None]
+FetcherFactory = Callable[[], ShkolkovoFetcher]
 
 
 @dataclass(frozen=True)
@@ -85,6 +94,184 @@ def run_fixture_pipeline(
         output_dir=output_dir,
         progress=progress,
         debug=debug,
+    )
+
+
+def run_live_smoke_pipeline(
+    *,
+    task_number: int = DEFAULT_TEST_TASK_NUMBER,
+    max_pages: int = 1,
+    max_problems: int = 3,
+    delay: float = 1.0,
+    max_retries: int = 3,
+    output_dir: Path | None = None,
+    progress: ProgressReporter | None = None,
+    debug: bool = False,
+    fetcher_factory: FetcherFactory | None = None,
+) -> OfflinePipelineResult:
+    """Run a small live smoke against public pages or write a blocked report."""
+    started_at = datetime.now(UTC)
+    fetcher = (
+        fetcher_factory()
+        if fetcher_factory is not None
+        else ShkolkovoFetcher(delay=delay, max_retries=max_retries)
+    )
+    catalog_html = ""
+    catalog = ParsedCatalog(problems=(), errors=())
+    problem_pages: dict[str, str] = {}
+    records: list[ValidatedProblemRecord] = []
+    errors: list[ProblemValidationError] = []
+    critical_errors: list[dict[str, object]] = []
+    pages_visited = 0
+    skipped = 0
+    status = "completed"
+
+    try:
+        _report_progress(
+            progress,
+            "Live smoke: fetching catalog "
+            f"{LIVE_CATALOG_URL} with max_pages={max_pages}.",
+        )
+        catalog_fetch = fetcher.fetch(
+            LIVE_CATALOG_URL,
+            snapshot_name=f"live_task_{task_number}_catalog.html",
+        )
+        pages_visited += 1
+        catalog_html = catalog_fetch.html
+        catalog = parse_catalog_html(catalog_fetch.html, base_url=catalog_fetch.url)
+        _report_progress(
+            progress,
+            f"Live smoke: found {len(catalog.problems)} catalog links.",
+        )
+
+        selected_links = [
+            link
+            for link in catalog.problems
+            if link.task_number == task_number
+        ][:max_problems]
+        skipped = len(catalog.problems) - len(selected_links)
+
+        for link in selected_links:
+            try:
+                result = fetcher.fetch(
+                    link.source_url,
+                    snapshot_name=(
+                        f"live_task_{task_number}_problem_"
+                        f"{link.source_id or pages_visited + 1}.html"
+                    ),
+                )
+            except CollectionStoppedError as exc:
+                status = "blocked"
+                error = _validation_error_from_fetch_error(
+                    exc,
+                    task_number=task_number,
+                    source_id=link.source_id,
+                )
+                errors.append(error)
+                critical_errors.append(exc.to_error_record())
+                _report_progress(progress, str(exc))
+                break
+            except FetchError as exc:
+                errors.append(
+                    _validation_error_from_fetch_error(
+                        exc,
+                        task_number=task_number,
+                        source_id=link.source_id,
+                    ),
+                )
+                _report_progress(progress, str(exc))
+                continue
+
+            pages_visited += 1
+            _store_problem_page(problem_pages, link.source_id, result)
+            parsed = parse_problem_html(result.html, source_url=result.url)
+            validation = validate_problem(
+                parsed,
+                task_number=link.task_number,
+                category=link.category,
+                subcategory=link.subcategory,
+            )
+            if validation.record is not None:
+                records.append(validation.record)
+            if validation.error is not None:
+                errors.append(validation.error)
+            _report_parse_progress(
+                progress,
+                records=records,
+                skipped=skipped,
+                duplicates_skipped=0,
+            )
+    except CollectionStoppedError as exc:
+        pages_visited += 1
+        status = "blocked"
+        errors.append(
+            _validation_error_from_fetch_error(
+                exc,
+                task_number=task_number,
+                source_id=None,
+            ),
+        )
+        critical_errors.append(exc.to_error_record())
+        _report_progress(progress, str(exc))
+    except FetchError as exc:
+        pages_visited += int(exc.attempts > 0)
+        status = "blocked"
+        errors.append(
+            _validation_error_from_fetch_error(
+                exc,
+                task_number=task_number,
+                source_id=None,
+            ),
+        )
+        critical_errors.append(exc.to_error_record())
+        _report_progress(progress, str(exc))
+    finally:
+        fetcher.close()
+
+    export = export_task_files(
+        task_number=task_number,
+        records=records,
+        errors=errors,
+        output_dir=output_dir,
+    )
+    report = write_task_report(
+        task_number=task_number,
+        started_at=started_at,
+        finished_at=datetime.now(UTC),
+        pages_visited=pages_visited,
+        links_found=len(catalog.problems),
+        records=tuple(records),
+        export=export,
+        skipped=skipped,
+        output_dir=output_dir,
+        status=status,
+        critical_errors=tuple(critical_errors),
+    )
+    debug_result = (
+        write_debug_artifacts(
+            task_number=task_number,
+            catalog_html=catalog_html,
+            problem_pages=problem_pages,
+            catalog=catalog,
+            records=tuple(records),
+            errors=tuple(errors),
+            output_dir=output_dir,
+        )
+        if debug
+        else None
+    )
+    if debug_result is not None:
+        _report_progress(progress, f"Debug: {debug_result.debug_dir}")
+    return OfflinePipelineResult(
+        task_number=task_number,
+        export=export,
+        records=tuple(records),
+        errors=tuple(errors),
+        catalog_links_found=len(catalog.problems),
+        pages_visited=pages_visited,
+        skipped=skipped,
+        report=report,
+        debug=debug_result,
     )
 
 
@@ -334,6 +521,31 @@ def _problem_html_for_link(
     if source_id is None:
         return None
     return problem_pages.get(source_id)
+
+
+def _store_problem_page(
+    problem_pages: dict[str, str],
+    source_id: str | None,
+    result: FetchResult,
+) -> None:
+    key = source_id or result.url
+    problem_pages[key] = result.html
+
+
+def _validation_error_from_fetch_error(
+    error: FetchError,
+    *,
+    task_number: int,
+    source_id: str | None,
+) -> ProblemValidationError:
+    reason = getattr(error, "reason", LIVE_FETCH_FAILED)
+    return ProblemValidationError(
+        task_number=task_number,
+        source_url=error.url,
+        source_id=source_id,
+        parse_errors=(reason,),
+        message=str(error),
+    )
 
 
 def _subcategory_limit_reached(

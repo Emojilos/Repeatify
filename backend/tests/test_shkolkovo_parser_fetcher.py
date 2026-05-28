@@ -204,6 +204,34 @@ def test_fetcher_stops_collection_on_captcha_html(tmp_path: Path) -> None:
     assert not list(tmp_path.iterdir())
 
 
+def test_fetcher_stops_on_browser_check_before_retrying_503(
+    tmp_path: Path,
+) -> None:
+    attempts = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        html = "<html>Ваш браузер не смог пройти проверку captcha</html>"
+        return httpx.Response(503, text=html)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    fetcher = ShkolkovoFetcher(
+        client=client,
+        snapshot_dir=tmp_path,
+        delay=0,
+        max_retries=2,
+    )
+
+    with pytest.raises(CollectionStoppedError) as exc_info:
+        fetcher.fetch("https://example.test/browser-check-503")
+
+    assert attempts == 1
+    assert exc_info.value.reason == "captcha_or_browser_check"
+    assert exc_info.value.status_code == 503
+    assert not list(tmp_path.iterdir())
+
+
 def test_fetcher_rejects_clients_with_credentials(tmp_path: Path) -> None:
     clients = [
         httpx.Client(headers={"Authorization": "Bearer secret"}),

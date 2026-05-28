@@ -192,6 +192,16 @@ class ShkolkovoFetcher:
             else:
                 self._consecutive_forbidden = 0
 
+            stop_reason = _stop_reason_for_html(response.text)
+            if stop_reason is not None:
+                raise CollectionStoppedError(
+                    f"collection stopped for {url!r}: detected {stop_reason}",
+                    url=url,
+                    attempts=attempt,
+                    status_code=response.status_code,
+                    reason=stop_reason,
+                )
+
             if response.status_code in TEMPORARY_STATUS_CODES:
                 if attempt < max_attempts:
                     self._wait_before_retry(attempt)
@@ -217,16 +227,6 @@ class ShkolkovoFetcher:
                     url=url,
                     attempts=attempt,
                     status_code=response.status_code,
-                )
-
-            stop_reason = _stop_reason_for_html(response.text)
-            if stop_reason is not None:
-                raise CollectionStoppedError(
-                    f"collection stopped for {url!r}: detected {stop_reason}",
-                    url=url,
-                    attempts=attempt,
-                    status_code=response.status_code,
-                    reason=stop_reason,
                 )
 
             snapshot_path = self._write_snapshot(
