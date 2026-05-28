@@ -146,10 +146,28 @@ def test_cli_test_mode_runs_offline_fixture_pipeline() -> None:
     )
 
     assert result.returncode == 0
+    assert "Task 6: found 4 catalog links." in result.stdout
+    assert "Progress: ok=" in result.stdout
+    assert "partial=" in result.stdout
+    assert "skipped=" in result.stdout
+    assert "image failed=" in result.stdout
+    assert "duplicates skipped=" in result.stdout
     assert "Offline test pipeline completed" in result.stdout
     assert "task_6.json" in result.stdout
     assert "task_6_errors.json" in result.stdout
     assert "task_6_report.json" in result.stdout
+
+
+def test_fixture_pipeline_reports_console_progress(tmp_path: Path) -> None:
+    messages: list[str] = []
+
+    run_fixture_pipeline(output_dir=tmp_path, progress=messages.append)
+
+    assert messages[0] == "Task 6: found 4 catalog links."
+    assert messages[-1] == (
+        "Progress: ok=2, partial=1, skipped=1, "
+        "image failed=0, duplicates skipped=0."
+    )
 
 
 def test_cli_passes_per_subcategory_limit_to_fixture_pipeline() -> None:

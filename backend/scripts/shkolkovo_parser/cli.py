@@ -159,6 +159,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         result = run_fixture_pipeline(
             task_number=options.task_number or DEFAULT_TEST_TASK_NUMBER,
             per_subcategory=options.per_subcategory,
+            progress=print,
         )
         print(
             "Offline test pipeline completed: "

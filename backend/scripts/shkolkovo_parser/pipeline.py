@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -19,6 +20,7 @@ from scripts.shkolkovo_parser.validator import (
 
 DEFAULT_TEST_TASK_NUMBER = 6
 MISSING_OFFLINE_SNAPSHOT = "missing_offline_snapshot"
+ProgressReporter = Callable[[str], None]
 
 
 @dataclass(frozen=True)
@@ -46,6 +48,7 @@ def run_fixture_pipeline(
     per_subcategory: int | None = None,
     fixture_dir: Path | None = None,
     output_dir: Path | None = None,
+    progress: ProgressReporter | None = None,
 ) -> OfflinePipelineResult:
     """Run the parser pipeline on bundled local HTML fixtures."""
     fixture_dir = fixture_dir or default_fixture_dir()
@@ -59,6 +62,7 @@ def run_fixture_pipeline(
         task_number=task_number,
         per_subcategory=per_subcategory,
         output_dir=output_dir,
+        progress=progress,
     )
 
 
@@ -69,10 +73,15 @@ def run_offline_pipeline(
     task_number: int,
     per_subcategory: int | None = None,
     output_dir: Path | None = None,
+    progress: ProgressReporter | None = None,
 ) -> OfflinePipelineResult:
     """Parse saved catalog/problem HTML and export one task dataset."""
     started_at = datetime.now(UTC)
     catalog = parse_catalog_html(catalog_html)
+    _report_progress(
+        progress,
+        f"Task {task_number}: found {len(catalog.problems)} catalog links.",
+    )
     records: list[ValidatedProblemRecord] = []
     errors: list[ProblemValidationError] = []
     subcategory_counts: dict[tuple[int, str | None, str | None], int] = {}
@@ -82,6 +91,12 @@ def run_offline_pipeline(
     for link in catalog.problems:
         if link.task_number != task_number:
             skipped += 1
+            _report_parse_progress(
+                progress,
+                records=records,
+                skipped=skipped,
+                duplicates_skipped=0,
+            )
             continue
         if _subcategory_limit_reached(
             subcategory_counts,
@@ -91,6 +106,12 @@ def run_offline_pipeline(
             per_subcategory=per_subcategory,
         ):
             skipped += 1
+            _report_parse_progress(
+                progress,
+                records=records,
+                skipped=skipped,
+                duplicates_skipped=0,
+            )
             continue
 
         problem_html = _problem_html_for_link(problem_pages, link.source_id)
@@ -103,6 +124,12 @@ def run_offline_pipeline(
                     parse_errors=(MISSING_OFFLINE_SNAPSHOT,),
                     message="offline problem HTML snapshot is missing",
                 ),
+            )
+            _report_parse_progress(
+                progress,
+                records=records,
+                skipped=skipped,
+                duplicates_skipped=0,
             )
             continue
 
@@ -125,12 +152,24 @@ def run_offline_pipeline(
             )
         if validation.error is not None:
             errors.append(validation.error)
+        _report_parse_progress(
+            progress,
+            records=records,
+            skipped=skipped,
+            duplicates_skipped=0,
+        )
 
     export = export_task_files(
         task_number=task_number,
         records=records,
         errors=errors,
         output_dir=output_dir,
+    )
+    _report_parse_progress(
+        progress,
+        records=records,
+        skipped=skipped,
+        duplicates_skipped=export.duplicates_skipped,
     )
     report = write_task_report(
         task_number=task_number,
@@ -208,3 +247,36 @@ def _increment_subcategory_count(
 
     key = (task_number, category, subcategory)
     counts[key] = counts.get(key, 0) + 1
+
+
+def _report_parse_progress(
+    progress: ProgressReporter | None,
+    *,
+    records: list[ValidatedProblemRecord],
+    skipped: int,
+    duplicates_skipped: int,
+) -> None:
+    _report_progress(
+        progress,
+        "Progress: "
+        f"ok={sum(record.parse_status == 'ok' for record in records)}, "
+        f"partial={sum(record.parse_status == 'partial' for record in records)}, "
+        f"skipped={skipped}, "
+        f"image failed={sum(_image_failures(record) for record in records)}, "
+        f"duplicates skipped={duplicates_skipped}.",
+    )
+
+
+def _image_failures(record: ValidatedProblemRecord) -> int:
+    return sum(
+        parse_error.startswith("image_download_failed:")
+        for parse_error in record.parse_errors
+    )
+
+
+def _report_progress(
+    progress: ProgressReporter | None,
+    message: str,
+) -> None:
+    if progress is not None:
+        progress(message)
