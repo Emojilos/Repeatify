@@ -29,6 +29,16 @@ from scripts.shkolkovo_parser.problem_parser import (
     parse_problem_html,
     source_id_from_url,
 )
+from scripts.shkolkovo_parser.validator import (
+    INVALID_TASK_NUMBER,
+    MISSING_CORRECT_ANSWER,
+    MISSING_PROBLEM_TEXT,
+    ParseStatus,
+    ProblemValidationError,
+    ProblemValidationResult,
+    ValidatedProblemRecord,
+    validate_problem,
+)
 
 __version__ = "0.1.0"
 
@@ -39,9 +49,16 @@ __all__ = [
     "CollectionStoppedError",
     "FetchError",
     "FetchResult",
+    "INVALID_TASK_NUMBER",
+    "MISSING_CORRECT_ANSWER",
+    "MISSING_PROBLEM_TEXT",
     "ParsedCatalog",
     "ParsedProblem",
+    "ParseStatus",
+    "ProblemValidationError",
+    "ProblemValidationResult",
     "ShkolkovoFetcher",
+    "ValidatedProblemRecord",
     "__version__",
     "parse_catalog_html",
     "parse_problem_html",
@@ -53,4 +70,5 @@ __all__ = [
     "shkolkovo_data_path",
     "snapshot_filename_for_url",
     "source_id_from_url",
+    "validate_problem",
 ]
