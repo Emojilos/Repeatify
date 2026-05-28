@@ -26,13 +26,18 @@ def test_fixture_pipeline_exports_task_6_json_files(tmp_path: Path) -> None:
     assert result.export.records_written == 3
     assert result.export.errors_written == 0
     assert result.duplicates_skipped == 0
+    assert result.pages_visited == 4
+    assert result.skipped == 1
+    assert result.report.report_file == tmp_path / "task_6_report.json"
     assert sorted(path.name for path in tmp_path.glob("task_*.json")) == [
         "task_6.json",
         "task_6_errors.json",
+        "task_6_report.json",
     ]
 
     records = json.loads(result.export.output_file.read_text(encoding="utf-8"))
     errors = json.loads(result.export.errors_file.read_text(encoding="utf-8"))
+    report = json.loads(result.report.report_file.read_text(encoding="utf-8"))
 
     assert errors == []
     assert [record["source_id"] for record in records] == [
@@ -45,6 +50,19 @@ def test_fixture_pipeline_exports_task_6_json_files(tmp_path: Path) -> None:
     assert records[1]["parse_status"] == "partial"
     assert records[1]["parse_errors"] == ["missing_correct_answer"]
     assert records[2]["problem_text"].count("$") >= 4
+    assert report["task_number"] == 6
+    assert report["pages_visited"] == 4
+    assert report["links_found"] == 4
+    assert report["parsed_ok"] == 2
+    assert report["parsed_partial"] == 1
+    assert report["duplicates_skipped"] == 0
+    assert report["skipped"] == 1
+    assert report["images_downloaded"] == 0
+    assert report["images_failed"] == 0
+    assert report["output_file"].endswith("task_6.json")
+    assert report["errors_file"].endswith("task_6_errors.json")
+    assert report["started_at"].endswith("Z")
+    assert report["finished_at"].endswith("Z")
 
 
 def test_offline_pipeline_records_missing_problem_snapshot(
@@ -63,6 +81,8 @@ def test_offline_pipeline_records_missing_problem_snapshot(
 
     assert result.export.records_written == 0
     assert result.export.errors_written == 3
+    assert result.pages_visited == 1
+    assert result.skipped == 1
 
     errors = json.loads(result.export.errors_file.read_text(encoding="utf-8"))
     assert {error["error"] for error in errors} == {MISSING_OFFLINE_SNAPSHOT}
@@ -80,11 +100,13 @@ def test_fixture_pipeline_repeat_run_skips_existing_records(
     assert second_result.duplicates_skipped == 3
 
     records = json.loads(second_result.export.output_file.read_text(encoding="utf-8"))
+    report = json.loads(second_result.report.report_file.read_text(encoding="utf-8"))
     assert [record["source_id"] for record in records] == [
         "100601",
         "100602",
         "100603",
     ]
+    assert report["duplicates_skipped"] == 3
 
 
 def test_fixture_pipeline_limits_records_per_subcategory(
@@ -97,6 +119,7 @@ def test_fixture_pipeline_limits_records_per_subcategory(
 
     assert result.export.records_written == 2
     assert result.export.errors_written == 0
+    assert result.skipped == 2
 
     records = json.loads(result.export.output_file.read_text(encoding="utf-8"))
     subcategories = [record["subcategory"] for record in records]
@@ -126,6 +149,7 @@ def test_cli_test_mode_runs_offline_fixture_pipeline() -> None:
     assert "Offline test pipeline completed" in result.stdout
     assert "task_6.json" in result.stdout
     assert "task_6_errors.json" in result.stdout
+    assert "task_6_report.json" in result.stdout
 
 
 def test_cli_passes_per_subcategory_limit_to_fixture_pipeline() -> None:

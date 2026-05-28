@@ -168,6 +168,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(f"Output: {result.export.output_file}")
         print(f"Errors: {result.export.errors_file}")
+        print(f"Report: {result.report.report_file}")
         return 0
 
     print(f"Shkolkovo parser CLI configured for {options.mode!r} mode.")

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 from scripts.shkolkovo_parser.catalog_parser import parse_catalog_html
 from scripts.shkolkovo_parser.config import repository_root
 from scripts.shkolkovo_parser.exporter import ExportResult, export_task_files
 from scripts.shkolkovo_parser.problem_parser import parse_problem_html
+from scripts.shkolkovo_parser.reporter import ReportResult, write_task_report
 from scripts.shkolkovo_parser.validator import (
     ProblemValidationError,
     ValidatedProblemRecord,
@@ -28,6 +30,9 @@ class OfflinePipelineResult:
     records: tuple[ValidatedProblemRecord, ...]
     errors: tuple[ProblemValidationError, ...]
     catalog_links_found: int
+    pages_visited: int
+    skipped: int
+    report: ReportResult
 
     @property
     def duplicates_skipped(self) -> int:
@@ -66,13 +71,17 @@ def run_offline_pipeline(
     output_dir: Path | None = None,
 ) -> OfflinePipelineResult:
     """Parse saved catalog/problem HTML and export one task dataset."""
+    started_at = datetime.now(UTC)
     catalog = parse_catalog_html(catalog_html)
     records: list[ValidatedProblemRecord] = []
     errors: list[ProblemValidationError] = []
     subcategory_counts: dict[tuple[int, str | None, str | None], int] = {}
+    pages_visited = 1
+    skipped = 0
 
     for link in catalog.problems:
         if link.task_number != task_number:
+            skipped += 1
             continue
         if _subcategory_limit_reached(
             subcategory_counts,
@@ -81,6 +90,7 @@ def run_offline_pipeline(
             subcategory=link.subcategory,
             per_subcategory=per_subcategory,
         ):
+            skipped += 1
             continue
 
         problem_html = _problem_html_for_link(problem_pages, link.source_id)
@@ -96,6 +106,7 @@ def run_offline_pipeline(
             )
             continue
 
+        pages_visited += 1
         parsed = parse_problem_html(problem_html, source_url=link.source_url)
         validation = validate_problem(
             parsed,
@@ -121,12 +132,26 @@ def run_offline_pipeline(
         errors=errors,
         output_dir=output_dir,
     )
+    report = write_task_report(
+        task_number=task_number,
+        started_at=started_at,
+        finished_at=datetime.now(UTC),
+        pages_visited=pages_visited,
+        links_found=len(catalog.problems),
+        records=tuple(records),
+        export=export,
+        skipped=skipped,
+        output_dir=output_dir,
+    )
     return OfflinePipelineResult(
         task_number=task_number,
         export=export,
         records=tuple(records),
         errors=tuple(errors),
         catalog_links_found=len(catalog.problems),
+        pages_visited=pages_visited,
+        skipped=skipped,
+        report=report,
     )
 
 

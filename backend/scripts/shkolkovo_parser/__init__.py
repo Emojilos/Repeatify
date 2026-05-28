@@ -57,6 +57,13 @@ from scripts.shkolkovo_parser.problem_parser import (
     parse_problem_html,
     source_id_from_url,
 )
+from scripts.shkolkovo_parser.reporter import (
+    ReportResult,
+    TaskRunReport,
+    build_task_report,
+    task_report_filename,
+    write_task_report,
+)
 from scripts.shkolkovo_parser.validator import (
     IMAGE_DOWNLOAD_FAILED,
     INVALID_TASK_NUMBER,
@@ -96,11 +103,14 @@ __all__ = [
     "ParseStatus",
     "ProblemValidationError",
     "ProblemValidationResult",
+    "ReportResult",
     "ShkolkovoFetcher",
+    "TaskRunReport",
     "ValidatedProblemRecord",
     "__version__",
     "build_dataset_record",
     "build_error_record",
+    "build_task_report",
     "content_hash_for_problem",
     "default_fixture_dir",
     "download_problem_images",
@@ -122,5 +132,7 @@ __all__ = [
     "source_id_from_url",
     "task_errors_filename",
     "task_filename",
+    "task_report_filename",
     "validate_problem",
+    "write_task_report",
 ]
