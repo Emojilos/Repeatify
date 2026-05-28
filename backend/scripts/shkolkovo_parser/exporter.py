@@ -111,7 +111,7 @@ def build_error_record(error: ProblemValidationError) -> dict[str, Any]:
 
 
 def content_hash_for_problem(*, task_number: int, problem_text: str) -> str:
-    """Return the stable SHA-256 identity used by the export schema."""
+    """Return SHA-256 identity from task number and normalized problem text."""
     payload = f"{task_number}\n{problem_text}".encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 
