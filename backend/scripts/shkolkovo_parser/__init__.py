@@ -1,5 +1,11 @@
 """Parser package for public Shkolkovo problem pages."""
 
+from scripts.shkolkovo_parser.catalog_parser import (
+    CatalogParseError,
+    CatalogProblemLink,
+    ParsedCatalog,
+    parse_catalog_html,
+)
 from scripts.shkolkovo_parser.config import (
     DATA_RAW_RELATIVE_PATH,
     repository_root,
@@ -23,12 +29,16 @@ __version__ = "0.1.0"
 
 __all__ = [
     "DATA_RAW_RELATIVE_PATH",
+    "CatalogParseError",
+    "CatalogProblemLink",
     "CollectionStoppedError",
     "FetchError",
     "FetchResult",
+    "ParsedCatalog",
     "ParsedProblem",
     "ShkolkovoFetcher",
     "__version__",
+    "parse_catalog_html",
     "parse_problem_html",
     "repository_root",
     "shkolkovo_data_dir",
