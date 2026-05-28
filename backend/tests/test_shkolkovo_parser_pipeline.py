@@ -256,6 +256,25 @@ def test_all_fixture_pipeline_exports_each_discovered_task_and_run_report(
     assert [task["task_number"] for task in run_report["tasks"]] == [6, 7]
     assert run_report["tasks"][0]["report_file"].endswith("task_6_report.json")
     assert run_report["tasks"][1]["report_file"].endswith("task_7_report.json")
+    assert run_report["partial_records"] == [
+        {
+            "task_number": 6,
+            "source_id": "100602",
+            "source_url": "https://3.shkolkovo.online/problem/100602?SubjectId=1",
+            "parse_status": "partial",
+            "parse_errors": ["missing_correct_answer"],
+        },
+    ]
+    assert run_report["failed_records"] == [
+        {
+            "task_number": 7,
+            "source_id": "100701",
+            "source_url": "https://3.shkolkovo.online/problem/100701?SubjectId=1",
+            "error": "missing_offline_snapshot",
+            "parse_errors": ["missing_offline_snapshot"],
+            "details": "offline problem HTML snapshot is missing",
+        },
+    ]
     assert run_report["started_at"].endswith("Z")
     assert run_report["finished_at"].endswith("Z")
 

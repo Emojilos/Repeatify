@@ -191,6 +191,8 @@ def build_run_report(
             }
             for result, report in zip(task_reports, reports, strict=True)
         ],
+        "partial_records": _partial_review_records(reports),
+        "failed_records": _failed_review_records(reports),
         "critical_errors": list(critical_errors),
     }
 
@@ -226,3 +228,61 @@ def _repo_relative_path(path: Path) -> str:
         return resolved_path.relative_to(repository_root()).as_posix()
     except ValueError:
         return resolved_path.as_posix()
+
+
+def _partial_review_records(
+    reports: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    partial_records: list[dict[str, Any]] = []
+    for report in reports:
+        for record in _read_report_json_array(report["output_file"]):
+            if record.get("parse_status") != "partial":
+                continue
+            partial_records.append(
+                {
+                    "task_number": record.get("task_number"),
+                    "source_id": record.get("source_id"),
+                    "source_url": record.get("source_url"),
+                    "parse_status": record.get("parse_status"),
+                    "parse_errors": record.get("parse_errors", []),
+                },
+            )
+    return partial_records
+
+
+def _failed_review_records(
+    reports: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    failed_records: list[dict[str, Any]] = []
+    for report in reports:
+        for record in _read_report_json_array(report["errors_file"]):
+            failed_records.append(
+                {
+                    "task_number": record.get("task_number"),
+                    "source_id": record.get("source_id"),
+                    "source_url": record.get("source_url"),
+                    "error": record.get("error"),
+                    "parse_errors": record.get("parse_errors", []),
+                    "details": record.get("details"),
+                },
+            )
+    return failed_records
+
+
+def _read_report_json_array(path_value: Any) -> list[dict[str, Any]]:
+    path = Path(str(path_value))
+    if not path.is_absolute():
+        path = repository_root() / path
+
+    raw_records = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw_records, list):
+        msg = f"{path} must contain a JSON array"
+        raise ValueError(msg)
+
+    records: list[dict[str, Any]] = []
+    for raw_record in raw_records:
+        if not isinstance(raw_record, dict):
+            msg = f"{path} must contain only JSON objects"
+            raise ValueError(msg)
+        records.append(raw_record)
+    return records

@@ -70,7 +70,8 @@ repository root:
 - `task_N.json` contains exported dataset records.
 - `task_N_errors.json` contains parse, validation, fetch, and image errors.
 - `task_N_report.json` contains per-task counters and status.
-- `run_report_YYYYMMDD_HHMMSS.json` contains aggregate all-mode counters.
+- `run_report_YYYYMMDD_HHMMSS.json` contains aggregate all-mode counters plus
+  partial and failed records for manual review.
 - `html/` contains saved HTML snapshots.
 - `images/task_N/` contains downloaded problem images.
 - `debug/task_N/` contains raw and intermediate debug artifacts when `--debug`
