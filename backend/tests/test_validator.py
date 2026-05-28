@@ -20,6 +20,9 @@ def test_validator_marks_complete_record_as_ok() -> None:
         correct_answer="13",
         source_url="https://3.shkolkovo.online/problem/100601?SubjectId=1",
         source_id="100601",
+        source_image_urls=(
+            "https://3.shkolkovo.online/media/problems/100601/triangle.png",
+        ),
     )
 
     result = validate_problem(
@@ -40,12 +43,18 @@ def test_validator_marks_complete_record_as_ok() -> None:
             subcategory="Треугольники",
             parse_status="ok",
             parse_errors=(),
+            source_image_urls=(
+                "https://3.shkolkovo.online/media/problems/100601/triangle.png",
+            ),
         ),
         error=None,
     )
     assert result.is_usable is True
     assert result.record is not None
     assert result.record.to_dataset_record()["parse_errors"] == []
+    assert result.record.to_dataset_record()["source_image_urls"] == [
+        "https://3.shkolkovo.online/media/problems/100601/triangle.png",
+    ]
 
 
 def test_validator_marks_usable_problem_without_answer_as_partial() -> None:

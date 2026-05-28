@@ -27,6 +27,7 @@ def _validated_record(
     correct_answer: str | None = "10",
     parse_status: str = "ok",
     parse_errors: tuple[str, ...] = (),
+    source_image_urls: tuple[str, ...] = (),
 ) -> ValidatedProblemRecord:
     return ValidatedProblemRecord(
         task_number=6,
@@ -38,6 +39,7 @@ def _validated_record(
         subcategory="Треугольники",
         parse_status=cast(ParseStatus, parse_status),
         parse_errors=parse_errors,
+        source_image_urls=source_image_urls,
     )
 
 
@@ -85,6 +87,22 @@ def test_build_dataset_record_keeps_mvp_solution_fields_empty() -> None:
     assert record["solution_images"] == []
     assert record["parse_status"] == "partial"
     assert record["parse_errors"] == [MISSING_CORRECT_ANSWER]
+
+
+def test_build_dataset_record_keeps_problem_source_image_urls() -> None:
+    record = build_dataset_record(
+        _validated_record(
+            source_image_urls=(
+                "https://3.shkolkovo.online/media/problems/100601/triangle.png",
+            ),
+        ),
+    )
+
+    assert record["source_image_urls"] == [
+        "https://3.shkolkovo.online/media/problems/100601/triangle.png",
+    ]
+    assert record["problem_images"] == []
+    assert record["solution_images"] == []
 
 
 def test_build_error_record_contains_page_without_usable_problem_text() -> None:

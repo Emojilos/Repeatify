@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 
 from bs4 import BeautifulSoup, Tag
 
@@ -24,6 +24,7 @@ class ParsedProblem:
     correct_answer: str | None
     source_url: str
     source_id: str | None
+    source_image_urls: tuple[str, ...] = ()
 
 
 def parse_problem_html(html: str, *, source_url: str | None = None) -> ParsedProblem:
@@ -35,6 +36,7 @@ def parse_problem_html(html: str, *, source_url: str | None = None) -> ParsedPro
         correct_answer=_extract_correct_answer(soup),
         source_url=source_url,
         source_id=_extract_source_id(soup, source_url),
+        source_image_urls=_extract_source_image_urls(soup, source_url),
     )
 
 
@@ -51,6 +53,60 @@ def _extract_correct_answer(soup: BeautifulSoup) -> str | None:
         return None
     answer = normalize_plain_text(answer_node)
     return answer or None
+
+
+def _extract_source_image_urls(
+    soup: BeautifulSoup,
+    source_url: str,
+) -> tuple[str, ...]:
+    problem_node = soup.select_one(".problem-text")
+    if problem_node is None:
+        return ()
+
+    image_urls: list[str] = []
+    seen: set[str] = set()
+    for image_node in problem_node.select("img"):
+        for raw_url in _candidate_image_urls(image_node):
+            absolute_url = _absolute_http_url(raw_url, source_url)
+            if absolute_url is None or absolute_url in seen:
+                continue
+            seen.add(absolute_url)
+            image_urls.append(absolute_url)
+    return tuple(image_urls)
+
+
+def _candidate_image_urls(image_node: Tag) -> tuple[str, ...]:
+    urls: list[str] = []
+    for attr_name in ("src", "data-src", "data-original", "data-lazy-src"):
+        value = image_node.get(attr_name)
+        if isinstance(value, str) and value.strip():
+            urls.append(value.strip())
+
+    for attr_name in ("srcset", "data-srcset"):
+        value = image_node.get(attr_name)
+        if not isinstance(value, str):
+            continue
+        urls.extend(_urls_from_srcset(value))
+    return tuple(urls)
+
+
+def _urls_from_srcset(srcset: str) -> tuple[str, ...]:
+    urls: list[str] = []
+    for candidate in srcset.split(","):
+        url = candidate.strip().split(maxsplit=1)[0]
+        if url:
+            urls.append(url)
+    return tuple(urls)
+
+
+def _absolute_http_url(raw_url: str, source_url: str) -> str | None:
+    if raw_url.startswith(("#", "data:", "blob:", "javascript:")):
+        return None
+    absolute_url = urljoin(source_url, raw_url)
+    parsed_url = urlparse(absolute_url)
+    if parsed_url.scheme not in {"http", "https"}:
+        return None
+    return absolute_url
 
 
 def _extract_source_id(soup: BeautifulSoup, source_url: str) -> str | None:

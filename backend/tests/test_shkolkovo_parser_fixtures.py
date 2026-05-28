@@ -12,6 +12,7 @@ def test_shkolkovo_fixture_files_exist() -> None:
         "catalog_task_6.html",
         "problem_basic.html",
         "problem_missing_answer.html",
+        "problem_with_images.html",
         "problem_with_latex.html",
     }
 
@@ -52,3 +53,13 @@ def test_problem_fixtures_cover_basic_missing_answer_and_latex_cases() -> None:
     assert 'data-tex="18\\pi"' in latex
     assert 'data-tex="C = 2\\pi r"' in latex
     assert "MathJax DOM-разметка" in latex
+
+
+def test_problem_image_fixture_contains_problem_and_solution_images() -> None:
+    images = (FIXTURE_DIR / "problem_with_images.html").read_text(encoding="utf-8")
+
+    assert 'data-source-id="100604"' in images
+    assert 'class="problem-text"' in images
+    assert "/media/problems/100604/triangle.png" in images
+    assert "https://static.shkolkovo.online/problems/100604/angle.png" in images
+    assert "/media/solutions/100604/solution.png" in images

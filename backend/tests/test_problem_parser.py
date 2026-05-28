@@ -59,6 +59,21 @@ def test_problem_parser_allows_missing_public_answer() -> None:
     assert problem.source_id == "100602"
 
 
+def test_problem_parser_extracts_problem_image_source_urls_only() -> None:
+    html = (FIXTURE_DIR / "problem_with_images.html").read_text(encoding="utf-8")
+
+    problem = parse_problem_html(
+        html,
+        source_url="https://3.shkolkovo.online/problem/100604?SubjectId=1",
+    )
+
+    assert problem.source_image_urls == (
+        "https://3.shkolkovo.online/media/problems/100604/triangle.png",
+        "https://static.shkolkovo.online/problems/100604/angle.png",
+    )
+    assert all("solution" not in url for url in problem.source_image_urls)
+
+
 def test_problem_parser_extracts_source_id_from_url_when_page_has_no_id() -> None:
     html = """
     <html>
