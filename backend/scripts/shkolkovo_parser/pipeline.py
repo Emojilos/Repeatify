@@ -33,6 +33,7 @@ class OfflinePipelineResult:
 def run_fixture_pipeline(
     *,
     task_number: int = DEFAULT_TEST_TASK_NUMBER,
+    per_subcategory: int | None = None,
     fixture_dir: Path | None = None,
     output_dir: Path | None = None,
 ) -> OfflinePipelineResult:
@@ -46,6 +47,7 @@ def run_fixture_pipeline(
         catalog_html=catalog_html,
         problem_pages=problem_pages,
         task_number=task_number,
+        per_subcategory=per_subcategory,
         output_dir=output_dir,
     )
 
@@ -55,15 +57,25 @@ def run_offline_pipeline(
     catalog_html: str,
     problem_pages: dict[str, str],
     task_number: int,
+    per_subcategory: int | None = None,
     output_dir: Path | None = None,
 ) -> OfflinePipelineResult:
     """Parse saved catalog/problem HTML and export one task dataset."""
     catalog = parse_catalog_html(catalog_html)
     records: list[ValidatedProblemRecord] = []
     errors: list[ProblemValidationError] = []
+    subcategory_counts: dict[tuple[int, str | None, str | None], int] = {}
 
     for link in catalog.problems:
         if link.task_number != task_number:
+            continue
+        if _subcategory_limit_reached(
+            subcategory_counts,
+            task_number=link.task_number,
+            category=link.category,
+            subcategory=link.subcategory,
+            per_subcategory=per_subcategory,
+        ):
             continue
 
         problem_html = _problem_html_for_link(problem_pages, link.source_id)
@@ -88,6 +100,13 @@ def run_offline_pipeline(
         )
         if validation.record is not None:
             records.append(validation.record)
+            _increment_subcategory_count(
+                subcategory_counts,
+                task_number=link.task_number,
+                category=link.category,
+                subcategory=link.subcategory,
+                per_subcategory=per_subcategory,
+            )
         if validation.error is not None:
             errors.append(validation.error)
 
@@ -129,3 +148,33 @@ def _problem_html_for_link(
     if source_id is None:
         return None
     return problem_pages.get(source_id)
+
+
+def _subcategory_limit_reached(
+    counts: dict[tuple[int, str | None, str | None], int],
+    *,
+    task_number: int,
+    category: str | None,
+    subcategory: str | None,
+    per_subcategory: int | None,
+) -> bool:
+    if per_subcategory is None:
+        return False
+
+    key = (task_number, category, subcategory)
+    return counts.get(key, 0) >= per_subcategory
+
+
+def _increment_subcategory_count(
+    counts: dict[tuple[int, str | None, str | None], int],
+    *,
+    task_number: int,
+    category: str | None,
+    subcategory: str | None,
+    per_subcategory: int | None,
+) -> None:
+    if per_subcategory is None:
+        return
+
+    key = (task_number, category, subcategory)
+    counts[key] = counts.get(key, 0) + 1
