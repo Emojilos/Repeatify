@@ -30,6 +30,12 @@ from scripts.shkolkovo_parser.fetcher import (
     ShkolkovoFetcher,
     snapshot_filename_for_url,
 )
+from scripts.shkolkovo_parser.image_downloader import (
+    ImageDownload,
+    ImageDownloadResult,
+    download_problem_images,
+    image_filename_for_url,
+)
 from scripts.shkolkovo_parser.normalizer import (
     normalize_plain_text,
     normalize_problem_html,
@@ -74,6 +80,8 @@ __all__ = [
     "FetchError",
     "FetchResult",
     "INVALID_TASK_NUMBER",
+    "ImageDownload",
+    "ImageDownloadResult",
     "MISSING_CORRECT_ANSWER",
     "MISSING_OFFLINE_SNAPSHOT",
     "MISSING_PROBLEM_TEXT",
@@ -90,7 +98,9 @@ __all__ = [
     "build_error_record",
     "content_hash_for_problem",
     "default_fixture_dir",
+    "download_problem_images",
     "export_task_files",
+    "image_filename_for_url",
     "load_problem_fixture_pages",
     "parse_catalog_html",
     "parse_problem_html",

@@ -29,6 +29,7 @@ class ValidatedProblemRecord:
     parse_status: ParseStatus
     parse_errors: tuple[str, ...]
     source_image_urls: tuple[str, ...] = ()
+    problem_images: tuple[str, ...] = ()
 
     def to_dataset_record(self) -> dict[str, object]:
         """Return a JSON-ready representation for task_N.json."""
@@ -41,6 +42,7 @@ class ValidatedProblemRecord:
             "category": self.category,
             "subcategory": self.subcategory,
             "source_image_urls": list(self.source_image_urls),
+            "problem_images": list(self.problem_images),
             "parse_status": self.parse_status,
             "parse_errors": list(self.parse_errors),
         }

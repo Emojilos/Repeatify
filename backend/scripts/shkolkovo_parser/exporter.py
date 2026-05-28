@@ -62,7 +62,7 @@ def export_task_files(
 def build_dataset_record(
     record: ValidatedProblemRecord,
     *,
-    problem_images: list[str] | tuple[str, ...] = (),
+    problem_images: list[str] | tuple[str, ...] | None = None,
     source_image_urls: list[str] | tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     """Return a JSON-ready task_N.json record with the MVP schema."""
@@ -76,7 +76,9 @@ def build_dataset_record(
         "answer_tolerance": 0,
         "solution_markdown": None,
         "hints": [],
-        "problem_images": list(problem_images),
+        "problem_images": list(
+            record.problem_images if problem_images is None else problem_images,
+        ),
         "solution_images": [],
         "source_image_urls": list(
             record.source_image_urls
