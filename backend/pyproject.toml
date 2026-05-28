@@ -35,4 +35,5 @@ parser = [
     "httpx>=0.28.1",
     "beautifulsoup4>=4.12.0",
     "lxml>=5.0.0",
+    "playwright>=1.60.0",
 ]

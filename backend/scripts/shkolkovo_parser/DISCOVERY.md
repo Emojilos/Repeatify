@@ -76,6 +76,19 @@ HTTP. However, a live full run against the official target host must require a
 browser-backed smoke check first, because direct HTTP currently receives a
 JavaScript browser-check page instead of catalog content.
 
+## Playwright Dependency Decision
+
+TASK-028 treats the JavaScript browser check above as confirmed need for a
+browser-backed fallback path. The `parser` dependency group therefore includes
+`playwright`, and Chromium setup is intentionally documented as an explicit
+operator step instead of being hidden in normal unit-test or fixture workflows.
+
+Install the browser runtime only for live browser-backed smoke/discovery:
+
+```text
+uv run --group parser playwright install chromium
+```
+
 ## Safety Rules For Later Tasks
 
 - Do not accept credentials, cookies, or authorization headers.
