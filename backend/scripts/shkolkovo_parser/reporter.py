@@ -160,9 +160,11 @@ def build_run_report(
 ) -> dict[str, Any]:
     """Return a JSON-ready aggregate run report payload."""
     reports = [report.report for report in task_reports]
+    status = "blocked" if critical_errors or _has_blocked_task(reports) else "completed"
     return {
         "started_at": _format_timestamp(started_at),
         "finished_at": _format_timestamp(finished_at),
+        "status": status,
         "mode": mode,
         "parameters": parameters,
         "totals": {
@@ -213,6 +215,10 @@ def _image_failures(record: ValidatedProblemRecord) -> int:
         parse_error.startswith(f"{IMAGE_DOWNLOAD_FAILED}:")
         for parse_error in record.parse_errors
     )
+
+
+def _has_blocked_task(reports: list[dict[str, Any]]) -> bool:
+    return any(report.get("status") != "completed" for report in reports)
 
 
 def _format_timestamp(value: datetime) -> str:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 from scripts.shkolkovo_parser.fetcher import CollectionStoppedError, FetchResult
@@ -16,6 +17,7 @@ from scripts.shkolkovo_parser.pipeline import (
     run_live_smoke_pipeline,
     run_offline_pipeline,
 )
+from scripts.shkolkovo_parser.reporter import write_run_report
 
 FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures" / "shkolkovo"
 
@@ -234,6 +236,7 @@ def test_all_fixture_pipeline_exports_each_discovered_task_and_run_report(
     ]
 
     assert run_report["mode"] == "all"
+    assert run_report["status"] == "completed"
     assert run_report["parameters"] == {"mode": "all", "per_subcategory": None}
     assert run_report["critical_errors"] == []
     assert run_report["totals"] == {
@@ -333,6 +336,7 @@ def test_live_smoke_writes_blocked_report_on_access_stop(tmp_path: Path) -> None
 
     assert records == []
     assert errors[0]["error"] == "captcha_or_browser_check"
+    assert len(result.records) == 0
     assert report["status"] == "blocked"
     assert report["critical_errors"][0]["reason"] == "captcha_or_browser_check"
     assert report["pages_visited"] == 1
@@ -341,6 +345,16 @@ def test_live_smoke_writes_blocked_report_on_access_stop(tmp_path: Path) -> None
     assert not stale_debug_file.exists()
     assert not (result.debug.debug_dir / "problem_pages" / "stale.html").exists()
     assert fetcher.closed
+
+    run_report = write_run_report(
+        started_at=datetime.now(UTC),
+        finished_at=datetime.now(UTC),
+        mode="all",
+        parameters={"mode": "all"},
+        task_reports=(result.report,),
+        output_dir=tmp_path,
+    )
+    assert run_report.report["status"] == "blocked"
 
 
 def test_live_smoke_parses_limited_public_sample(tmp_path: Path) -> None:

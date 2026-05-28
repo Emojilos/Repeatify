@@ -171,7 +171,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(
             "Live smoke completed: "
-            f"{result.export.records_written} records, "
+            f"{len(result.records)} parsed records, "
             f"{result.export.errors_written} errors, "
             f"status={result.report.report['status']}."
         )

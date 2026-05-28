@@ -89,6 +89,26 @@ Install the browser runtime only for live browser-backed smoke/discovery:
 uv run --group parser playwright install chromium
 ```
 
+## Full Collection Preflight
+
+On 2026-05-28, TASK-032 preflight was re-run before full collection:
+
+```text
+uv run --group parser python -m scripts.shkolkovo_parser --task-number 6 --max-pages 1 --max-problems 3 --debug
+```
+
+Direct HTTP still returned HTTP 503 for the official catalog. After installing
+Chromium with the documented Playwright command, a headless browser visit to the
+same catalog URL also remained on the browser-check page and returned HTTP 503:
+
+```text
+body contains: "Выполняется проверка вашего веб-браузера..."
+```
+
+Because the required smoke was blocked, full live collection was not started.
+The blocked state must stay visible in reports/progress instead of being treated
+as a successful full run.
+
 ## Safety Rules For Later Tasks
 
 - Do not accept credentials, cookies, or authorization headers.
