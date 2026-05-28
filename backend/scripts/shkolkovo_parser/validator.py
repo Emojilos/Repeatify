@@ -13,6 +13,7 @@ ParseStatus = Literal["ok", "partial"]
 MISSING_CORRECT_ANSWER = "missing_correct_answer"
 MISSING_PROBLEM_TEXT = "missing_problem_text"
 INVALID_TASK_NUMBER = "invalid_task_number"
+IMAGE_DOWNLOAD_FAILED = "image_download_failed"
 
 
 @dataclass(frozen=True)

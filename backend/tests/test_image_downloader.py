@@ -14,9 +14,11 @@ from scripts.shkolkovo_parser.exporter import (
 )
 from scripts.shkolkovo_parser.image_downloader import (
     download_problem_images,
+    image_download_failed_error,
     image_filename_for_url,
 )
 from scripts.shkolkovo_parser.validator import (
+    IMAGE_DOWNLOAD_FAILED,
     ParseStatus,
     ValidatedProblemRecord,
 )
@@ -150,3 +152,86 @@ def test_export_task_files_writes_downloaded_problem_image_paths(
     records = json.loads(export.output_file.read_text(encoding="utf-8"))
     assert records[0]["problem_images"] == list(downloaded.record.problem_images)
     assert records[0]["source_image_urls"] == [image_url]
+
+
+def test_image_downloader_keeps_record_partial_when_one_image_fails(
+    tmp_path: Path,
+) -> None:
+    ok_url = "https://3.shkolkovo.online/media/problems/100601/triangle.png"
+    failed_url = "https://3.shkolkovo.online/media/problems/100601/missing.png"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == ok_url:
+            return httpx.Response(
+                200,
+                content=b"png",
+                headers={"content-type": "image/png"},
+                request=request,
+            )
+        return httpx.Response(404, request=request)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+
+    result = download_problem_images(
+        _validated_record((ok_url, failed_url)),
+        client=client,
+        data_dir=tmp_path / "data" / "raw" / "shkolkovo",
+        repository_root_path=tmp_path,
+    )
+
+    expected_error = image_download_failed_error(failed_url)
+
+    assert len(result.downloads) == 1
+    assert result.downloads[0].source_url == ok_url
+    assert len(result.failures) == 1
+    assert result.failures[0].source_url == failed_url
+    assert result.failures[0].parse_error == expected_error
+    assert result.record.parse_status == "partial"
+    assert result.record.parse_errors == (expected_error,)
+    assert result.record.source_image_urls == (ok_url, failed_url)
+    assert result.record.problem_images == (
+        result.downloads[0].repository_relative_path,
+    )
+    assert expected_error.startswith(IMAGE_DOWNLOAD_FAILED)
+    assert failed_url in expected_error
+
+
+def test_partial_image_download_record_stays_in_dataset_export(
+    tmp_path: Path,
+) -> None:
+    ok_url = "https://3.shkolkovo.online/media/problems/100601/triangle.png"
+    failed_url = "https://3.shkolkovo.online/media/problems/100601/missing.png"
+    client = httpx.Client(
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                404 if str(request.url) == failed_url else 200,
+                content=b"png",
+                headers={"content-type": "image/png"},
+                request=request,
+            ),
+        ),
+    )
+    downloaded = download_problem_images(
+        _validated_record((ok_url, failed_url)),
+        client=client,
+        data_dir=tmp_path / "data" / "raw" / "shkolkovo",
+        repository_root_path=tmp_path,
+    )
+
+    export = export_task_files(
+        task_number=6,
+        records=(downloaded.record,),
+        errors=(),
+        output_dir=tmp_path / "data" / "raw" / "shkolkovo",
+    )
+
+    records = json.loads(export.output_file.read_text(encoding="utf-8"))
+    errors = json.loads(export.errors_file.read_text(encoding="utf-8"))
+    assert export.records_written == 1
+    assert export.errors_written == 0
+    assert records[0]["parse_status"] == "partial"
+    assert records[0]["source_image_urls"] == [ok_url, failed_url]
+    assert records[0]["parse_errors"] == [
+        image_download_failed_error(failed_url),
+    ]
+    assert errors == []

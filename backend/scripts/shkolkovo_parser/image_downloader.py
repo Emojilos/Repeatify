@@ -11,7 +11,10 @@ import httpx
 
 from scripts.shkolkovo_parser.config import repository_root, shkolkovo_data_dir
 from scripts.shkolkovo_parser.fetcher import DEFAULT_USER_AGENT
-from scripts.shkolkovo_parser.validator import ValidatedProblemRecord
+from scripts.shkolkovo_parser.validator import (
+    IMAGE_DOWNLOAD_FAILED,
+    ValidatedProblemRecord,
+)
 
 CONTENT_TYPE_EXTENSIONS = {
     "image/gif": ".gif",
@@ -35,11 +38,25 @@ class ImageDownload:
 
 
 @dataclass(frozen=True)
+class ImageDownloadFailure:
+    """One problem image URL that could not be downloaded."""
+
+    source_url: str
+    error: str
+
+    @property
+    def parse_error(self) -> str:
+        """Return the parse_errors entry for this failed image."""
+        return image_download_failed_error(self.source_url)
+
+
+@dataclass(frozen=True)
 class ImageDownloadResult:
     """Downloaded images and the updated dataset record."""
 
     record: ValidatedProblemRecord
     downloads: tuple[ImageDownload, ...]
+    failures: tuple[ImageDownloadFailure, ...]
 
 
 def download_problem_images(
@@ -63,6 +80,7 @@ def download_problem_images(
     owns_client = client is None
 
     downloads: list[ImageDownload] = []
+    failures: list[ImageDownloadFailure] = []
     problem_images: list[str] = []
     seen_urls: set[str] = set()
     try:
@@ -71,8 +89,14 @@ def download_problem_images(
                 continue
             seen_urls.add(source_url)
 
-            response = http_client.get(source_url)
-            response.raise_for_status()
+            try:
+                response = http_client.get(source_url)
+                response.raise_for_status()
+            except httpx.HTTPError as exc:
+                failures.append(
+                    ImageDownloadFailure(source_url=source_url, error=str(exc)),
+                )
+                continue
 
             local_path = image_dir / image_filename_for_url(
                 source_url,
@@ -95,8 +119,13 @@ def download_problem_images(
             http_client.close()
 
     return ImageDownloadResult(
-        record=replace(record, problem_images=tuple(problem_images)),
+        record=_record_with_image_results(
+            record,
+            problem_images=tuple(problem_images),
+            failures=tuple(failures),
+        ),
         downloads=tuple(downloads),
+        failures=tuple(failures),
     )
 
 
@@ -111,6 +140,31 @@ def image_filename_for_url(
     stem = _safe_filename_part(source_id or "problem_image")
     extension = _extension_for_url(url) or _extension_for_content_type(content_type)
     return f"{stem}_{digest}{extension or '.bin'}"
+
+
+def image_download_failed_error(source_url: str) -> str:
+    """Return a parse_errors entry for a failed source image URL."""
+    return f"{IMAGE_DOWNLOAD_FAILED}:{source_url}"
+
+
+def _record_with_image_results(
+    record: ValidatedProblemRecord,
+    *,
+    problem_images: tuple[str, ...],
+    failures: tuple[ImageDownloadFailure, ...],
+) -> ValidatedProblemRecord:
+    if not failures:
+        return replace(record, problem_images=problem_images)
+
+    return replace(
+        record,
+        parse_status="partial",
+        parse_errors=(
+            *record.parse_errors,
+            *(failure.parse_error for failure in failures),
+        ),
+        problem_images=problem_images,
+    )
 
 
 def _extension_for_url(url: str) -> str | None:
