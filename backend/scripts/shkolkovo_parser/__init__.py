@@ -7,6 +7,7 @@ from scripts.shkolkovo_parser.config import (
     shkolkovo_data_path,
 )
 from scripts.shkolkovo_parser.fetcher import (
+    CollectionStoppedError,
     FetchError,
     FetchResult,
     ShkolkovoFetcher,
@@ -17,6 +18,7 @@ __version__ = "0.1.0"
 
 __all__ = [
     "DATA_RAW_RELATIVE_PATH",
+    "CollectionStoppedError",
     "FetchError",
     "FetchResult",
     "ShkolkovoFetcher",

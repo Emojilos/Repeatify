@@ -15,6 +15,19 @@ from scripts.shkolkovo_parser.config import shkolkovo_data_path
 
 DEFAULT_USER_AGENT = "Repeatify-Shkolkovo-Parser/0.1"
 TEMPORARY_STATUS_CODES = frozenset({500, 502, 503, 504})
+STOP_STATUS_CODES = frozenset({429})
+CREDENTIAL_HEADER_NAMES = frozenset({"authorization", "cookie", "proxy-authorization"})
+CAPTCHA_MARKERS = (
+    "captcha",
+    "g-recaptcha",
+    "hcaptcha",
+    "smartcaptcha",
+    "cf-chl",
+    "checking your browser",
+    "browser check",
+    "подтвердите, что вы не робот",
+    "я не робот",
+)
 
 
 @dataclass(frozen=True)
@@ -44,6 +57,43 @@ class FetchError(RuntimeError):
         self.attempts = attempts
         self.status_code = status_code
 
+    def to_error_record(self) -> dict[str, object]:
+        """Return a report/errors-friendly representation of the fetch failure."""
+        return {
+            "url": self.url,
+            "attempts": self.attempts,
+            "status_code": self.status_code,
+            "message": str(self),
+        }
+
+
+class CollectionStoppedError(FetchError):
+    """Raised when safe collection must stop instead of retrying or bypassing."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        url: str,
+        attempts: int,
+        reason: str,
+        status_code: int | None = None,
+    ) -> None:
+        super().__init__(
+            message,
+            url=url,
+            attempts=attempts,
+            status_code=status_code,
+        )
+        self.reason = reason
+
+    def to_error_record(self) -> dict[str, object]:
+        """Return a report/errors-friendly stop reason."""
+        record = super().to_error_record()
+        record["reason"] = self.reason
+        record["stop_collection"] = True
+        return record
+
 
 class ShkolkovoFetcher:
     """Fetch public HTML pages and save repository-local snapshots."""
@@ -56,6 +106,7 @@ class ShkolkovoFetcher:
         delay: float = 1.0,
         max_retries: int = 3,
         backoff_factor: float = 0.5,
+        forbidden_stop_threshold: int = 2,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         if delay < 0:
@@ -64,7 +115,11 @@ class ShkolkovoFetcher:
             raise ValueError("max_retries must be at least 0")
         if backoff_factor < 0:
             raise ValueError("backoff_factor must be at least 0")
+        if forbidden_stop_threshold < 1:
+            raise ValueError("forbidden_stop_threshold must be at least 1")
 
+        if client is not None:
+            _validate_public_client(client)
         self._client = client or httpx.Client(
             follow_redirects=True,
             headers={"User-Agent": DEFAULT_USER_AGENT},
@@ -75,8 +130,10 @@ class ShkolkovoFetcher:
         self._delay = delay
         self._max_retries = max_retries
         self._backoff_factor = backoff_factor
+        self._forbidden_stop_threshold = forbidden_stop_threshold
         self._sleep = sleep
         self._requests_started = 0
+        self._consecutive_forbidden = 0
 
     def fetch(self, url: str, *, snapshot_name: str | None = None) -> FetchResult:
         """Fetch one HTML URL, retry temporary failures, and write a snapshot."""
@@ -100,6 +157,31 @@ class ShkolkovoFetcher:
                 raise FetchError(message, url=url, attempts=attempt) from exc
 
             last_status_code = response.status_code
+            if response.status_code in STOP_STATUS_CODES:
+                raise CollectionStoppedError(
+                    f"collection stopped after HTTP {response.status_code} "
+                    f"for {url!r}: rate limit or access restriction",
+                    url=url,
+                    attempts=attempt,
+                    status_code=response.status_code,
+                    reason="rate_limited",
+                )
+
+            if response.status_code == 403:
+                self._consecutive_forbidden += 1
+                if self._consecutive_forbidden >= self._forbidden_stop_threshold:
+                    raise CollectionStoppedError(
+                        f"collection stopped after "
+                        f"{self._consecutive_forbidden} consecutive HTTP 403 "
+                        f"responses; access appears closed",
+                        url=url,
+                        attempts=attempt,
+                        status_code=response.status_code,
+                        reason="forbidden_series",
+                    )
+            else:
+                self._consecutive_forbidden = 0
+
             if response.status_code in TEMPORARY_STATUS_CODES:
                 if attempt < max_attempts:
                     self._wait_before_retry(attempt)
@@ -125,6 +207,16 @@ class ShkolkovoFetcher:
                     url=url,
                     attempts=attempt,
                     status_code=response.status_code,
+                )
+
+            stop_reason = _stop_reason_for_html(response.text)
+            if stop_reason is not None:
+                raise CollectionStoppedError(
+                    f"collection stopped for {url!r}: detected {stop_reason}",
+                    url=url,
+                    attempts=attempt,
+                    status_code=response.status_code,
+                    reason=stop_reason,
                 )
 
             snapshot_path = self._write_snapshot(
@@ -195,3 +287,22 @@ def snapshot_filename_for_url(url: str) -> str:
     if not safe_base:
         safe_base = "page"
     return f"{safe_base}_{digest}.html"
+
+
+def _stop_reason_for_html(html: str) -> str | None:
+    lowered = html.lower()
+    if any(marker in lowered for marker in CAPTCHA_MARKERS):
+        return "captcha_or_browser_check"
+    return None
+
+
+def _validate_public_client(client: httpx.Client) -> None:
+    configured_headers = {header.lower() for header in client.headers}
+    credential_headers = configured_headers & CREDENTIAL_HEADER_NAMES
+    if credential_headers:
+        formatted = ", ".join(sorted(credential_headers))
+        raise ValueError(f"credential headers are not allowed: {formatted}")
+    if client.auth is not None:
+        raise ValueError("client auth is not allowed")
+    if client.cookies:
+        raise ValueError("client cookies are not allowed")
