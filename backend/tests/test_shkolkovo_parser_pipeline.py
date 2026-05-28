@@ -9,6 +9,7 @@ from pathlib import Path
 
 from scripts.shkolkovo_parser.pipeline import (
     MISSING_OFFLINE_SNAPSHOT,
+    run_all_fixture_pipeline,
     run_fixture_pipeline,
     run_offline_pipeline,
 )
@@ -168,6 +169,76 @@ def test_fixture_pipeline_reports_console_progress(tmp_path: Path) -> None:
         "Progress: ok=2, partial=1, skipped=1, "
         "image failed=0, duplicates skipped=0."
     )
+
+
+def test_all_fixture_pipeline_exports_each_discovered_task_and_run_report(
+    tmp_path: Path,
+) -> None:
+    result = run_all_fixture_pipeline(
+        output_dir=tmp_path,
+        parameters={"mode": "all", "per_subcategory": None},
+    )
+
+    assert result.task_numbers == (6, 7)
+    assert [task_result.task_number for task_result in result.task_results] == [6, 7]
+    assert sorted(path.name for path in tmp_path.glob("task_*.json")) == [
+        "task_6.json",
+        "task_6_errors.json",
+        "task_6_report.json",
+        "task_7.json",
+        "task_7_errors.json",
+        "task_7_report.json",
+    ]
+    assert result.run_report.report_file.name.startswith("run_report_")
+    assert result.run_report.report_file.name.endswith(".json")
+
+    run_report = json.loads(
+        result.run_report.report_file.read_text(encoding="utf-8"),
+    )
+    task_reports = [
+        json.loads(
+            task_result.report.report_file.read_text(encoding="utf-8"),
+        )
+        for task_result in result.task_results
+    ]
+
+    assert run_report["mode"] == "all"
+    assert run_report["parameters"] == {"mode": "all", "per_subcategory": None}
+    assert run_report["critical_errors"] == []
+    assert run_report["totals"] == {
+        "tasks_processed": 2,
+        "pages_visited": sum(report["pages_visited"] for report in task_reports),
+        "links_found": sum(report["links_found"] for report in task_reports),
+        "parsed_ok": sum(report["parsed_ok"] for report in task_reports),
+        "parsed_partial": sum(
+            report["parsed_partial"] for report in task_reports
+        ),
+        "duplicates_skipped": sum(
+            report["duplicates_skipped"] for report in task_reports
+        ),
+        "skipped": sum(report["skipped"] for report in task_reports),
+        "images_downloaded": sum(
+            report["images_downloaded"] for report in task_reports
+        ),
+        "images_failed": sum(report["images_failed"] for report in task_reports),
+    }
+    assert [task["task_number"] for task in run_report["tasks"]] == [6, 7]
+    assert run_report["tasks"][0]["report_file"].endswith("task_6_report.json")
+    assert run_report["tasks"][1]["report_file"].endswith("task_7_report.json")
+    assert run_report["started_at"].endswith("Z")
+    assert run_report["finished_at"].endswith("Z")
+
+
+def test_cli_all_mode_runs_all_discovered_fixture_tasks() -> None:
+    result = run_parser_cli("--mode", "all")
+
+    assert result.returncode == 0
+    assert "All mode: discovered task numbers 6, 7." in result.stdout
+    assert "All-mode offline pipeline completed:" in result.stdout
+    assert "Task 6: output=" in result.stdout
+    assert "Task 7: output=" in result.stdout
+    assert "Run report:" in result.stdout
+    assert "run_report_" in result.stdout
 
 
 def test_cli_passes_per_subcategory_limit_to_fixture_pipeline() -> None:

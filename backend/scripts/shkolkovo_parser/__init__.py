@@ -46,9 +46,12 @@ from scripts.shkolkovo_parser.normalizer import (
 from scripts.shkolkovo_parser.pipeline import (
     DEFAULT_TEST_TASK_NUMBER,
     MISSING_OFFLINE_SNAPSHOT,
+    OfflineAllPipelineResult,
     OfflinePipelineResult,
     default_fixture_dir,
     load_problem_fixture_pages,
+    run_all_fixture_pipeline,
+    run_all_offline_pipeline,
     run_fixture_pipeline,
     run_offline_pipeline,
 )
@@ -59,9 +62,13 @@ from scripts.shkolkovo_parser.problem_parser import (
 )
 from scripts.shkolkovo_parser.reporter import (
     ReportResult,
+    RunReportResult,
     TaskRunReport,
+    build_run_report,
     build_task_report,
+    run_report_filename,
     task_report_filename,
+    write_run_report,
     write_task_report,
 )
 from scripts.shkolkovo_parser.validator import (
@@ -97,6 +104,7 @@ __all__ = [
     "MISSING_CORRECT_ANSWER",
     "MISSING_OFFLINE_SNAPSHOT",
     "MISSING_PROBLEM_TEXT",
+    "OfflineAllPipelineResult",
     "OfflinePipelineResult",
     "ParsedCatalog",
     "ParsedProblem",
@@ -104,12 +112,14 @@ __all__ = [
     "ProblemValidationError",
     "ProblemValidationResult",
     "ReportResult",
+    "RunReportResult",
     "ShkolkovoFetcher",
     "TaskRunReport",
     "ValidatedProblemRecord",
     "__version__",
     "build_dataset_record",
     "build_error_record",
+    "build_run_report",
     "build_task_report",
     "content_hash_for_problem",
     "default_fixture_dir",
@@ -124,8 +134,11 @@ __all__ = [
     "normalize_problem_html",
     "normalize_problem_text",
     "repository_root",
+    "run_all_fixture_pipeline",
+    "run_all_offline_pipeline",
     "run_fixture_pipeline",
     "run_offline_pipeline",
+    "run_report_filename",
     "shkolkovo_data_dir",
     "shkolkovo_data_path",
     "snapshot_filename_for_url",
@@ -135,4 +148,5 @@ __all__ = [
     "task_report_filename",
     "validate_problem",
     "write_task_report",
+    "write_run_report",
 ]

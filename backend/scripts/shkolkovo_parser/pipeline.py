@@ -7,11 +7,16 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from scripts.shkolkovo_parser.catalog_parser import parse_catalog_html
+from scripts.shkolkovo_parser.catalog_parser import ParsedCatalog, parse_catalog_html
 from scripts.shkolkovo_parser.config import repository_root
 from scripts.shkolkovo_parser.exporter import ExportResult, export_task_files
 from scripts.shkolkovo_parser.problem_parser import parse_problem_html
-from scripts.shkolkovo_parser.reporter import ReportResult, write_task_report
+from scripts.shkolkovo_parser.reporter import (
+    ReportResult,
+    RunReportResult,
+    write_run_report,
+    write_task_report,
+)
 from scripts.shkolkovo_parser.validator import (
     ProblemValidationError,
     ValidatedProblemRecord,
@@ -42,6 +47,19 @@ class OfflinePipelineResult:
         return self.export.duplicates_skipped
 
 
+@dataclass(frozen=True)
+class OfflineAllPipelineResult:
+    """Files and counters produced by an aggregate offline pipeline run."""
+
+    task_results: tuple[OfflinePipelineResult, ...]
+    run_report: RunReportResult
+
+    @property
+    def task_numbers(self) -> tuple[int, ...]:
+        """Task numbers processed by this aggregate run."""
+        return tuple(result.task_number for result in self.task_results)
+
+
 def run_fixture_pipeline(
     *,
     task_number: int = DEFAULT_TEST_TASK_NUMBER,
@@ -63,6 +81,74 @@ def run_fixture_pipeline(
         per_subcategory=per_subcategory,
         output_dir=output_dir,
         progress=progress,
+    )
+
+
+def run_all_fixture_pipeline(
+    *,
+    per_subcategory: int | None = None,
+    fixture_dir: Path | None = None,
+    output_dir: Path | None = None,
+    progress: ProgressReporter | None = None,
+    parameters: dict[str, object] | None = None,
+) -> OfflineAllPipelineResult:
+    """Run the offline pipeline for every task number found in fixtures."""
+    fixture_dir = fixture_dir or default_fixture_dir()
+    catalog_html = (fixture_dir / "catalog_task_6.html").read_text(
+        encoding="utf-8",
+    )
+    problem_pages = load_problem_fixture_pages(fixture_dir)
+    return run_all_offline_pipeline(
+        catalog_html=catalog_html,
+        problem_pages=problem_pages,
+        per_subcategory=per_subcategory,
+        output_dir=output_dir,
+        progress=progress,
+        parameters=parameters,
+    )
+
+
+def run_all_offline_pipeline(
+    *,
+    catalog_html: str,
+    problem_pages: dict[str, str],
+    per_subcategory: int | None = None,
+    output_dir: Path | None = None,
+    progress: ProgressReporter | None = None,
+    parameters: dict[str, object] | None = None,
+) -> OfflineAllPipelineResult:
+    """Parse saved catalog/problem HTML for all discovered task numbers."""
+    started_at = datetime.now(UTC)
+    catalog = parse_catalog_html(catalog_html)
+    task_numbers = _discovered_task_numbers(catalog)
+    _report_progress(
+        progress,
+        "All mode: discovered task numbers "
+        f"{', '.join(str(number) for number in task_numbers)}.",
+    )
+
+    task_results = tuple(
+        run_offline_pipeline(
+            catalog_html=catalog_html,
+            problem_pages=problem_pages,
+            task_number=task_number,
+            per_subcategory=per_subcategory,
+            output_dir=output_dir,
+            progress=progress,
+        )
+        for task_number in task_numbers
+    )
+    run_report = write_run_report(
+        started_at=started_at,
+        finished_at=datetime.now(UTC),
+        mode="all",
+        parameters=parameters or {},
+        task_reports=tuple(result.report for result in task_results),
+        output_dir=output_dir,
+    )
+    return OfflineAllPipelineResult(
+        task_results=task_results,
+        run_report=run_report,
     )
 
 
@@ -208,6 +294,12 @@ def load_problem_fixture_pages(fixture_dir: Path) -> dict[str, str]:
 def default_fixture_dir() -> Path:
     """Return the bundled offline fixture directory used by test mode."""
     return repository_root() / "backend" / "tests" / "fixtures" / "shkolkovo"
+
+
+def _discovered_task_numbers(catalog: ParsedCatalog) -> tuple[int, ...]:
+    return tuple(
+        sorted({problem.task_number for problem in catalog.problems}),
+    )
 
 
 def _problem_html_for_link(

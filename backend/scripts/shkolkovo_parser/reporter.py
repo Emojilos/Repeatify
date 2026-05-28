@@ -43,6 +43,14 @@ class ReportResult:
     report: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class RunReportResult:
+    """Path and JSON payload written for an aggregate parser run report."""
+
+    report_file: Path
+    report: dict[str, Any]
+
+
 def write_task_report(
     *,
     task_number: int,
@@ -85,6 +93,35 @@ def write_task_report(
     return ReportResult(report_file=report_file, report=report)
 
 
+def write_run_report(
+    *,
+    started_at: datetime,
+    finished_at: datetime,
+    mode: str,
+    parameters: dict[str, Any],
+    task_reports: tuple[ReportResult, ...],
+    critical_errors: tuple[dict[str, Any], ...] = (),
+    output_dir: Path | None = None,
+) -> RunReportResult:
+    """Write run_report_YYYYMMDD_HHMMSS.json for an aggregate run."""
+    target_dir = output_dir or shkolkovo_data_dir()
+    target_dir.mkdir(parents=True, exist_ok=True)
+    report_file = target_dir / run_report_filename(started_at)
+    report = build_run_report(
+        started_at=started_at,
+        finished_at=finished_at,
+        mode=mode,
+        parameters=parameters,
+        task_reports=task_reports,
+        critical_errors=critical_errors,
+    )
+    report_file.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return RunReportResult(report_file=report_file, report=report)
+
+
 def build_task_report(report: TaskRunReport) -> dict[str, Any]:
     """Return a JSON-ready task_N_report.json payload."""
     return {
@@ -104,9 +141,61 @@ def build_task_report(report: TaskRunReport) -> dict[str, Any]:
     }
 
 
+def build_run_report(
+    *,
+    started_at: datetime,
+    finished_at: datetime,
+    mode: str,
+    parameters: dict[str, Any],
+    task_reports: tuple[ReportResult, ...],
+    critical_errors: tuple[dict[str, Any], ...] = (),
+) -> dict[str, Any]:
+    """Return a JSON-ready aggregate run report payload."""
+    reports = [report.report for report in task_reports]
+    return {
+        "started_at": _format_timestamp(started_at),
+        "finished_at": _format_timestamp(finished_at),
+        "mode": mode,
+        "parameters": parameters,
+        "totals": {
+            "tasks_processed": len(reports),
+            "pages_visited": sum(report["pages_visited"] for report in reports),
+            "links_found": sum(report["links_found"] for report in reports),
+            "parsed_ok": sum(report["parsed_ok"] for report in reports),
+            "parsed_partial": sum(
+                report["parsed_partial"] for report in reports
+            ),
+            "duplicates_skipped": sum(
+                report["duplicates_skipped"] for report in reports
+            ),
+            "skipped": sum(report["skipped"] for report in reports),
+            "images_downloaded": sum(
+                report["images_downloaded"] for report in reports
+            ),
+            "images_failed": sum(report["images_failed"] for report in reports),
+        },
+        "tasks": [
+            {
+                "task_number": report["task_number"],
+                "report_file": _repo_relative_path(result.report_file),
+                "output_file": report["output_file"],
+                "errors_file": report["errors_file"],
+            }
+            for result, report in zip(task_reports, reports, strict=True)
+        ],
+        "critical_errors": list(critical_errors),
+    }
+
+
 def task_report_filename(task_number: int) -> str:
     """Return the report filename for a task number."""
     return f"task_{task_number}_report.json"
+
+
+def run_report_filename(started_at: datetime) -> str:
+    """Return the aggregate report filename for a parser run."""
+    timestamp = started_at.astimezone(UTC).strftime("%Y%m%d_%H%M%S")
+    return f"run_report_{timestamp}.json"
 
 
 def _image_failures(record: ValidatedProblemRecord) -> int:

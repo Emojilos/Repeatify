@@ -9,6 +9,9 @@ from dataclasses import dataclass
 from scripts.shkolkovo_parser import __version__
 from scripts.shkolkovo_parser.pipeline import (
     DEFAULT_TEST_TASK_NUMBER,
+    OfflineAllPipelineResult,
+    OfflinePipelineResult,
+    run_all_fixture_pipeline,
     run_fixture_pipeline,
 )
 
@@ -172,8 +175,50 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Report: {result.report.report_file}")
         return 0
 
-    print(f"Shkolkovo parser CLI configured for {options.mode!r} mode.")
+    result = run_all_fixture_pipeline(
+        per_subcategory=options.per_subcategory,
+        progress=print,
+        parameters=_run_parameters(options),
+    )
+    _print_all_result(result)
     return 0
+
+
+def _print_all_result(result: OfflineAllPipelineResult) -> None:
+    totals = result.run_report.report["totals"]
+    print(
+        "All-mode offline pipeline completed: "
+        f"{totals['tasks_processed']} tasks, "
+        f"{totals['parsed_ok']} ok, "
+        f"{totals['parsed_partial']} partial, "
+        f"{totals['duplicates_skipped']} duplicates skipped.",
+    )
+    for task_result in result.task_results:
+        _print_task_result(task_result)
+    print(f"Run report: {result.run_report.report_file}")
+
+
+def _print_task_result(result: OfflinePipelineResult) -> None:
+    print(
+        f"Task {result.task_number}: "
+        f"output={result.export.output_file}, "
+        f"errors={result.export.errors_file}, "
+        f"report={result.report.report_file}",
+    )
+
+
+def _run_parameters(options: ParserOptions) -> dict[str, object]:
+    return {
+        "mode": options.mode,
+        "task_number": options.task_number,
+        "per_subcategory": options.per_subcategory,
+        "max_pages": options.max_pages,
+        "max_problems": options.max_problems,
+        "delay": options.delay,
+        "max_retries": options.max_retries,
+        "image_workers": options.image_workers,
+        "debug": options.debug,
+    }
 
 
 def _positive_int(value: str) -> int:
