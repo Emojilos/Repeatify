@@ -8,6 +8,10 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 README = BACKEND_DIR / "scripts" / "shkolkovo_parser" / "README.md"
 TEST_COMMAND = "uv run --group parser python -m scripts.shkolkovo_parser --mode test"
 ALL_COMMAND = "uv run --group parser python -m scripts.shkolkovo_parser --mode all"
+SNAPSHOT_COMMAND = (
+    "uv run --group parser python -m scripts.shkolkovo_parser "
+    "--mode snapshots --task-number 6 --snapshot-dir"
+)
 
 
 def test_readme_documents_parser_path_commands_and_outputs() -> None:
@@ -20,6 +24,9 @@ def test_readme_documents_parser_path_commands_and_outputs() -> None:
     assert ALL_COMMAND in readme
     assert "offline all-mode run over bundled fixtures" in readme
     assert "not approval to run a full live" in readme
+    assert SNAPSHOT_COMMAND in readme
+    assert "reads local `.html` files without network access" in readme
+    assert "problem_pages/*.html" in readme
     assert (
         "uv run --group parser python -m scripts.shkolkovo_parser "
         "--task-number 6 --max-pages 1 --max-problems 3 --debug"

@@ -16,6 +16,7 @@ from scripts.shkolkovo_parser.pipeline import (
     run_fixture_pipeline,
     run_live_smoke_pipeline,
     run_offline_pipeline,
+    run_snapshot_pipeline,
 )
 from scripts.shkolkovo_parser.reporter import write_run_report
 
@@ -202,6 +203,70 @@ def test_fixture_pipeline_writes_debug_artifacts_without_dataset_debug_fields(
     assert "raw" not in records[0]
     assert "debug" not in records[0]
     assert all("html" not in key for record in records for key in record)
+
+
+def test_snapshot_pipeline_uses_saved_catalog_and_problem_html(
+    tmp_path: Path,
+) -> None:
+    snapshot_dir = tmp_path / "snapshots"
+    problem_dir = snapshot_dir / "problem_pages"
+    problem_dir.mkdir(parents=True)
+    (snapshot_dir / "catalog_raw.html").write_text(
+        (FIXTURE_DIR / "catalog_task_6.html").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    for fixture_path in FIXTURE_DIR.glob("problem_*.html"):
+        (problem_dir / fixture_path.name).write_text(
+            fixture_path.read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+
+    result = run_snapshot_pipeline(
+        snapshot_dir=snapshot_dir,
+        task_number=6,
+        output_dir=tmp_path / "out",
+        debug=True,
+    )
+
+    records = json.loads(result.export.output_file.read_text(encoding="utf-8"))
+
+    assert result.catalog_links_found == 4
+    assert result.export.records_written == 3
+    assert [record["source_id"] for record in records] == [
+        "100601",
+        "100602",
+        "100603",
+    ]
+    assert records[0]["category"] == "Планиметрия"
+    assert result.debug is not None
+    assert (result.debug.debug_dir / "catalog_raw.html").exists()
+
+
+def test_snapshot_pipeline_can_parse_problem_html_without_catalog(
+    tmp_path: Path,
+) -> None:
+    snapshot_dir = tmp_path / "snapshots"
+    snapshot_dir.mkdir()
+    (snapshot_dir / "100601.html").write_text(
+        (FIXTURE_DIR / "problem_basic.html").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    result = run_snapshot_pipeline(
+        snapshot_dir=snapshot_dir,
+        task_number=6,
+        output_dir=tmp_path / "out",
+    )
+
+    records = json.loads(result.export.output_file.read_text(encoding="utf-8"))
+    report = json.loads(result.report.report_file.read_text(encoding="utf-8"))
+
+    assert result.catalog_links_found == 1
+    assert result.pages_visited == 1
+    assert [record["source_id"] for record in records] == ["100601"]
+    assert records[0]["category"] is None
+    assert records[0]["subcategory"] is None
+    assert report["links_found"] == 1
 
 
 def test_all_fixture_pipeline_exports_each_discovered_task_and_run_report(

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 from scripts.shkolkovo_parser import __version__
 from scripts.shkolkovo_parser.pipeline import (
@@ -14,6 +15,7 @@ from scripts.shkolkovo_parser.pipeline import (
     run_all_fixture_pipeline,
     run_fixture_pipeline,
     run_live_smoke_pipeline,
+    run_snapshot_pipeline,
 )
 
 MIN_TASK_NUMBER = 1
@@ -26,6 +28,7 @@ class ParserOptions:
 
     mode: str
     task_number: int | None
+    snapshot_dir: Path | None
     per_subcategory: int | None
     max_pages: int | None
     max_problems: int | None
@@ -87,14 +90,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--mode",
-        choices=("test", "all"),
+        choices=("test", "all", "snapshots"),
         default="test",
-        help="run mode: test smoke collection or all public catalog pages",
+        help="run mode: test fixtures, all fixtures, or local HTML snapshots",
     )
     parser.add_argument(
         "--task-number",
         type=task_number,
         help="limit collection to one EGE task number from 1 to 19",
+    )
+    parser.add_argument(
+        "--snapshot-dir",
+        type=Path,
+        help="directory with locally saved Shkolkovo catalog/problem HTML",
     )
     parser.add_argument(
         "--per-subcategory",
@@ -146,6 +154,7 @@ def parse_args(argv: Sequence[str] | None = None) -> ParserOptions:
     return ParserOptions(
         mode=namespace.mode,
         task_number=namespace.task_number,
+        snapshot_dir=namespace.snapshot_dir,
         per_subcategory=namespace.per_subcategory,
         max_pages=namespace.max_pages,
         max_problems=namespace.max_problems,
@@ -159,6 +168,31 @@ def parse_args(argv: Sequence[str] | None = None) -> ParserOptions:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the parser CLI."""
     options = parse_args(argv)
+    if options.mode == "snapshots":
+        if options.snapshot_dir is None:
+            build_parser().error("--mode snapshots requires --snapshot-dir")
+        if options.task_number is None:
+            build_parser().error("--mode snapshots requires --task-number")
+        result = run_snapshot_pipeline(
+            snapshot_dir=options.snapshot_dir,
+            task_number=options.task_number,
+            per_subcategory=options.per_subcategory,
+            progress=print,
+            debug=options.debug,
+        )
+        print(
+            "Snapshot pipeline completed: "
+            f"{result.export.records_written} records, "
+            f"{result.export.errors_written} errors, "
+            f"{result.duplicates_skipped} duplicates skipped.",
+        )
+        print(f"Output: {result.export.output_file}")
+        print(f"Errors: {result.export.errors_file}")
+        print(f"Report: {result.report.report_file}")
+        if result.debug is not None:
+            print(f"Debug: {result.debug.debug_dir}")
+        return 0
+
     if _is_live_smoke(options):
         result = run_live_smoke_pipeline(
             task_number=options.task_number or DEFAULT_TEST_TASK_NUMBER,
@@ -240,6 +274,7 @@ def _run_parameters(options: ParserOptions) -> dict[str, object]:
     return {
         "mode": options.mode,
         "task_number": options.task_number,
+        "snapshot_dir": str(options.snapshot_dir) if options.snapshot_dir else None,
         "per_subcategory": options.per_subcategory,
         "max_pages": options.max_pages,
         "max_problems": options.max_problems,

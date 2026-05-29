@@ -55,6 +55,18 @@ This command is an offline all-mode run over bundled fixtures. It is useful for
 checking exports and aggregate reports, but it is not approval to run a full live
 collection against the official catalog.
 
+Local saved HTML snapshots:
+
+```text
+uv run --group parser python -m scripts.shkolkovo_parser --mode snapshots --task-number 6 --snapshot-dir ../data/raw/shkolkovo/debug/task_6 --debug
+```
+
+Snapshot mode reads local `.html` files without network access. It prefers
+`catalog_raw.html`, `catalog.html`, or `catalog*.html` in the snapshot directory
+and reads problem pages recursively, including `problem_pages/*.html`. If there
+is no catalog snapshot, `--task-number` is used for every problem snapshot and
+`category`/`subcategory` are exported as `null`.
+
 Controlled live smoke:
 
 ```text

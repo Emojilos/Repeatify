@@ -34,6 +34,8 @@ DEFAULT_TEST_TASK_NUMBER = 6
 LIVE_CATALOG_URL = "https://3.shkolkovo.online/catalog?SubjectId=1"
 MISSING_OFFLINE_SNAPSHOT = "missing_offline_snapshot"
 LIVE_FETCH_FAILED = "live_fetch_failed"
+MISSING_SNAPSHOT_DIR = "missing_snapshot_dir"
+MISSING_SNAPSHOT_HTML = "missing_snapshot_html"
 ProgressReporter = Callable[[str], None]
 FetcherFactory = Callable[[], ShkolkovoFetcher]
 
@@ -301,6 +303,152 @@ def run_all_fixture_pipeline(
     )
 
 
+def run_snapshot_pipeline(
+    *,
+    snapshot_dir: Path,
+    task_number: int,
+    per_subcategory: int | None = None,
+    output_dir: Path | None = None,
+    progress: ProgressReporter | None = None,
+    debug: bool = False,
+) -> OfflinePipelineResult:
+    """Parse locally saved catalog/problem HTML snapshots for one task."""
+    snapshot_dir = snapshot_dir.expanduser()
+    if not snapshot_dir.exists() or not snapshot_dir.is_dir():
+        return _snapshot_error_result(
+            task_number=task_number,
+            snapshot_dir=snapshot_dir,
+            output_dir=output_dir,
+            progress=progress,
+            reason=MISSING_SNAPSHOT_DIR,
+            message="snapshot directory does not exist",
+        )
+
+    catalog_path = _find_snapshot_catalog(snapshot_dir)
+    problem_pages = load_problem_snapshot_pages(snapshot_dir)
+    if catalog_path is not None:
+        _report_progress(
+            progress,
+            f"Snapshots: using catalog {catalog_path}.",
+        )
+        return run_offline_pipeline(
+            catalog_html=catalog_path.read_text(encoding="utf-8"),
+            problem_pages=problem_pages,
+            task_number=task_number,
+            per_subcategory=per_subcategory,
+            output_dir=output_dir,
+            progress=progress,
+            debug=debug,
+        )
+
+    if not problem_pages:
+        return _snapshot_error_result(
+            task_number=task_number,
+            snapshot_dir=snapshot_dir,
+            output_dir=output_dir,
+            progress=progress,
+            reason=MISSING_SNAPSHOT_HTML,
+            message="snapshot directory contains no readable problem HTML",
+        )
+
+    return run_problem_snapshot_pipeline(
+        problem_pages=problem_pages,
+        task_number=task_number,
+        output_dir=output_dir,
+        progress=progress,
+        debug=debug,
+    )
+
+
+def run_problem_snapshot_pipeline(
+    *,
+    problem_pages: dict[str, str],
+    task_number: int,
+    output_dir: Path | None = None,
+    progress: ProgressReporter | None = None,
+    debug: bool = False,
+) -> OfflinePipelineResult:
+    """Parse local problem HTML snapshots when no catalog snapshot exists."""
+    started_at = datetime.now(UTC)
+    _report_progress(
+        progress,
+        f"Snapshots: found {len(problem_pages)} problem snapshot(s).",
+    )
+    records: list[ValidatedProblemRecord] = []
+    errors: list[ProblemValidationError] = []
+
+    for snapshot_key, problem_html in problem_pages.items():
+        parsed = parse_problem_html(problem_html)
+        validation = validate_problem(
+            parsed,
+            task_number=task_number,
+            category=None,
+            subcategory=None,
+        )
+        if validation.record is not None:
+            records.append(validation.record)
+        if validation.error is not None:
+            errors.append(
+                _snapshot_validation_error(validation.error, snapshot_key),
+            )
+        _report_parse_progress(
+            progress,
+            records=records,
+            skipped=0,
+            duplicates_skipped=0,
+        )
+
+    export = export_task_files(
+        task_number=task_number,
+        records=records,
+        errors=errors,
+        output_dir=output_dir,
+    )
+    _report_parse_progress(
+        progress,
+        records=records,
+        skipped=0,
+        duplicates_skipped=export.duplicates_skipped,
+    )
+    report = write_task_report(
+        task_number=task_number,
+        started_at=started_at,
+        finished_at=datetime.now(UTC),
+        pages_visited=len(problem_pages),
+        links_found=len(problem_pages),
+        records=tuple(records),
+        export=export,
+        skipped=0,
+        output_dir=output_dir,
+    )
+    debug_result = (
+        write_debug_artifacts(
+            task_number=task_number,
+            catalog_html="",
+            problem_pages=problem_pages,
+            catalog=ParsedCatalog(problems=(), errors=()),
+            records=tuple(records),
+            errors=tuple(errors),
+            output_dir=output_dir,
+        )
+        if debug
+        else None
+    )
+    if debug_result is not None:
+        _report_progress(progress, f"Debug: {debug_result.debug_dir}")
+    return OfflinePipelineResult(
+        task_number=task_number,
+        export=export,
+        records=tuple(records),
+        errors=tuple(errors),
+        catalog_links_found=len(problem_pages),
+        pages_visited=len(problem_pages),
+        skipped=0,
+        report=report,
+        debug=debug_result,
+    )
+
+
 def run_all_offline_pipeline(
     *,
     catalog_html: str,
@@ -503,9 +651,118 @@ def load_problem_fixture_pages(fixture_dir: Path) -> dict[str, str]:
     return problem_pages
 
 
+def load_problem_snapshot_pages(snapshot_dir: Path) -> dict[str, str]:
+    """Load local problem snapshots keyed by source_id or file stem."""
+    problem_pages: dict[str, str] = {}
+    catalog_path = _find_snapshot_catalog(snapshot_dir)
+    for snapshot_path in sorted(snapshot_dir.rglob("*.html")):
+        if catalog_path is not None and snapshot_path == catalog_path:
+            continue
+        if _is_catalog_snapshot_path(snapshot_path):
+            continue
+        html = snapshot_path.read_text(encoding="utf-8")
+        parsed = parse_problem_html(html)
+        source_id = parsed.source_id or snapshot_path.stem.removesuffix("_raw")
+        problem_pages[source_id] = html
+    return problem_pages
+
+
 def default_fixture_dir() -> Path:
     """Return the bundled offline fixture directory used by test mode."""
     return repository_root() / "backend" / "tests" / "fixtures" / "shkolkovo"
+
+
+def _snapshot_error_result(
+    *,
+    task_number: int,
+    snapshot_dir: Path,
+    output_dir: Path | None,
+    progress: ProgressReporter | None,
+    reason: str,
+    message: str,
+) -> OfflinePipelineResult:
+    started_at = datetime.now(UTC)
+    error = ProblemValidationError(
+        task_number=task_number,
+        source_url=str(snapshot_dir),
+        source_id=None,
+        parse_errors=(reason,),
+        message=message,
+    )
+    _report_progress(progress, f"Snapshots: {message}: {snapshot_dir}")
+    export = export_task_files(
+        task_number=task_number,
+        records=(),
+        errors=(error,),
+        output_dir=output_dir,
+    )
+    report = write_task_report(
+        task_number=task_number,
+        started_at=started_at,
+        finished_at=datetime.now(UTC),
+        pages_visited=0,
+        links_found=0,
+        records=(),
+        export=export,
+        skipped=0,
+        output_dir=output_dir,
+        status="blocked",
+        critical_errors=(
+            {
+                "url": str(snapshot_dir),
+                "reason": reason,
+                "message": message,
+            },
+        ),
+    )
+    return OfflinePipelineResult(
+        task_number=task_number,
+        export=export,
+        records=(),
+        errors=(error,),
+        catalog_links_found=0,
+        pages_visited=0,
+        skipped=0,
+        report=report,
+    )
+
+
+def _find_snapshot_catalog(snapshot_dir: Path) -> Path | None:
+    candidates = (
+        "catalog_raw.html",
+        "catalog.html",
+        "catalog_task.html",
+    )
+    for candidate in candidates:
+        path = snapshot_dir / candidate
+        if path.exists() and path.is_file():
+            return path
+
+    catalog_paths = sorted(snapshot_dir.glob("catalog*.html"))
+    if catalog_paths:
+        return catalog_paths[0]
+    return None
+
+
+def _is_catalog_snapshot_path(snapshot_path: Path) -> bool:
+    return snapshot_path.name.startswith("catalog") or snapshot_path.name == (
+        "catalog_raw.html"
+    )
+
+
+def _snapshot_validation_error(
+    error: ProblemValidationError,
+    snapshot_key: str,
+) -> ProblemValidationError:
+    if error.source_url:
+        return error
+    return ProblemValidationError(
+        task_number=error.task_number,
+        source_url=snapshot_key,
+        source_id=error.source_id,
+        parse_errors=error.parse_errors,
+        message=error.message,
+    )
 
 
 def _discovered_task_numbers(catalog: ParsedCatalog) -> tuple[int, ...]:

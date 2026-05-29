@@ -16,8 +16,9 @@ def test_mvp_help_lists_supported_options() -> None:
 
     assert result.returncode == 0
     assert "--mode" in result.stdout
-    assert "{test,all}" in result.stdout
+    assert "{test,all,snapshots}" in result.stdout
     assert "--task-number" in result.stdout
+    assert "--snapshot-dir" in result.stdout
     assert "--per-subcategory" in result.stdout
     assert "--per-prototype" in result.stdout
     assert "--max-pages" in result.stdout
@@ -35,6 +36,8 @@ def test_cli_accepts_mvp_options_and_alias() -> None:
             "all",
             "--task-number",
             "6",
+            "--snapshot-dir",
+            "saved-pages",
             "--per-prototype",
             "3",
             "--max-pages",
@@ -53,6 +56,7 @@ def test_cli_accepts_mvp_options_and_alias() -> None:
 
     assert options.mode == "all"
     assert options.task_number == 6
+    assert options.snapshot_dir == Path("saved-pages")
     assert options.per_subcategory == 3
     assert options.max_pages == 2
     assert options.max_problems == 5
@@ -91,6 +95,13 @@ def test_cli_rejects_invalid_numeric_values(
 
     assert result.returncode != 0
     assert message in result.stderr
+
+
+def test_cli_rejects_snapshots_without_required_arguments() -> None:
+    result = run_parser_cli("--mode", "snapshots")
+
+    assert result.returncode != 0
+    assert "--mode snapshots requires --snapshot-dir" in result.stderr
 
 
 def run_parser_cli(*args: str) -> subprocess.CompletedProcess[str]:
