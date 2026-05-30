@@ -15,6 +15,44 @@ from app.models.auth import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+INVALID_LOGIN_DETAIL = (
+    "Неверный email или пароль. Если вы только зарегистрировались, "
+    "проверьте письмо для подтверждения email."
+)
+UNCONFIRMED_EMAIL_DETAIL = (
+    "Email ещё не подтверждён. Откройте письмо от Repeatify "
+    "и перейдите по ссылке подтверждения."
+)
+
+
+def _auth_error_code(error: AuthApiError) -> str:
+    code = error.code
+    if isinstance(code, dict):
+        return str(code.get("error_code") or code.get("code") or "").lower()
+    return str(code or "").lower()
+
+
+def _auth_error_message(error: AuthApiError) -> str:
+    return str(getattr(error, "message", "") or error).lower()
+
+
+def _is_email_confirmation_error(error: AuthApiError) -> bool:
+    text = f"{_auth_error_code(error)} {_auth_error_message(error)}"
+    return "email_not_confirmed" in text or "email not confirmed" in text
+
+
+def _login_error_detail(error: AuthApiError) -> tuple[int, str]:
+    if _is_email_confirmation_error(error):
+        return (
+            status.HTTP_403_FORBIDDEN,
+            UNCONFIRMED_EMAIL_DETAIL,
+        )
+
+    return (
+        status.HTTP_401_UNAUTHORIZED,
+        INVALID_LOGIN_DETAIL,
+    )
+
 
 @router.post("/register", response_model=RegisterResponse, status_code=201)
 @limiter.limit(settings.AUTH_RATE_LIMIT)
@@ -38,7 +76,10 @@ async def register(request: Request, body: RegisterRequest) -> RegisterResponse:
         if result.user is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Не удалось зарегистрироваться — возможно, email уже используется",
+                detail=(
+                    "Не удалось зарегистрироваться — возможно, "
+                    "email уже используется"
+                ),
             )
         return RegisterResponse(confirmation_required=True)
 
@@ -70,16 +111,17 @@ async def login(request: Request, body: LoginRequest) -> AuthResponse:
             {"email": body.email, "password": body.password}
         )
     except AuthApiError as e:
+        error_status, detail = _login_error_detail(e)
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
+            status_code=error_status,
+            detail=detail,
         )
 
     session = result.session
     if session is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            detail=INVALID_LOGIN_DETAIL,
         )
 
     return AuthResponse(

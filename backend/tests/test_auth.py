@@ -129,6 +129,46 @@ def test_login_success(client):
     assert data["user_id"] == "user-123"
 
 
+def test_login_invalid_credentials_returns_localized_message(client):
+    from supabase_auth.errors import AuthApiError
+
+    mock_client = MagicMock()
+    mock_client.auth.sign_in_with_password.side_effect = AuthApiError(
+        "Invalid login credentials",
+        400,
+        {"error_code": "invalid_credentials"},
+    )
+
+    with patch("app.routers.auth.get_supabase_client", return_value=mock_client):
+        resp = client.post(
+            "/auth/login",
+            json={"email": "test@example.com", "password": "wrong-password"},
+        )
+
+    assert resp.status_code == 401
+    assert resp.json()["detail"].startswith("Неверный email или пароль")
+
+
+def test_login_unconfirmed_email_returns_clear_message(client):
+    from supabase_auth.errors import AuthApiError
+
+    mock_client = MagicMock()
+    mock_client.auth.sign_in_with_password.side_effect = AuthApiError(
+        "Email not confirmed",
+        400,
+        {"error_code": "email_not_confirmed"},
+    )
+
+    with patch("app.routers.auth.get_supabase_client", return_value=mock_client):
+        resp = client.post(
+            "/auth/login",
+            json={"email": "test@example.com", "password": "Secret123!"},
+        )
+
+    assert resp.status_code == 403
+    assert "Email ещё не подтверждён" in resp.json()["detail"]
+
+
 # --- Logout tests ---
 
 
