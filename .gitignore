@@ -16,5 +16,7 @@ ralph.sh
 data/raw/shkolkovo/html/
 data/raw/shkolkovo/task_*.json
 data/raw/shkolkovo/run_report_*.json
+data/raw/shkolkovo/image_download_report_*.json
+data/raw/shkolkovo/images/
 data/raw/shkolkovo/debug/
 data/raw/shkolkovo/*_debug.json
