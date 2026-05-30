@@ -1,0 +1,16 @@
+repeatify.duckdns.org {
+	root * /var/www/repeatify
+
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	handle /api {
+		rewrite * /
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	try_files {path} /index.html
+	file_server
+	encode gzip zstd
+}
