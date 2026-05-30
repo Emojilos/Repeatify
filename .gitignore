@@ -11,7 +11,7 @@ tasks.json
 tools
 prd 
 ralph.sh
-
+AGENTS.md
 # Shkolkovo parser generated data
 data/raw/shkolkovo/html/
 data/raw/shkolkovo/task_*.json
