@@ -9,7 +9,10 @@ repeatify.duckdns.org {
 		reverse_proxy 127.0.0.1:8000
 	}
 
-	try_files {path} /index.html
-	file_server
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+
 	encode gzip zstd
 }
