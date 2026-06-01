@@ -74,6 +74,8 @@ async def get_fsrs_session(
             topic_title=c.get("topic_title"),
             task_number=c.get("task_number"),
             retrievability=c.get("retrievability"),
+            prototype_code=c.get("prototype_code"),
+            prototype_title=c.get("prototype_title"),
         )
         for c in cards
     ]

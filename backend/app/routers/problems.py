@@ -71,9 +71,19 @@ def _row_to_list_item(row: dict, max_points: int | None = None) -> ProblemListIt
         difficulty=row["difficulty"],
         problem_text=row["problem_text"],
         problem_images=row.get("problem_images"),
+        solution_images=row.get("solution_images"),
         hints=row.get("hints"),
         source=row.get("source"),
         max_points=max_points,
+        prototype_id=row.get("prototype_id"),
+        category=row.get("category"),
+        subcategory=row.get("subcategory"),
+        source_id=row.get("source_id"),
+        source_url=row.get("source_url"),
+        content_hash=row.get("content_hash"),
+        source_image_urls=row.get("source_image_urls"),
+        parse_status=row.get("parse_status"),
+        parse_errors=row.get("parse_errors"),
     )
 
 
@@ -85,8 +95,18 @@ def _row_to_detail(row: dict) -> ProblemDetail:
         difficulty=row["difficulty"],
         problem_text=row["problem_text"],
         problem_images=row.get("problem_images"),
+        solution_images=row.get("solution_images"),
         hints=row.get("hints"),
         source=row.get("source"),
+        prototype_id=row.get("prototype_id"),
+        category=row.get("category"),
+        subcategory=row.get("subcategory"),
+        source_id=row.get("source_id"),
+        source_url=row.get("source_url"),
+        content_hash=row.get("content_hash"),
+        source_image_urls=row.get("source_image_urls"),
+        parse_status=row.get("parse_status"),
+        parse_errors=row.get("parse_errors"),
     )
 
 
@@ -176,7 +196,7 @@ async def get_solution(
     client = get_supabase_client()
     result = (
         client.table("problems")
-        .select("solution_markdown,correct_answer")
+        .select("solution_markdown,solution_images,correct_answer")
         .eq("id", problem_id)
         .execute()
     )
@@ -188,6 +208,7 @@ async def get_solution(
     row = result.data[0]
     return {
         "solution_markdown": row.get("solution_markdown"),
+        "solution_images": row.get("solution_images"),
         "correct_answer": row.get("correct_answer"),
     }
 
@@ -268,6 +289,7 @@ async def submit_attempt(
         is_correct=is_correct,
         correct_answer=correct_answer,
         solution_markdown=problem.get("solution_markdown"),
+        solution_images=problem.get("solution_images"),
         xp_earned=xp_earned,
         new_level_reached=new_level_reached,
         attempt_id=attempt_id,

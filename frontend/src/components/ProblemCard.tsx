@@ -13,8 +13,13 @@ interface Problem {
   difficulty: string
   problem_text: string
   problem_images?: string[] | null
+  solution_images?: string[] | null
   hints?: string[] | null
   source?: string | null
+  category?: string | null
+  subcategory?: string | null
+  source_id?: string | null
+  source_url?: string | null
   prototype_id?: string | null
   prototype_code?: string | null
   prototype_title?: string | null
@@ -24,12 +29,13 @@ interface AttemptResponse {
   is_correct: boolean
   correct_answer: string
   solution_markdown: string | null
+  solution_images?: string[] | null
   xp_earned: number
   attempt_id: string
   new_level_reached: number | null
 }
 
-type SelfAssessment = 'very hard' | 'hard' | 'normal' | 'easy'
+type SelfAssessment = 'again' | 'hard' | 'good' | 'easy'
 
 interface ProblemCardProps {
   problem: Problem
@@ -39,9 +45,9 @@ interface ProblemCardProps {
 }
 
 const assessmentButtons: { value: SelfAssessment; label: string; color: string }[] = [
-  { value: 'very hard', label: 'Очень сложно', color: 'bg-red-500 hover:bg-red-600' },
+  { value: 'again', label: 'Очень сложно', color: 'bg-red-500 hover:bg-red-600' },
   { value: 'hard', label: 'Сложно', color: 'bg-orange-500 hover:bg-orange-600' },
-  { value: 'normal', label: 'Нормально', color: 'bg-green-500 hover:bg-green-600' },
+  { value: 'good', label: 'Нормально', color: 'bg-green-500 hover:bg-green-600' },
   { value: 'easy', label: 'Легко', color: 'bg-blue-500 hover:bg-blue-600' },
 ]
 
@@ -76,6 +82,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
   const [result, setResult] = useState<AttemptResponse | null>(null)
   const [showSolution, setShowSolution] = useState(false)
   const [solutionText, setSolutionText] = useState<string | null>(null)
+  const [solutionImages, setSolutionImages] = useState<string[] | null>(null)
   const [loadingSolution, setLoadingSolution] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedAssessment, setSelectedAssessment] = useState<SelfAssessment | null>(null)
@@ -144,7 +151,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
   // Part 1: Check answer first, then show SRS buttons
   const handleCheck = async () => {
     if (!answer.trim()) return
-    const res = await submitAttempt('normal')
+    const res = await submitAttempt('good')
     if (res) {
       setSelectedAssessment(null)
     }
@@ -156,8 +163,9 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
   const handleShowSolution = async () => {
     setLoadingSolution(true)
     try {
-      const res = await api<{ solution_markdown: string | null; correct_answer: string | null }>(`/api/problems/${problem.id}/solution`)
+      const res = await api<{ solution_markdown: string | null; solution_images?: string[] | null; correct_answer: string | null }>(`/api/problems/${problem.id}/solution`)
       setSolutionText(res.solution_markdown)
+      setSolutionImages(res.solution_images || null)
       setCorrectAnswer(res.correct_answer)
     } catch {
       // Fallback: still show assessment even without solution
@@ -196,6 +204,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
   }, [isPart2, selectedAssessment, result])
 
   const checked = result !== null
+  const originLabel = problem.subcategory || problem.category || problem.source
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
@@ -215,8 +224,20 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
               {problem.prototype_code}
             </Link>
           )}
-          {problem.source && (
-            <span className="text-xs text-gray-400 dark:text-gray-500">{problem.source}</span>
+          {originLabel && (
+            <span className="max-w-60 truncate text-xs text-gray-400 dark:text-gray-500" title={originLabel}>
+              {originLabel}
+            </span>
+          )}
+          {problem.source_url && (
+            <a
+              href={problem.source_url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-blue-500 hover:underline dark:text-blue-400"
+            >
+              Источник{problem.source_id ? ` #${problem.source_id}` : ''}
+            </a>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -320,7 +341,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
                 </div>
 
                 {/* Solution toggle */}
-                {result.solution_markdown && (
+                {(result.solution_markdown || (result.solution_images && result.solution_images.length > 0)) && (
                   <div className="mb-4">
                     <button
                       onClick={() => setShowSolution(!showSolution)}
@@ -330,7 +351,11 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
                     </button>
                     {showSolution && (
                       <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-                        <MathRenderer content={result.solution_markdown} />
+                        <ProblemContent
+                          text={result.solution_markdown || ''}
+                          images={result.solution_images}
+                          imageClassName="h-auto max-h-56 rounded bg-white p-1 dark:invert"
+                        />
                       </div>
                     )}
                   </div>
@@ -376,10 +401,14 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
               /* Solution revealed, awaiting self-assessment */
               <div>
                 <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-                  {solutionText ? (
+                  {solutionText || (solutionImages && solutionImages.length > 0) ? (
                     <>
                       <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Решение:</div>
-                      <MathRenderer content={solutionText} />
+                      <ProblemContent
+                        text={solutionText || ''}
+                        images={solutionImages}
+                        imageClassName="h-auto max-h-56 rounded bg-white p-1 dark:invert"
+                      />
                     </>
                   ) : correctAnswer ? (
                     <>
@@ -411,12 +440,16 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
             ) : (
               /* Part 2 result */
               <div>
-                {(result.solution_markdown || correctAnswer) && (
+                {(result.solution_markdown || (result.solution_images && result.solution_images.length > 0) || correctAnswer) && (
                   <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-                    {result.solution_markdown ? (
+                    {result.solution_markdown || (result.solution_images && result.solution_images.length > 0) ? (
                       <>
                         <div className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Решение:</div>
-                        <MathRenderer content={result.solution_markdown} />
+                        <ProblemContent
+                          text={result.solution_markdown || ''}
+                          images={result.solution_images}
+                          imageClassName="h-auto max-h-56 rounded bg-white p-1 dark:invert"
+                        />
                       </>
                     ) : correctAnswer ? (
                       <>

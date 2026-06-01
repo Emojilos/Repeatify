@@ -105,10 +105,26 @@ The generated dataset, snapshots, reports, images, and debug directories are not
 intended to be committed. `data/raw/shkolkovo/README.md` remains as the tracked
 directory marker.
 
+## Import Into Repeatify
+
+After reviewing parser output and applying database migrations, import all
+generated `task_N.json` files from the repository root with:
+
+```text
+cd backend
+python -m scripts.import_problems ../data/raw/shkolkovo
+```
+
+The importer preserves parser metadata such as `category`, `subcategory`,
+`source_id`, `source_url`, `content_hash`, image arrays, and parse status. It
+skips duplicate records by `content_hash` or normalized `problem_text`, and skips
+Part 1 parser partials that have no public answer.
+
 ## MVP Limits
 
-The MVP does not import data into Supabase. It only writes local JSON files and
-reports for review.
+The parser itself does not import data into Supabase. It only writes local JSON
+files and reports for review; the separate `scripts.import_problems` command
+performs the import.
 
 The parser collects only public unauthenticated content. It must not use
 credentials, cookies, authorization headers, CAPTCHA bypasses, paywall bypasses,

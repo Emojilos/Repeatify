@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Bulk import problems from a JSON file into the Supabase problems table.
+"""Bulk import problems from parser JSON into the Supabase problems table.
 
 Usage:
     cd backend
     python -m scripts.import_problems path/to/problems.json
+    python -m scripts.import_problems ../data/raw/shkolkovo
 
 JSON format — array of objects:
 [
@@ -15,7 +16,11 @@ JSON format — array of objects:
     "answer_tolerance": 0,     # optional, default 0
     "solution_markdown": "...",# optional
     "hints": ["..."],          # optional
-    "source": "ФИПИ"          # optional
+    "problem_images": ["..."], # optional, parser local/Supabase image refs
+    "source": "ФИПИ",          # optional
+    "source_id": "123",        # optional
+    "source_url": "https://...", # optional
+    "content_hash": "..."      # optional, preferred dedup key
   }
 ]
 """
@@ -32,6 +37,14 @@ if TYPE_CHECKING:
 
 VALID_DIFFICULTIES = {"basic", "medium", "hard", "olympiad"}
 REQUIRED_FIELDS = {"task_number", "problem_text"}
+JSON_LIST_FIELDS = {
+    "hints",
+    "problem_images",
+    "solution_images",
+    "source_image_urls",
+    "parse_errors",
+}
+PARSER_TASK_GLOB = "task_*.json"
 
 
 def _load_json(path: str) -> list[dict]:
@@ -45,6 +58,36 @@ def _load_json(path: str) -> list[dict]:
         print("Ошибка: JSON должен быть массивом объектов")
         sys.exit(1)
     return data
+
+
+def _json_files(path: str) -> list[Path]:
+    """Return parser JSON files for a file or directory input."""
+    input_path = Path(path)
+    if not input_path.exists():
+        print(f"Ошибка: путь не найден: {path}")
+        sys.exit(1)
+
+    if input_path.is_file():
+        return [input_path]
+
+    files = [
+        file_path
+        for file_path in sorted(input_path.glob(PARSER_TASK_GLOB))
+        if not file_path.name.endswith("_errors.json")
+        and not file_path.name.endswith("_report.json")
+    ]
+    if not files:
+        print(f"Ошибка: в директории нет файлов {PARSER_TASK_GLOB}: {path}")
+        sys.exit(1)
+    return files
+
+
+def _load_items(path: str) -> list[dict]:
+    """Load one JSON file or all task_N.json files from a parser directory."""
+    items: list[dict] = []
+    for file_path in _json_files(path):
+        items.extend(_load_json(str(file_path)))
+    return items
 
 
 def _validate(item: dict, index: int) -> list[str]:
@@ -80,7 +123,26 @@ def _validate(item: dict, index: int) -> list[str]:
             f" не в {VALID_DIFFICULTIES}"
         )
 
+    for field in JSON_LIST_FIELDS:
+        value = item.get(field)
+        if value is not None and not isinstance(value, list):
+            errors.append(f"[{index}] '{field}' должен быть массивом")
+
     return errors
+
+
+def _is_parser_partial_without_answer(item: dict) -> bool:
+    """Whether a parser-produced Part 1 row is displayable but unsolvable."""
+    task_number = item.get("task_number")
+    if not isinstance(task_number, int) or task_number > 12:
+        return False
+    parse_errors = item.get("parse_errors")
+    return (
+        item.get("parse_status") == "partial"
+        and isinstance(parse_errors, list)
+        and "missing_correct_answer" in parse_errors
+        and not item.get("correct_answer")
+    )
 
 
 def _get_topic_map(client: Client) -> dict[int, str]:
@@ -110,25 +172,95 @@ def _get_existing_texts(
     return {row["problem_text"].strip() for row in result.data}
 
 
+def _get_existing_problem_keys(
+    client: Client, topic_ids: set[str]
+) -> tuple[set[str], set[str]]:
+    """Fetch existing problem text and content hashes for deduplication."""
+    if not topic_ids:
+        return set(), set()
+    result = (
+        client.table("problems")
+        .select("problem_text,content_hash")
+        .in_("topic_id", list(topic_ids))
+        .execute()
+    )
+    texts: set[str] = set()
+    hashes: set[str] = set()
+    for row in result.data or []:
+        if row.get("problem_text"):
+            texts.add(row["problem_text"].strip())
+        if row.get("content_hash"):
+            hashes.add(row["content_hash"])
+    return texts, hashes
+
+
+def _list_field(item: dict, field: str) -> list:
+    value = item.get(field)
+    return value if isinstance(value, list) else []
+
+
+def _optional_text(item: dict, field: str) -> str | None:
+    value = item.get(field)
+    if value is None:
+        return None
+    cleaned = str(value).strip()
+    return cleaned or None
+
+
+def _build_problem_row(item: dict, *, topic_id: str, problem_text: str) -> dict:
+    row = {
+        "topic_id": topic_id,
+        "task_number": item["task_number"],
+        "difficulty": item.get("difficulty", "medium"),
+        "problem_text": problem_text,
+        "problem_images": _list_field(item, "problem_images"),
+        "correct_answer": _optional_text(item, "correct_answer"),
+        "answer_tolerance": item.get("answer_tolerance", 0),
+        "solution_markdown": _optional_text(item, "solution_markdown"),
+        "solution_images": _list_field(item, "solution_images"),
+        "hints": _list_field(item, "hints"),
+        "source": _optional_text(item, "source"),
+        "source_url": _optional_text(item, "source_url"),
+        "source_id": _optional_text(item, "source_id"),
+        "content_hash": _optional_text(item, "content_hash"),
+        "category": _optional_text(item, "category"),
+        "subcategory": _optional_text(item, "subcategory"),
+        "source_image_urls": _list_field(item, "source_image_urls"),
+        "parse_status": item.get("parse_status") or "ok",
+        "parse_errors": _list_field(item, "parse_errors"),
+    }
+    if prototype_id := _optional_text(item, "prototype_id"):
+        row["prototype_id"] = prototype_id
+    return row
+
+
 def import_problems(
     json_path: str, *, client: Client | None = None
 ) -> None:
-    """Import problems from JSON file.
+    """Import problems from a parser JSON file or parser output directory.
 
     Args:
-        json_path: Path to JSON file with problems array.
+        json_path: Path to JSON file or directory with task_N.json files.
         client: Supabase client. If None, creates one from
                 app settings.
     """
-    items = _load_json(json_path)
+    items = _load_items(json_path)
     if not items:
-        print("Файл пуст — нечего импортировать.")
+        print("Файлы пустые — нечего импортировать.")
         return
 
     # Validate all items first
     all_errors: list[str] = []
+    partial_without_answer: set[int] = set()
     for i, item in enumerate(items):
-        all_errors.extend(_validate(item, i))
+        item_errors = _validate(item, i)
+        if _is_parser_partial_without_answer(item):
+            answer_errors = [err for err in item_errors if "correct_answer" in err]
+            other_errors = [err for err in item_errors if "correct_answer" not in err]
+            if answer_errors and not other_errors:
+                partial_without_answer.add(i)
+                continue
+        all_errors.extend(item_errors)
 
     if all_errors:
         print(f"Ошибки валидации ({len(all_errors)}):")
@@ -158,38 +290,36 @@ def import_problems(
         )
         sys.exit(1)
 
-    # Fetch existing problem texts for deduplication
+    # Fetch existing problem identities for deduplication
     relevant_topic_ids = {topic_map[tn] for tn in needed_tasks}
-    existing_texts = _get_existing_texts(
+    existing_texts, existing_hashes = _get_existing_problem_keys(
         client, relevant_topic_ids
     )
 
     added = 0
     skipped = 0
+    skipped_partial = 0
     errors = 0
 
     for i, item in enumerate(items):
+        if i in partial_without_answer:
+            skipped_partial += 1
+            continue
+
         text = item["problem_text"].strip()
-        if text in existing_texts:
+        content_hash = _optional_text(item, "content_hash")
+        if (content_hash and content_hash in existing_hashes) or text in existing_texts:
             skipped += 1
             continue
 
         topic_id = topic_map[item["task_number"]]
-        row = {
-            "topic_id": topic_id,
-            "task_number": item["task_number"],
-            "difficulty": item.get("difficulty", "medium"),
-            "problem_text": text,
-            "correct_answer": item.get("correct_answer"),
-            "answer_tolerance": item.get("answer_tolerance", 0),
-            "solution_markdown": item.get("solution_markdown"),
-            "hints": item.get("hints", []),
-            "source": item.get("source"),
-        }
+        row = _build_problem_row(item, topic_id=topic_id, problem_text=text)
 
         try:
             client.table("problems").insert(row).execute()
             existing_texts.add(text)
+            if content_hash:
+                existing_hashes.add(content_hash)
             added += 1
         except Exception as e:
             print(f"  Ошибка вставки [{i}]: {e}")
@@ -198,6 +328,7 @@ def import_problems(
     print(
         f"Добавлено: {added},"
         f" Пропущено (дубликаты): {skipped},"
+        f" Пропущено (неполные): {skipped_partial},"
         f" Ошибки: {errors}"
     )
 
@@ -207,7 +338,7 @@ def main() -> None:
         print(
             "Использование:"
             " python -m scripts.import_problems"
-            " <path/to/problems.json>"
+            " <path/to/problems.json|data/raw/shkolkovo>"
         )
         sys.exit(1)
     import_problems(sys.argv[1])

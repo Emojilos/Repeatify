@@ -24,12 +24,19 @@ class ProblemListItem(BaseModel):
     difficulty: str
     problem_text: str
     problem_images: list[str] | None = None
+    solution_images: list[str] | None = None
     hints: list[str] | None = None
     source: str | None = None
     max_points: int | None = None
     prototype_id: str | None = None
+    category: str | None = None
+    subcategory: str | None = None
+    source_id: str | None = None
     source_url: str | None = None
     content_hash: str | None = None
+    source_image_urls: list[str] | None = None
+    parse_status: str | None = None
+    parse_errors: list[str] | None = None
 
 
 class ProblemDetail(BaseModel):
@@ -41,11 +48,18 @@ class ProblemDetail(BaseModel):
     difficulty: str
     problem_text: str
     problem_images: list[str] | None = None
+    solution_images: list[str] | None = None
     hints: list[str] | None = None
     source: str | None = None
     prototype_id: str | None = None
+    category: str | None = None
+    subcategory: str | None = None
+    source_id: str | None = None
     source_url: str | None = None
     content_hash: str | None = None
+    source_image_urls: list[str] | None = None
+    parse_status: str | None = None
+    parse_errors: list[str] | None = None
 
 
 class AttemptRequest(BaseModel):
@@ -58,6 +72,7 @@ class AttemptResponse(BaseModel):
     is_correct: bool
     correct_answer: str
     solution_markdown: str | None = None
+    solution_images: list[str] | None = None
     xp_earned: int
     new_level_reached: int | None = None
     attempt_id: str

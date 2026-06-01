@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from scripts.import_problems import (
+    _get_existing_problem_keys,
     _get_existing_texts,
     _get_topic_map,
     _validate,
@@ -110,6 +111,21 @@ class TestGetExistingTexts:
         client.table.assert_not_called()
 
 
+class TestGetExistingProblemKeys:
+    def test_returns_texts_and_hashes(self):
+        client = MagicMock()
+        chain = client.table.return_value.select.return_value.in_.return_value
+        chain.execute.return_value.data = [
+            {"problem_text": "Text A", "content_hash": "hash-a"},
+            {"problem_text": " Text B ", "content_hash": None},
+        ]
+
+        texts, hashes = _get_existing_problem_keys(client, {"uuid-1"})
+
+        assert texts == {"Text A", "Text B"}
+        assert hashes == {"hash-a"}
+
+
 # --- Import integration tests ---
 
 
@@ -161,6 +177,49 @@ class TestImportProblems:
         assert inserted["topic_id"] == "topic-1"
         Path(path).unlink()
 
+    def test_add_parser_fields(self):
+        client = _make_client(
+            [{"id": "topic-1", "task_number": 1}],
+        )
+        insert = client.table.return_value.insert
+        insert.return_value.execute.return_value = MagicMock()
+
+        path = _write_json([
+            {
+                "task_number": 1,
+                "category": "№1. Планиметрия",
+                "subcategory": "Авторские задачи №1",
+                "problem_text": "Find x [image: graph]",
+                "correct_answer": "42",
+                "problem_images": ["data/raw/shkolkovo/images/task_1/a.svg"],
+                "solution_images": [],
+                "source_image_urls": ["https://example.test/a.svg"],
+                "source": "shkolkovo",
+                "source_id": "100",
+                "source_url": "https://example.test/problem/100",
+                "content_hash": "hash-100",
+                "parse_status": "ok",
+                "parse_errors": [],
+            },
+        ])
+
+        import_problems(path, client=client)
+
+        inserted = insert.call_args[0][0]
+        assert inserted["category"] == "№1. Планиметрия"
+        assert inserted["subcategory"] == "Авторские задачи №1"
+        assert inserted["problem_images"] == [
+            "data/raw/shkolkovo/images/task_1/a.svg",
+        ]
+        assert inserted["source_image_urls"] == ["https://example.test/a.svg"]
+        assert inserted["source"] == "shkolkovo"
+        assert inserted["source_id"] == "100"
+        assert inserted["source_url"] == "https://example.test/problem/100"
+        assert inserted["content_hash"] == "hash-100"
+        assert inserted["parse_status"] == "ok"
+        assert inserted["parse_errors"] == []
+        Path(path).unlink()
+
     def test_skip_duplicates(self, capsys):
         client = _make_client(
             [{"id": "topic-1", "task_number": 1}],
@@ -174,6 +233,28 @@ class TestImportProblems:
                 "correct_answer": "1",
             },
         ])
+        import_problems(path, client=client)
+
+        client.table.return_value.insert.assert_not_called()
+        output = capsys.readouterr().out
+        assert "Пропущено (дубликаты): 1" in output
+        Path(path).unlink()
+
+    def test_skip_duplicates_by_content_hash(self, capsys):
+        client = _make_client(
+            [{"id": "topic-1", "task_number": 1}],
+            [{"problem_text": "Different text", "content_hash": "same-hash"}],
+        )
+
+        path = _write_json([
+            {
+                "task_number": 1,
+                "problem_text": "New text",
+                "correct_answer": "1",
+                "content_hash": "same-hash",
+            },
+        ])
+
         import_problems(path, client=client)
 
         client.table.return_value.insert.assert_not_called()
@@ -233,6 +314,63 @@ class TestImportProblems:
         output = capsys.readouterr().out
         assert "нечего импортировать" in output
         Path(path).unlink()
+
+    def test_parser_partial_part1_without_answer_is_skipped(self, capsys):
+        client = _make_client(
+            [{"id": "topic-1", "task_number": 1}],
+        )
+
+        path = _write_json([
+            {
+                "task_number": 1,
+                "problem_text": "Displayable but no answer",
+                "parse_status": "partial",
+                "parse_errors": ["missing_correct_answer"],
+            },
+        ])
+
+        import_problems(path, client=client)
+
+        client.table.return_value.insert.assert_not_called()
+        output = capsys.readouterr().out
+        assert "Пропущено (неполные): 1" in output
+        Path(path).unlink()
+
+    def test_import_directory_reads_task_json_files(self, tmp_path):
+        client = _make_client(
+            [
+                {"id": "topic-1", "task_number": 1},
+                {"id": "topic-2", "task_number": 2},
+            ],
+        )
+        insert = client.table.return_value.insert
+        insert.return_value.execute.return_value = MagicMock()
+
+        (tmp_path / "task_1.json").write_text(
+            json.dumps([
+                {
+                    "task_number": 1,
+                    "problem_text": "Task 1",
+                    "correct_answer": "1",
+                },
+            ]),
+            encoding="utf-8",
+        )
+        (tmp_path / "task_2.json").write_text(
+            json.dumps([
+                {
+                    "task_number": 2,
+                    "problem_text": "Task 2",
+                    "correct_answer": "2",
+                },
+            ]),
+            encoding="utf-8",
+        )
+        (tmp_path / "task_2_errors.json").write_text("[]", encoding="utf-8")
+
+        import_problems(str(tmp_path), client=client)
+
+        assert insert.call_count == 2
 
     def test_repeat_import_no_duplicates(self, capsys):
         """Run import twice: second run should skip all."""

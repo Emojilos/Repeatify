@@ -41,7 +41,9 @@ def _normalize_formulas(raw: list | None) -> list[dict]:
     if not raw:
         return []
     return [
-        item if isinstance(item, dict) else {"name": "", "formula": _wrap_latex(item), "description": ""}
+        item
+        if isinstance(item, dict)
+        else {"name": "", "formula": _wrap_latex(item), "description": ""}
         for item in raw
     ]
 
@@ -50,7 +52,9 @@ def _normalize_algorithm(raw: list | None) -> list[dict]:
     if not raw:
         return []
     return [
-        item if isinstance(item, dict) else {"step": i + 1, "title": item, "description": ""}
+        item
+        if isinstance(item, dict)
+        else {"step": i + 1, "title": item, "description": ""}
         for i, item in enumerate(raw)
     ]
 
@@ -59,7 +63,9 @@ def _normalize_mistakes(raw: list | None) -> list[dict]:
     if not raw:
         return []
     return [
-        item if isinstance(item, dict) else {"mistake": item, "explanation": "", "correct": ""}
+        item
+        if isinstance(item, dict)
+        else {"mistake": item, "explanation": "", "correct": ""}
         for item in raw
     ]
 
@@ -98,7 +104,11 @@ def _resolve_related(raw: list | None, task_number: int, client) -> list[dict]:
 
 
 def _row_to_detail(row: dict, client=None) -> PrototypeResponse:
-    related = _resolve_related(row.get("related_prototypes"), row["task_number"], client) if client else []
+    related = (
+        _resolve_related(row.get("related_prototypes"), row["task_number"], client)
+        if client
+        else []
+    )
     return PrototypeResponse(
         id=row["id"],
         task_number=row["task_number"],
@@ -124,12 +134,19 @@ def _row_to_problem(row: dict, max_points: int | None = None) -> ProblemListItem
         difficulty=row["difficulty"],
         problem_text=row["problem_text"],
         problem_images=row.get("problem_images"),
+        solution_images=row.get("solution_images"),
         hints=row.get("hints"),
         source=row.get("source"),
         max_points=max_points,
         prototype_id=row.get("prototype_id"),
+        category=row.get("category"),
+        subcategory=row.get("subcategory"),
+        source_id=row.get("source_id"),
         source_url=row.get("source_url"),
         content_hash=row.get("content_hash"),
+        source_image_urls=row.get("source_image_urls"),
+        parse_status=row.get("parse_status"),
+        parse_errors=row.get("parse_errors"),
     )
 
 
