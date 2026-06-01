@@ -32,5 +32,7 @@ jobs:
             npm run build
             rsync -a --delete dist/ /var/www/repeatify/
 
+            sudo cp /opt/repeatify/deploy/Caddyfile /etc/caddy/Caddyfile
+            sudo caddy validate --config /etc/caddy/Caddyfile
             sudo systemctl restart repeatify-backend
             sudo systemctl reload caddy

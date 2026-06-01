@@ -35,6 +35,15 @@ Production backend env should include:
 CORS_ORIGINS=https://repeatify.duckdns.org
 ```
 
+Production frontend env should use the domain origin only:
+
+```env
+VITE_API_URL=https://repeatify.duckdns.org
+```
+
+The frontend code already appends `/api/...` to requests, and Caddy preserves
+that prefix when proxying to FastAPI.
+
 ## Reverse Proxy
 
 Install Caddy, then copy `deploy/Caddyfile` to `/etc/caddy/Caddyfile` and reload:
