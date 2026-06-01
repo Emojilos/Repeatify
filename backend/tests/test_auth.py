@@ -129,6 +129,34 @@ def test_login_success(client):
     assert data["user_id"] == "user-123"
 
 
+def test_api_login_alias_success(client):
+    mock_user = MagicMock()
+    mock_user.id = "user-123"
+
+    mock_session = MagicMock()
+    mock_session.access_token = "access-tok"
+    mock_session.refresh_token = "refresh-tok"
+    mock_session.user = mock_user
+
+    mock_result = MagicMock()
+    mock_result.session = mock_session
+    mock_result.user = mock_user
+
+    mock_client = MagicMock()
+    mock_client.auth.sign_in_with_password.return_value = mock_result
+
+    with patch("app.routers.auth.get_supabase_client", return_value=mock_client):
+        resp = client.post(
+            "/api/auth/login",
+            json={"email": "test@example.com", "password": "Secret123!"},
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["access_token"] == "access-tok"
+    assert data["user_id"] == "user-123"
+
+
 def test_login_invalid_credentials_returns_localized_message(client):
     from supabase_auth.errors import AuthApiError
 

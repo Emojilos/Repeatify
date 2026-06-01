@@ -50,7 +50,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null })
     try {
-      const data = await api<AuthResponse>('/auth/login', {
+      const data = await api<AuthResponse>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
         skipAuth: true,
@@ -70,7 +70,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (email: string, password: string) => {
     set({ isLoading: true, error: null })
     try {
-      const data = await api<RegisterResponse>('/auth/register', {
+      const data = await api<RegisterResponse>('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
         skipAuth: true,
@@ -96,7 +96,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: async () => {
     try {
-      await api('/auth/logout', { method: 'POST', silent: true })
+      await api('/api/auth/logout', { method: 'POST', silent: true })
     } catch {
       // Ignore errors — clear local state regardless
     }
