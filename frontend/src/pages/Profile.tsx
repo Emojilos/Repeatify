@@ -8,8 +8,6 @@ import { useAuthStore } from '../stores/authStore'
 /* ------------------------------------------------------------------ */
 
 interface UserStats {
-  current_xp: number
-  current_level: number
   current_streak: number
   longest_streak: number
   total_problems_solved: number
@@ -35,20 +33,6 @@ interface ActivityCalendarResponse {
   longest_streak: number
 }
 
-/* Level table matching backend xp_service.py */
-const LEVEL_TABLE: [number, number, string][] = [
-  [0, 1, 'Новичок'],
-  [100, 2, 'Ученик'],
-  [300, 3, 'Практикант'],
-  [600, 4, 'Решатель'],
-  [1000, 5, 'Знаток'],
-  [1500, 6, 'Эксперт'],
-  [2500, 7, 'Мастер'],
-  [4000, 8, 'Гуру'],
-  [6000, 9, 'Легенда'],
-  [10000, 10, 'Бог ЕГЭ'],
-]
-
 /* Score conversion table from PRD */
 const SCORE_TABLE = [
   { primary: '0–6', score100: '0–23' },
@@ -64,27 +48,6 @@ const SCORE_TABLE = [
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
-
-function levelName(level: number): string {
-  const entry = LEVEL_TABLE.find(([, num]) => num === level)
-  return entry ? entry[2] : 'Новичок'
-}
-
-function xpForNextLevel(currentXp: number): number | null {
-  for (const [minXp] of LEVEL_TABLE) {
-    if (currentXp < minXp) return minXp
-  }
-  return null
-}
-
-function xpForCurrentLevel(currentXp: number): number {
-  let prev = 0
-  for (const [minXp] of LEVEL_TABLE) {
-    if (currentXp < minXp) return prev
-    prev = minXp
-  }
-  return prev
-}
 
 /** Build a compact heatmap grid (last 16 weeks). */
 function buildMiniHeatmap(activities: DailyActivity[]) {
@@ -235,14 +198,6 @@ export default function Profile() {
     )
   }
 
-  const currentXp = stats?.current_xp ?? 0
-  const currentLevel = stats?.current_level ?? 1
-  const nextLevelXp = xpForNextLevel(currentXp)
-  const currentLevelXp = xpForCurrentLevel(currentXp)
-  const xpProgress = nextLevelXp
-    ? ((currentXp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100
-    : 100
-
   const heatmapWeeks = calendar ? buildMiniHeatmap(calendar.activities) : []
 
   return (
@@ -250,17 +205,7 @@ export default function Profile() {
       <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Профиль</h1>
 
       {/* ====== Stats cards ====== */}
-      <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="text-2xl font-bold text-blue-600">{ currentXp}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">XP</div>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="text-2xl font-bold text-purple-600">
-            {levelName(currentLevel)}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">Уровень {currentLevel}</div>
-        </div>
+      <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="text-2xl font-bold text-orange-600">{stats?.current_streak ?? 0}</div>
           <div className="text-xs text-gray-500 dark:text-gray-400">Серия</div>
@@ -269,29 +214,10 @@ export default function Profile() {
           <div className="text-2xl font-bold text-green-600">{stats?.longest_streak ?? 0}</div>
           <div className="text-xs text-gray-500 dark:text-gray-400">Макс. серия</div>
         </div>
-      </section>
-
-      {/* XP progress to next level */}
-      <section className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="text-gray-600 dark:text-gray-400">
-            Ур. {currentLevel} — {levelName(currentLevel)}
-          </span>
-          <span className="text-gray-500 dark:text-gray-400">
-            {nextLevelXp ? `${currentXp} / ${nextLevelXp} XP` : 'Максимальный уровень'}
-          </span>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats?.total_problems_solved ?? 0}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Решено задач</div>
         </div>
-        <div className="h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all"
-            style={{ width: `${xpProgress}%` }}
-          />
-        </div>
-        {nextLevelXp && (
-          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-            До уровня {currentLevel + 1} ({levelName(currentLevel + 1)}): ещё {nextLevelXp - currentXp} XP
-          </p>
-        )}
       </section>
 
       {/* ====== Settings form ====== */}

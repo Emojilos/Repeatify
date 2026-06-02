@@ -21,8 +21,6 @@ interface DashboardData {
   today_review_count: number
   weekly_stats: WeeklyStats
   recommendations: string[]
-  current_xp: number
-  current_level: number
   current_streak: number
 }
 
@@ -146,8 +144,7 @@ export default function Dashboard() {
     ? Math.round((data.weekly_stats.problems_correct / data.weekly_stats.problems_solved) * 100)
     : 0
 
-  const isNewUser = data.current_xp === 0
-    && data.weekly_stats.problems_solved === 0
+  const isNewUser = data.weekly_stats.problems_solved === 0
     && data.topics_progress.every((t) => t.strength_score === 0)
 
   return (
@@ -179,10 +176,8 @@ export default function Dashboard() {
               <p className="text-5xl font-bold">{pluralDays(data.exam_countdown)}</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-blue-100">Уровень {data.current_level}</p>
-              <p className="text-2xl font-bold">{data.current_xp} XP</p>
               {data.current_streak > 0 && (
-                <p className="mt-1 text-sm text-blue-100">
+                <p className="text-sm text-blue-100">
                   Серия: {data.current_streak} {data.current_streak === 1 ? 'день' : data.current_streak < 5 ? 'дня' : 'дней'}
                 </p>
               )}
@@ -315,8 +310,8 @@ export default function Dashboard() {
             {/* Review block */}
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
               <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 text-lg dark:bg-purple-900/50">
-                  🔄
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-xs font-semibold text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                  FSRS
                 </span>
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">Повторение FSRS</h3>
               </div>

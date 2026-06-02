@@ -52,8 +52,6 @@ interface DashboardResponse {
   today_review_count: number
   weekly_stats: { problems_solved: number; problems_correct: number }
   recommendations: string[]
-  current_xp: number
-  current_level: number
   current_streak: number
 }
 
@@ -202,7 +200,6 @@ export default function Progress() {
   const [error, setError] = useState<string | null>(null)
 
   const [chartDays, setChartDays] = useState<7 | 30>(7)
-  const [chartMode, setChartMode] = useState<'solved' | 'xp'>('solved')
   const [gapSort, setGapSort] = useState<'strength' | 'errors'>('strength')
   const [showAllGap, setShowAllGap] = useState(false)
 
@@ -256,7 +253,6 @@ export default function Progress() {
   const heatmapWeeks = calendar ? buildHeatmapData(calendar.activities) : []
   const chartData = calendar ? buildChartData(calendar.activities, chartDays) : []
 
-  const totalXpWeek = chartData.reduce((s, d) => s + d.xp, 0)
   const totalSolvedWeek = chartData.reduce((s, d) => s + d.solved, 0)
 
   const sortedGap = [...gapMap].sort((a, b) => {
@@ -274,14 +270,9 @@ export default function Progress() {
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Прогресс</h1>
 
       {/* ====== Overview Cards ====== */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {dashboard && (
           <>
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">Уровень</div>
-              <div className="text-3xl font-bold text-blue-600">{dashboard.current_level}</div>
-              <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">{dashboard.current_xp} XP</div>
-            </div>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
               <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">Серия</div>
               <div className="text-3xl font-bold text-orange-500">{dashboard.current_streak}</div>
@@ -508,29 +499,11 @@ export default function Progress() {
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Динамика</h2>
-            <div className="flex gap-1 rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
-              <button
-                onClick={() => setChartMode('solved')}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                  chartMode === 'solved' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
-                }`}
-              >
-                Задачи
-              </button>
-              <button
-                onClick={() => setChartMode('xp')}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                  chartMode === 'xp' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
-                }`}
-              >
-                XP
-              </button>
-            </div>
+            <span className="text-xs font-medium text-gray-400 dark:text-gray-500">Решённые задачи</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Итого: <strong className="text-gray-900 dark:text-gray-100">{chartMode === 'solved' ? totalSolvedWeek : totalXpWeek}</strong>
-              {chartMode === 'solved' ? ' задач' : ' XP'}
+              Итого: <strong className="text-gray-900 dark:text-gray-100">{totalSolvedWeek}</strong> задач
             </span>
             <div className="flex gap-1 rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
               <button
@@ -558,11 +531,11 @@ export default function Progress() {
             <div>
               <div className="flex items-end gap-px" style={{ height: 200 }}>
                 {chartData.map((d) => {
-                  const values = chartData.map(x => chartMode === 'solved' ? x.solved : x.xp)
+                  const values = chartData.map(x => x.solved)
                   const maxVal = Math.max(...values, 1)
-                  const val = chartMode === 'solved' ? d.solved : d.xp
+                  const val = d.solved
                   const pct = (val / maxVal) * 100
-                  const barColor = chartMode === 'solved' ? 'bg-blue-500' : 'bg-purple-500'
+                  const barColor = 'bg-blue-500'
                   return (
                     <div key={d.date} className="flex flex-1 flex-col items-center justify-end" style={{ height: '100%' }}>
                       {val > 0 && (
@@ -571,7 +544,7 @@ export default function Progress() {
                       <div
                         className={`w-full rounded-t ${barColor} transition-all`}
                         style={{ height: `${Math.max(pct, val > 0 ? 4 : 0)}%` }}
-                        title={`${d.label}: ${val} ${chartMode === 'solved' ? 'задач' : 'XP'}`}
+                        title={`${d.label}: ${val} задач`}
                       />
                     </div>
                   )

@@ -137,7 +137,6 @@ export default function PracticeSession() {
   if (cards.length === 0) {
     return (
       <div className="p-8 text-center">
-        <div className="mb-2 text-5xl">🎉</div>
         <p className="mb-4 text-lg text-gray-500 dark:text-gray-400">Нет карточек на повторение</p>
         <Link
           to="/practice"
@@ -183,8 +182,6 @@ export default function PracticeSession() {
           </span>
           <span className="text-gray-400 dark:text-gray-500">
             {completed} решено
-            {results.reduce((sum, r) => sum + r.review.xp_earned, 0) > 0 &&
-              ` \u2022 +${results.reduce((sum, r) => sum + r.review.xp_earned, 0)} XP`}
           </span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">

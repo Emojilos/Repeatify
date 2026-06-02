@@ -1,8 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import Header from './Header'
 import Sidebar from './Sidebar'
-import XpPopup from './XpPopup'
-import LevelUpModal from './LevelUpModal'
 import ErrorBoundary from './ErrorBoundary'
 import FormulaSheet from './FormulaSheet'
 import FormulaSheetButton from './FormulaSheetButton'
@@ -12,8 +10,6 @@ export default function Layout() {
     <div className="flex h-screen flex-col bg-white dark:bg-gray-900 print:block print:h-auto">
       <div className="print:hidden">
         <Header />
-        <XpPopup />
-        <LevelUpModal />
         <FormulaSheetButton />
       </div>
       <div className="flex flex-1 overflow-hidden print:block print:overflow-visible">

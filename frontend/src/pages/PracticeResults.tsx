@@ -9,7 +9,6 @@ export default function PracticeResults() {
     const total = results.length
     const correct = results.filter((r) => r.review.is_correct).length
     const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0
-    const totalXp = results.reduce((sum, r) => sum + r.review.xp_earned, 0)
 
     // FSRS stats
     const retrievabilities = results
@@ -33,7 +32,7 @@ export default function PracticeResults() {
       byTopic.set(key, entry)
     }
 
-    return { total, correct, accuracy, totalXp, avgRetrievability, avgStability, byTopic: Array.from(byTopic.values()) }
+    return { total, correct, accuracy, avgRetrievability, avgStability, byTopic: Array.from(byTopic.values()) }
   }, [results])
 
   // If no results (direct navigation), show empty state
@@ -58,13 +57,6 @@ export default function PracticeResults() {
       <div className="mx-auto max-w-lg">
         {/* Summary card */}
         <div className="mb-6 rounded-xl border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
-          {/* XP earned */}
-          {stats.totalXp > 0 && (
-            <div className="mb-4 animate-bounce text-3xl font-bold text-yellow-500">
-              +{stats.totalXp} XP
-            </div>
-          )}
-
           {/* Stats grid */}
           <div className="mb-4 grid grid-cols-3 gap-4">
             <div>

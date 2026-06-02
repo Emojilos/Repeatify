@@ -220,19 +220,22 @@ export default function TopicDetailPage() {
     : null
 
   return (
-    <div className="p-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       {/* Back link */}
-      <Link to="/topics" className="mb-4 inline-flex items-center text-sm text-blue-600 hover:underline">
-        &larr; Все темы
+      <Link to="/topics" className="mb-5 inline-flex items-center text-sm font-medium text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
+        Все задания
       </Link>
 
       {/* Topic header */}
-      <div className="mb-6">
-        <div className="mb-2 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-lg font-bold text-white">
+      <div className="mb-7">
+        <div className="mb-3 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-950 text-lg font-bold text-white dark:bg-white dark:text-gray-950">
             {topic.task_number}
           </span>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{topic.title}</h1>
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Задание ЕГЭ</div>
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-950 dark:text-gray-50">{topic.title}</h1>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -252,14 +255,14 @@ export default function TopicDetailPage() {
         {totalProblemCount > 0 && (
           <Link
             to={`/topics/${topic.id}/practice`}
-            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+            className="rounded-xl bg-gray-950 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
           >
-            Решать задания
+            Решать подборку
           </Link>
         )}
         <Link
           to={`/print?task=${topic.task_number}&count=10`}
-          className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+          className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-gray-800"
         >
           Распечатать задания
         </Link>
@@ -290,8 +293,8 @@ export default function TopicDetailPage() {
       {/* Theory section */}
       {topic.description && (
         <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-200">Теория</h2>
-          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Обзор</h2>
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <MathRenderer content={topic.description} />
           </div>
         </section>
@@ -300,14 +303,25 @@ export default function TopicDetailPage() {
       {/* Subcategories section */}
       {subcategories.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">
-            Подкатегории <span className="text-sm font-normal text-gray-400 dark:text-gray-500">({subcategories.length})</span>
-          </h2>
-          <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Подкатегории
+              </h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Выберите подкатегорию и откройте конкретное задание по его тексту.
+              </p>
+            </div>
+            <div className="text-sm font-medium text-gray-400 dark:text-gray-500">
+              {totalProblemCount} заданий
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <div
               role="tablist"
               aria-label="Подкатегории задач"
-              className="max-h-[680px] overflow-y-auto rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800"
+              className="flex gap-2 overflow-x-auto border-b border-gray-100 p-3 dark:border-gray-800"
             >
               {subcategories.map((subcategory) => {
                 const selected = subcategory.name === selectedSubcategory
@@ -318,18 +332,18 @@ export default function TopicDetailPage() {
                     role="tab"
                     aria-selected={selected}
                     onClick={() => setSelectedSubcategory(subcategory.name)}
-                    className={`mb-1 flex w-full items-start justify-between gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors last:mb-0 ${
+                    className={`flex max-w-[22rem] shrink-0 items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
                       selected
-                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200'
-                        : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/70'
+                        ? 'border-gray-950 bg-gray-950 text-white dark:border-white dark:bg-white dark:text-gray-950'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-gray-800'
                     }`}
                   >
-                    <span className="min-w-0 font-medium">{subcategory.name}</span>
+                    <span className="min-w-0 truncate font-semibold">{subcategory.name}</span>
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
                         selected
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-200'
-                          : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                          ? 'bg-white/15 text-white dark:bg-gray-950/10 dark:text-gray-950'
+                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
                       }`}
                     >
                       {subcategory.count}
@@ -339,10 +353,10 @@ export default function TopicDetailPage() {
               })}
             </div>
 
-            <div className="min-w-0 rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-700">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 p-5 dark:border-gray-800">
                 <div className="min-w-0">
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-base font-semibold text-gray-950 dark:text-gray-50">
                     {selectedSubcategoryData?.name}
                   </h3>
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -352,9 +366,9 @@ export default function TopicDetailPage() {
                 {selectedSubcategoryData && (
                   <Link
                     to={`/topics/${topic.id}/practice?subcategory=${encodeURIComponent(selectedSubcategoryData.name)}`}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                    className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-200 dark:hover:border-gray-700 dark:hover:bg-gray-800"
                   >
-                    Практика
+                    Решать подборку
                   </Link>
                 )}
               </div>
@@ -374,23 +388,32 @@ export default function TopicDetailPage() {
                   Задачи в этой подкатегории пока не добавлены.
                 </p>
               ) : (
-                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                <div className="grid gap-3 p-4 sm:p-5">
                   {subcategoryProblems.map((problem, idx) => (
-                    <div key={problem.id} className="p-4">
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Задание {idx + 1}
+                    <Link
+                      key={problem.id}
+                      to={`/problems/${problem.id}`}
+                      className="group block rounded-2xl border border-gray-200 bg-white p-4 transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-950/30 dark:hover:border-gray-700 dark:hover:bg-gray-900"
+                    >
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            Вариант {idx + 1}
+                          </span>
+                          {difficultyBadge(problem.difficulty)}
+                        </div>
+                        <span className="text-sm font-semibold text-gray-400 transition group-hover:text-gray-900 dark:text-gray-500 dark:group-hover:text-gray-100">
+                          Открыть
                         </span>
-                        {difficultyBadge(problem.difficulty)}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <div className="line-clamp-4 text-base leading-relaxed text-gray-700 dark:text-gray-300">
                         <ProblemContent
                           text={problem.problem_text}
                           images={problem.problem_images}
-                          imageClassName="h-5 w-auto dark:invert"
+                          imageClassName="h-7 w-auto rounded bg-white p-0.5 dark:invert"
                         />
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}

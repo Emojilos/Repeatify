@@ -1,6 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
-import { xpForNextLevel, xpForCurrentLevel } from '../stores/xpStore'
 import { useThemeStore } from '../stores/themeStore'
 
 export default function Header() {
@@ -13,13 +12,6 @@ export default function Header() {
     navigate('/auth/login', { replace: true })
   }
 
-  const currentXp = user?.current_xp ?? 0
-  const nextXp = xpForNextLevel(currentXp)
-  const currentLevelXp = xpForCurrentLevel(currentXp)
-  const progress = nextXp
-    ? ((currentXp - currentLevelXp) / (nextXp - currentLevelXp)) * 100
-    : 100
-
   return (
     <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 dark:border-gray-700 dark:bg-gray-800">
       <Link to="/dashboard" className="text-xl font-bold text-blue-600">
@@ -28,23 +20,8 @@ export default function Header() {
 
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-          {/* XP with mini progress bar */}
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-              {currentXp} XP
-            </span>
-            <div className="h-1 w-14 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-          <span className="rounded-full bg-purple-50 px-3 py-1 font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-            Ур. {user?.current_level ?? 1}
-          </span>
-          <span className="rounded-full bg-orange-50 px-3 py-1 font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-            {user?.current_streak ?? 0}
+          <span className="rounded-full border border-gray-200 bg-white px-3 py-1 font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+            Серия: {user?.current_streak ?? 0}
           </span>
         </div>
 

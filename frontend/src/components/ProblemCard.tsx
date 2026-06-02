@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import MathRenderer from './MathRenderer'
 import ProblemContent from './ProblemContent'
-import { useXpStore, levelName } from '../stores/xpStore'
 import { useAuthStore } from '../stores/authStore'
 
 interface Problem {
@@ -73,8 +72,6 @@ function difficultyBadge(level: string) {
 
 export default function ProblemCard({ problem, onComplete, showTimer = false, onSubmitOverride }: ProblemCardProps) {
   const isPart2 = problem.task_number >= 13
-  const notifyXp = useXpStore((s) => s.notifyXp)
-  const showLevelUp = useXpStore((s) => s.showLevelUp)
   const loadUser = useAuthStore((s) => s.loadUser)
 
   const [answer, setAnswer] = useState('')
@@ -131,13 +128,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
       if (res) {
         setResult(res)
         if (timerRef.current) clearInterval(timerRef.current)
-        if (res.xp_earned > 0) {
-          notifyXp(res.xp_earned)
-          loadUser()
-        }
-        if (res.new_level_reached) {
-          showLevelUp(res.new_level_reached, levelName(res.new_level_reached))
-        }
+        loadUser()
       }
       return res
     } catch (err) {
@@ -146,7 +137,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
     } finally {
       setSubmitting(false)
     }
-  }, [problem.id, isPart2, answer, elapsedSeconds, onSubmitOverride])
+  }, [problem.id, isPart2, answer, elapsedSeconds, onSubmitOverride, loadUser])
 
   // Part 1: Check answer first, then show SRS buttons
   const handleCheck = async () => {
@@ -154,7 +145,15 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
     const res = await submitAttempt('good')
     if (res) {
       setSelectedAssessment(null)
+      setShowSolution(false)
     }
+  }
+
+  const handleTryAgain = () => {
+    setResult(null)
+    setSelectedAssessment(null)
+    setShowSolution(false)
+    setAnswer('')
   }
 
   const [correctAnswer, setCorrectAnswer] = useState<string | null>(null)
@@ -239,7 +238,7 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
               className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"
             >
               <span>{formatTime(elapsedSeconds)}</span>
-              <span className="text-xs">{timerActive ? '\u23F8' : '\u25B6'}</span>
+              <span className="text-xs">{timerActive ? 'Пауза' : 'Старт'}</span>
             </button>
           )}
         </div>
@@ -306,47 +305,71 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
               /* Result display */
               <div>
                 <div className={`mb-4 flex items-center gap-3 rounded-lg p-3 ${result.is_correct ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/30'}`}>
-                  <span className={`text-2xl ${result.is_correct ? 'text-green-500' : 'text-red-500'}`}>
-                    {result.is_correct ? '\u2713' : '\u2717'}
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${result.is_correct ? 'bg-green-100 text-green-700 dark:bg-green-900/60 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300'}`}>
+                    {result.is_correct ? 'Верно' : 'Ошибка'}
                   </span>
-                  <div>
+                  <div className="flex-1">
                     <div className={`font-semibold ${result.is_correct ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
-                      {result.is_correct ? 'Правильно!' : 'Неправильно'}
+                      {result.is_correct ? 'Ответ верный' : 'Ответ не совпал'}
                     </div>
                     {!result.is_correct && (
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Правильный ответ: <span className="font-medium">{result.correct_answer}</span>
+                        Можно попробовать ещё раз или открыть ответ.
                       </div>
                     )}
-                    {result.xp_earned > 0 && (
-                      <div className="text-sm font-medium text-blue-600">+{result.xp_earned} XP</div>
-                    )}
                   </div>
+                  {!result.is_correct && !showSolution && (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={handleTryAgain}
+                        className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 dark:border-red-800 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-950/30"
+                      >
+                        Попробовать ещё
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowSolution(true)}
+                        className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
+                      >
+                        Показать ответ
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Solution toggle */}
-                {(result.solution_markdown || (result.solution_images && result.solution_images.length > 0)) && (
+                {(result.is_correct || showSolution) && (result.correct_answer || result.solution_markdown || (result.solution_images && result.solution_images.length > 0)) && (
                   <div className="mb-4">
-                    <button
-                      onClick={() => setShowSolution(!showSolution)}
-                      className="mb-2 text-sm font-medium text-blue-600 hover:underline"
-                    >
-                      {showSolution ? 'Скрыть решение' : 'Показать решение'}
-                    </button>
+                    {result.is_correct && (
+                      <button
+                        onClick={() => setShowSolution(!showSolution)}
+                        className="mb-2 text-sm font-medium text-blue-600 hover:underline"
+                      >
+                        {showSolution ? 'Скрыть решение' : 'Показать решение'}
+                      </button>
+                    )}
                     {showSolution && (
                       <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-                        <ProblemContent
-                          text={result.solution_markdown || ''}
-                          images={result.solution_images}
-                          imageClassName="h-auto max-h-56 rounded bg-white p-1 dark:invert"
-                        />
+                        {result.correct_answer && (
+                          <div className="mb-3 text-sm text-gray-700 dark:text-gray-300">
+                            Ответ: <span className="font-semibold">{result.correct_answer}</span>
+                          </div>
+                        )}
+                        {(result.solution_markdown || (result.solution_images && result.solution_images.length > 0)) && (
+                          <ProblemContent
+                            text={result.solution_markdown || ''}
+                            images={result.solution_images}
+                            imageClassName="h-auto max-h-56 rounded bg-white p-1 dark:invert"
+                          />
+                        )}
                       </div>
                     )}
                   </div>
                 )}
 
                 {/* SRS assessment buttons */}
-                {!selectedAssessment && (
+                {!selectedAssessment && (result.is_correct || showSolution) && (
                   <div>
                     <div className="mb-2 text-sm text-gray-500 dark:text-gray-400">Оцените сложность:</div>
                     <div className="flex gap-2">
@@ -444,9 +467,6 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
                       </>
                     ) : null}
                   </div>
-                )}
-                {result.xp_earned > 0 && (
-                  <div className="mb-4 text-sm font-medium text-blue-600">+{result.xp_earned} XP</div>
                 )}
                 {selectedAssessment && (
                   <div className="text-sm text-gray-400 dark:text-gray-500">

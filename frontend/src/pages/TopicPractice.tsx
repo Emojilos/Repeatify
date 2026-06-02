@@ -44,7 +44,6 @@ export default function TopicPractice() {
   const [error, setError] = useState<string | null>(null)
   const [completed, setCompleted] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
-  const [totalXp, setTotalXp] = useState(0)
   const [finished, setFinished] = useState(false)
   const setActiveTask = useFormulaStore((s) => s.setActiveTask)
 
@@ -65,7 +64,6 @@ export default function TopicPractice() {
       setFinished(false)
       setCompleted(0)
       setCorrectCount(0)
-      setTotalXp(0)
       setCurrentIndex(0)
 
       const subcategoryParam = selectedSubcategory
@@ -111,10 +109,9 @@ export default function TopicPractice() {
 
   const currentProblem = problems[currentIndex] ?? null
 
-  const handleComplete = useCallback((_assessment: string, result: { is_correct: boolean; xp_earned: number }) => {
+  const handleComplete = useCallback((_assessment: string, result: { is_correct: boolean }) => {
     setCompleted((c) => c + 1)
     if (result.is_correct) setCorrectCount((c) => c + 1)
-    setTotalXp((x) => x + result.xp_earned)
 
     setTimeout(() => {
       setCurrentIndex((i) => {
@@ -167,13 +164,12 @@ export default function TopicPractice() {
     return (
       <div className="p-8">
         <div className="mx-auto max-w-lg text-center">
-          <div className="mb-6 text-5xl">🎉</div>
-          <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Все задания решены!</h1>
+          <h1 className="mb-2 text-2xl font-semibold text-gray-950 dark:text-gray-50">Сессия завершена</h1>
           <p className="mb-8 text-gray-500 dark:text-gray-400">
             Тема: {selectedSubcategory ? `${topic.title} / ${selectedSubcategory}` : topic.title}
           </p>
 
-          <div className="mb-8 grid grid-cols-3 gap-4">
+          <div className="mb-8 grid grid-cols-2 gap-4">
             <div className="rounded-lg border border-gray-200 bg-white p-4 text-center dark:border-gray-700 dark:bg-gray-800">
               <div className="text-2xl font-bold text-blue-600">{completed}</div>
               <div className="text-xs text-gray-500 dark:text-gray-400">Решено</div>
@@ -181,10 +177,6 @@ export default function TopicPractice() {
             <div className="rounded-lg border border-gray-200 bg-white p-4 text-center dark:border-gray-700 dark:bg-gray-800">
               <div className="text-2xl font-bold text-green-600">{accuracy}%</div>
               <div className="text-xs text-gray-500 dark:text-gray-400">Точность</div>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4 text-center dark:border-gray-700 dark:bg-gray-800">
-              <div className="text-2xl font-bold text-purple-600">+{totalXp}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">XP</div>
             </div>
           </div>
 
@@ -226,7 +218,7 @@ export default function TopicPractice() {
             Задание {currentIndex + 1} из {problems.length}
           </span>
           <span className="text-gray-400 dark:text-gray-500">
-            {completed} решено {totalXp > 0 && `\u2022 +${totalXp} XP`}
+            {completed} решено
           </span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
