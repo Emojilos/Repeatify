@@ -57,23 +57,56 @@ export default function TopicPractice() {
   useEffect(() => {
     if (!id) return
 
-    setLoading(true)
-    setError(null)
+    let cancelled = false
 
-    const subcategoryParam = selectedSubcategory
-      ? `&subcategory=${encodeURIComponent(selectedSubcategory)}`
-      : ''
+    async function loadPracticeProblems() {
+      setLoading(true)
+      setError(null)
+      setFinished(false)
+      setCompleted(0)
+      setCorrectCount(0)
+      setTotalXp(0)
+      setCurrentIndex(0)
 
-    Promise.all([
-      api<TopicInfo>(`/api/topics/${id}`),
-      api<ProblemListResponse>(`/api/problems?topic_id=${id}&page_size=100${subcategoryParam}`),
-    ])
-      .then(([topicData, problemsData]) => {
+      const subcategoryParam = selectedSubcategory
+        ? `&subcategory=${encodeURIComponent(selectedSubcategory)}`
+        : ''
+
+      try {
+        const pageSize = 100
+        let page = 1
+        let total = 0
+        const items: Problem[] = []
+
+        const [topicData] = await Promise.all([
+          api<TopicInfo>(`/api/topics/${id}`),
+          (async () => {
+            do {
+              const data = await api<ProblemListResponse>(
+                `/api/problems?topic_id=${id}${subcategoryParam}&page=${page}&page_size=${pageSize}`,
+              )
+              items.push(...data.items)
+              total = data.total
+              page += 1
+            } while (items.length < total)
+          })(),
+        ])
+
+        if (cancelled) return
         setTopic(topicData)
-        setProblems(problemsData.items)
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
+        setProblems(items)
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Ошибка загрузки задач')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadPracticeProblems()
+
+    return () => {
+      cancelled = true
+    }
   }, [id, selectedSubcategory])
 
   const currentProblem = problems[currentIndex] ?? null

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import MathRenderer from '../components/MathRenderer'
@@ -105,9 +105,12 @@ function strengthLabel(progress: TopicProgress | null): { text: string; color: s
 export default function TopicDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [topic, setTopic] = useState<TopicDetail | null>(null)
-  const [problems, setProblems] = useState<Problem[]>([])
   const [relationships, setRelationships] = useState<TopicRelationship[]>([])
   const [subcategories, setSubcategories] = useState<ProblemSubcategory[]>([])
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
+  const [subcategoryProblems, setSubcategoryProblems] = useState<Problem[]>([])
+  const [subcategoryProblemsLoading, setSubcategoryProblemsLoading] = useState(false)
+  const [subcategoryProblemsError, setSubcategoryProblemsError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -119,28 +122,71 @@ export default function TopicDetailPage() {
 
     Promise.all([
       api<TopicDetail>(`/api/topics/${id}`),
-      api<ProblemListResponse>(`/api/problems?topic_id=${id}&page_size=50`),
       api<TopicRelationship[]>(`/api/topics/${id}/relationships`),
       api<ProblemSubcategoryListResponse>(`/api/problems/subcategories?topic_id=${id}`),
     ])
-      .then(([topicData, problemsData, relData, subcategoryData]) => {
+      .then(([topicData, relData, subcategoryData]) => {
         setTopic(topicData)
-        setProblems(problemsData.items)
         setRelationships(relData)
         setSubcategories(subcategoryData.items)
+        setSelectedSubcategory((current) => {
+          const names = subcategoryData.items.map((item) => item.name)
+          return current && names.includes(current) ? current : names[0] ?? null
+        })
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [id])
 
-  const problemGroups = useMemo(() => {
-    const groups = new Map<string, Problem[]>()
-    for (const problem of problems) {
-      const name = problem.subcategory?.trim() || 'Без подкатегории'
-      groups.set(name, [...(groups.get(name) ?? []), problem])
+  useEffect(() => {
+    if (!id || !selectedSubcategory) {
+      setSubcategoryProblems([])
+      return
     }
-    return Array.from(groups, ([name, items]) => ({ name, items }))
-  }, [problems])
+
+    let cancelled = false
+    const subcategory = selectedSubcategory
+
+    async function loadSubcategoryProblems() {
+      setSubcategoryProblemsLoading(true)
+      setSubcategoryProblemsError(null)
+
+      try {
+        const pageSize = 100
+        let page = 1
+        let total = 0
+        const items: Problem[] = []
+        const subcategoryParam = encodeURIComponent(subcategory)
+
+        do {
+          const data = await api<ProblemListResponse>(
+            `/api/problems?topic_id=${id}&subcategory=${subcategoryParam}&page=${page}&page_size=${pageSize}`,
+          )
+          items.push(...data.items)
+          total = data.total
+          page += 1
+        } while (items.length < total)
+
+        if (!cancelled) setSubcategoryProblems(items)
+      } catch (err) {
+        if (!cancelled) {
+          setSubcategoryProblems([])
+          setSubcategoryProblemsError(err instanceof Error ? err.message : 'Ошибка загрузки задач')
+        }
+      } finally {
+        if (!cancelled) setSubcategoryProblemsLoading(false)
+      }
+    }
+
+    loadSubcategoryProblems()
+
+    return () => {
+      cancelled = true
+    }
+  }, [id, selectedSubcategory])
+
+  const selectedSubcategoryData = subcategories.find((item) => item.name === selectedSubcategory) ?? null
+  const totalProblemCount = subcategories.reduce((sum, item) => sum + item.count, 0)
 
   if (loading) {
     return (
@@ -203,7 +249,7 @@ export default function TopicDetailPage() {
 
       {/* Action buttons */}
       <div className="mb-8 flex flex-wrap gap-3">
-        {problems.length > 0 && (
+        {totalProblemCount > 0 && (
           <Link
             to={`/topics/${topic.id}/practice`}
             className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
@@ -254,42 +300,101 @@ export default function TopicDetailPage() {
       {/* Subcategories section */}
       {subcategories.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-200">
+          <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">
             Подкатегории <span className="text-sm font-normal text-gray-400 dark:text-gray-500">({subcategories.length})</span>
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {subcategories.map((subcategory) => (
-              <div
-                key={subcategory.name}
-                className="rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-800"
-              >
-                <div className="mb-2 flex items-start justify-between gap-3">
-                  <h3 className="min-w-0 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    {subcategory.name}
+          <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+            <div
+              role="tablist"
+              aria-label="Подкатегории задач"
+              className="max-h-[680px] overflow-y-auto rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800"
+            >
+              {subcategories.map((subcategory) => {
+                const selected = subcategory.name === selectedSubcategory
+                return (
+                  <button
+                    key={subcategory.name}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setSelectedSubcategory(subcategory.name)}
+                    className={`mb-1 flex w-full items-start justify-between gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors last:mb-0 ${
+                      selected
+                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200'
+                        : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/70'
+                    }`}
+                  >
+                    <span className="min-w-0 font-medium">{subcategory.name}</span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        selected
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-200'
+                          : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                      }`}
+                    >
+                      {subcategory.count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="min-w-0 rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-700">
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                    {selectedSubcategoryData?.name}
                   </h3>
-                  <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                    {subcategory.count}
-                  </span>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {selectedSubcategoryData?.count ?? subcategoryProblems.length} заданий
+                  </p>
                 </div>
-                {subcategory.sample_problem_text && (
-                  <div className="mb-3 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
-                    <ProblemContent
-                      text={subcategory.sample_problem_text}
-                      images={subcategory.sample_problem_images}
-                      imageClassName="h-5 w-auto dark:invert"
-                    />
-                  </div>
-                )}
-                <div className="flex gap-2">
+                {selectedSubcategoryData && (
                   <Link
-                    to={`/topics/${topic.id}/practice?subcategory=${encodeURIComponent(subcategory.name)}`}
-                    className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+                    to={`/topics/${topic.id}/practice?subcategory=${encodeURIComponent(selectedSubcategoryData.name)}`}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
                   >
                     Практика
                   </Link>
-                </div>
+                )}
               </div>
-            ))}
+
+              {subcategoryProblemsLoading ? (
+                <div className="space-y-3 p-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="h-20 animate-pulse rounded-md bg-gray-100 dark:bg-gray-700" />
+                  ))}
+                </div>
+              ) : subcategoryProblemsError ? (
+                <p className="p-4 text-sm text-red-600 dark:text-red-400">
+                  Ошибка загрузки: {subcategoryProblemsError}
+                </p>
+              ) : subcategoryProblems.length === 0 ? (
+                <p className="p-4 text-sm text-gray-500 dark:text-gray-400">
+                  Задачи в этой подкатегории пока не добавлены.
+                </p>
+              ) : (
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {subcategoryProblems.map((problem, idx) => (
+                    <div key={problem.id} className="p-4">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Задание {idx + 1}
+                        </span>
+                        {difficultyBadge(problem.difficulty)}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <ProblemContent
+                          text={problem.problem_text}
+                          images={problem.problem_images}
+                          imageClassName="h-5 w-auto dark:invert"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </section>
       )}
@@ -318,52 +423,12 @@ export default function TopicDetailPage() {
         </section>
       )}
 
-      {/* Problems section */}
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-200">
-          Задания <span className="text-sm font-normal text-gray-400 dark:text-gray-500">({problems.length})</span>
-        </h2>
-        {problems.length === 0 ? (
+      {subcategories.length === 0 && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-200">Задания</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">Задания по этой теме пока не добавлены.</p>
-        ) : (
-          <div className="space-y-5">
-            {problemGroups.map((group) => (
-              <div key={group.name}>
-                <div className="mb-2 flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{group.name}</h3>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">({group.items.length})</span>
-                </div>
-                <div className="space-y-3">
-                  {group.items.map((problem) => (
-                    <div
-                      key={problem.id}
-                      className="rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-800"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0 flex-1">
-                          <div className="mb-1 flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Задание {problems.indexOf(problem) + 1}
-                            </span>
-                            {difficultyBadge(problem.difficulty)}
-                          </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            <ProblemContent
-                              text={problem.problem_text.slice(0, 200) + (problem.problem_text.length > 200 ? '...' : '')}
-                              images={problem.problem_images}
-                              imageClassName="h-5 w-auto dark:invert"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   )
 }
