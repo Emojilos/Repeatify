@@ -126,6 +126,9 @@ export default function ProblemSolve() {
 
   const isPart2 = (problem?.task_number ?? 0) >= 13
   const displayedSolution = solution ?? (showAnswer && attempt ? attempt : null)
+  const subcategoryUrl = problem?.subcategory
+    ? `/topics/${problem.topic_id}/subcategory?name=${encodeURIComponent(problem.subcategory)}`
+    : null
 
   async function fetchSolution() {
     if (!problem || solutionLoading) return null
@@ -230,15 +233,17 @@ export default function ProblemSolve() {
             {problem.subcategory && (
               <>
                 <span className="text-gray-300 dark:text-gray-700">/</span>
-                <span className="max-w-[42rem] truncate text-gray-500 dark:text-gray-400">{problem.subcategory}</span>
+                <Link to={subcategoryUrl || `/topics/${problem.topic_id}`} className="max-w-[42rem] truncate text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
+                  {problem.subcategory}
+                </Link>
               </>
             )}
           </div>
           <Link
-            to={`/topics/${problem.topic_id}`}
+            to={subcategoryUrl || `/topics/${problem.topic_id}`}
             className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-gray-700"
           >
-            К списку задач
+            {subcategoryUrl ? 'К подкатегории' : 'К списку задач'}
           </Link>
         </div>
 
@@ -451,10 +456,10 @@ export default function ProblemSolve() {
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Навигация</div>
               <div className="mt-4 space-y-2">
                 <Link
-                  to={`/topics/${problem.topic_id}`}
+                  to={subcategoryUrl || `/topics/${problem.topic_id}`}
                   className="block rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-200 dark:hover:border-gray-700 dark:hover:bg-gray-800"
                 >
-                  Вернуться к подкатегории
+                  {subcategoryUrl ? 'Вернуться к подкатегории' : 'Вернуться к заданию'}
                 </Link>
                 <Link
                   to={`/topics/${problem.topic_id}/practice${problem.subcategory ? `?subcategory=${encodeURIComponent(problem.subcategory)}` : ''}`}

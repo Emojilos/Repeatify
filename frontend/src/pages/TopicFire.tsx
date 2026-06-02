@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import MathRenderer from '../components/MathRenderer'
-import { useXpStore, levelName as getLevelName } from '../stores/xpStore'
 import { useAuthStore } from '../stores/authStore'
 
 interface TheoryContentItem {
@@ -151,8 +150,6 @@ export default function TopicFire() {
   const [currentStageIdx, setCurrentStageIdx] = useState(0)
   const [saving, setSaving] = useState(false)
   const [completed, setCompleted] = useState(false)
-  const [xpEarned, setXpEarned] = useState(0)
-  const [newLevel, setNewLevel] = useState<number | null>(null)
 
   // Inquiry stage state
   const [inquiryAnswers, setInquiryAnswers] = useState<Record<number, string>>({})
@@ -292,16 +289,8 @@ export default function TopicFire() {
       })
 
       if (res.all_stages_completed) {
-        setXpEarned(res.xp_earned)
-        setNewLevel(res.new_level_reached)
         setCompleted(true)
-        if (res.xp_earned > 0) {
-          useXpStore.getState().notifyXp(res.xp_earned)
-          useAuthStore.getState().loadUser()
-        }
-        if (res.new_level_reached) {
-          useXpStore.getState().showLevelUp(res.new_level_reached, getLevelName(res.new_level_reached))
-        }
+        useAuthStore.getState().loadUser()
       } else {
         if (currentStageIdx < STAGES.length - 1) {
           setCurrentStageIdx(currentStageIdx + 1)
@@ -358,7 +347,6 @@ export default function TopicFire() {
     return (
       <div className="p-8">
         <div className="mx-auto max-w-lg text-center">
-          <div className="mb-4 text-6xl">🔥</div>
           <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
             {selectedPrototype ? 'Прототип изучен!' : 'Тема изучена!'}
           </h1>
@@ -366,17 +354,6 @@ export default function TopicFire() {
           <p className="mb-6 text-sm text-gray-400 dark:text-gray-500">
             FIRe-flow пройден. FSRS-карточки созданы для повторения.
           </p>
-
-          {xpEarned > 0 && (
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-purple-100 px-4 py-2 text-lg font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
-              +{xpEarned} XP
-            </div>
-          )}
-          {newLevel && (
-            <p className="mb-6 text-sm font-medium text-green-600">
-              Новый уровень: {newLevel}!
-            </p>
-          )}
 
           <div className="flex flex-wrap justify-center gap-3">
             {selectedPrototype && prototypes.length > 1 && (

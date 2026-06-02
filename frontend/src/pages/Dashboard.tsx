@@ -335,8 +335,8 @@ export default function Dashboard() {
             {/* New material block */}
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
               <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-lg dark:bg-blue-900/50">
-                  📖
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-xs font-semibold text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                  NEW
                 </span>
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">Новый материал</h3>
               </div>

@@ -469,7 +469,7 @@ export default function StudyPlan() {
               onClick={() => setAssessmentMode('online')}
               className="rounded-xl border border-gray-200 bg-white p-6 text-left transition-colors hover:border-blue-400 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500 dark:hover:bg-blue-900/20"
             >
-              <div className="mb-2 text-2xl">💻</div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Online</div>
               <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100">Онлайн</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">Решать по одному заданию на экране</p>
             </button>
@@ -477,7 +477,7 @@ export default function StudyPlan() {
               onClick={() => setAssessmentMode('print')}
               className="rounded-xl border border-gray-200 bg-white p-6 text-left transition-colors hover:border-blue-400 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500 dark:hover:bg-blue-900/20"
             >
-              <div className="mb-2 text-2xl">🖨️</div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Print</div>
               <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100">Распечатать</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">Распечатать все задания, решить на бумаге, потом ввести ответы</p>
             </button>

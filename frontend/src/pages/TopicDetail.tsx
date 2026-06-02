@@ -26,25 +26,6 @@ interface TopicDetail {
   user_progress: TopicProgress | null
 }
 
-interface Problem {
-  id: string
-  topic_id: string
-  task_number: number
-  difficulty: string
-  problem_text: string
-  problem_images?: string[] | null
-  source: string | null
-  max_points: number | null
-  subcategory?: string | null
-}
-
-interface ProblemListResponse {
-  items: Problem[]
-  total: number
-  page: number
-  page_size: number
-}
-
 interface ProblemSubcategory {
   name: string
   count: number
@@ -107,10 +88,6 @@ export default function TopicDetailPage() {
   const [topic, setTopic] = useState<TopicDetail | null>(null)
   const [relationships, setRelationships] = useState<TopicRelationship[]>([])
   const [subcategories, setSubcategories] = useState<ProblemSubcategory[]>([])
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
-  const [subcategoryProblems, setSubcategoryProblems] = useState<Problem[]>([])
-  const [subcategoryProblemsLoading, setSubcategoryProblemsLoading] = useState(false)
-  const [subcategoryProblemsError, setSubcategoryProblemsError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -129,63 +106,11 @@ export default function TopicDetailPage() {
         setTopic(topicData)
         setRelationships(relData)
         setSubcategories(subcategoryData.items)
-        setSelectedSubcategory((current) => {
-          const names = subcategoryData.items.map((item) => item.name)
-          return current && names.includes(current) ? current : names[0] ?? null
-        })
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [id])
 
-  useEffect(() => {
-    if (!id || !selectedSubcategory) {
-      setSubcategoryProblems([])
-      return
-    }
-
-    let cancelled = false
-    const subcategory = selectedSubcategory
-
-    async function loadSubcategoryProblems() {
-      setSubcategoryProblemsLoading(true)
-      setSubcategoryProblemsError(null)
-
-      try {
-        const pageSize = 100
-        let page = 1
-        let total = 0
-        const items: Problem[] = []
-        const subcategoryParam = encodeURIComponent(subcategory)
-
-        do {
-          const data = await api<ProblemListResponse>(
-            `/api/problems?topic_id=${id}&subcategory=${subcategoryParam}&page=${page}&page_size=${pageSize}`,
-          )
-          items.push(...data.items)
-          total = data.total
-          page += 1
-        } while (items.length < total)
-
-        if (!cancelled) setSubcategoryProblems(items)
-      } catch (err) {
-        if (!cancelled) {
-          setSubcategoryProblems([])
-          setSubcategoryProblemsError(err instanceof Error ? err.message : 'Ошибка загрузки задач')
-        }
-      } finally {
-        if (!cancelled) setSubcategoryProblemsLoading(false)
-      }
-    }
-
-    loadSubcategoryProblems()
-
-    return () => {
-      cancelled = true
-    }
-  }, [id, selectedSubcategory])
-
-  const selectedSubcategoryData = subcategories.find((item) => item.name === selectedSubcategory) ?? null
   const totalProblemCount = subcategories.reduce((sum, item) => sum + item.count, 0)
 
   if (loading) {
@@ -309,7 +234,7 @@ export default function TopicDetailPage() {
                 Подкатегории
               </h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Выберите подкатегорию и откройте конкретное задание по его тексту.
+                Откройте подкатегорию, чтобы выбрать конкретное задание или решать всю подборку.
               </p>
             </div>
             <div className="text-sm font-medium text-gray-400 dark:text-gray-500">
@@ -317,107 +242,43 @@ export default function TopicDetailPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <div
-              role="tablist"
-              aria-label="Подкатегории задач"
-              className="flex gap-2 overflow-x-auto border-b border-gray-100 p-3 dark:border-gray-800"
-            >
-              {subcategories.map((subcategory) => {
-                const selected = subcategory.name === selectedSubcategory
-                return (
-                  <button
-                    key={subcategory.name}
-                    type="button"
-                    role="tab"
-                    aria-selected={selected}
-                    onClick={() => setSelectedSubcategory(subcategory.name)}
-                    className={`flex max-w-[22rem] shrink-0 items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
-                      selected
-                        ? 'border-gray-950 bg-gray-950 text-white dark:border-white dark:bg-white dark:text-gray-950'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    <span className="min-w-0 truncate font-semibold">{subcategory.name}</span>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        selected
-                          ? 'bg-white/15 text-white dark:bg-gray-950/10 dark:text-gray-950'
-                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                      }`}
-                    >
-                      {subcategory.count}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 p-5 dark:border-gray-800">
-                <div className="min-w-0">
-                  <h3 className="text-base font-semibold text-gray-950 dark:text-gray-50">
-                    {selectedSubcategoryData?.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    {selectedSubcategoryData?.count ?? subcategoryProblems.length} заданий
-                  </p>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {subcategories.map((subcategory) => (
+              <Link
+                key={subcategory.name}
+                to={`/topics/${topic.id}/subcategory?name=${encodeURIComponent(subcategory.name)}`}
+                className="group flex min-h-56 flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-gray-400 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-600 dark:hover:bg-gray-800"
+              >
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-950 text-sm font-semibold text-white dark:bg-white dark:text-gray-950">
+                    {topic.task_number}
+                  </div>
+                  <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+                    {subcategory.count} заданий
+                  </span>
                 </div>
-                {selectedSubcategoryData && (
-                  <Link
-                    to={`/topics/${topic.id}/practice?subcategory=${encodeURIComponent(selectedSubcategoryData.name)}`}
-                    className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-200 dark:hover:border-gray-700 dark:hover:bg-gray-800"
-                  >
-                    Решать подборку
-                  </Link>
+
+                <h3 className="mb-3 text-base font-semibold leading-snug text-gray-950 dark:text-gray-50">
+                  {subcategory.name}
+                </h3>
+
+                {subcategory.sample_problem_text ? (
+                  <div className="line-clamp-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                    <ProblemContent
+                      text={subcategory.sample_problem_text}
+                      images={subcategory.sample_problem_images}
+                      imageClassName="h-6 w-auto rounded bg-white p-0.5 dark:invert"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Задания этой подкатегории.</p>
                 )}
-              </div>
 
-              {subcategoryProblemsLoading ? (
-                <div className="space-y-3 p-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="h-20 animate-pulse rounded-md bg-gray-100 dark:bg-gray-700" />
-                  ))}
+                <div className="mt-auto pt-5 text-sm font-semibold text-gray-300 transition group-hover:text-gray-900 dark:text-gray-600 dark:group-hover:text-gray-100">
+                  Открыть подкатегорию
                 </div>
-              ) : subcategoryProblemsError ? (
-                <p className="p-4 text-sm text-red-600 dark:text-red-400">
-                  Ошибка загрузки: {subcategoryProblemsError}
-                </p>
-              ) : subcategoryProblems.length === 0 ? (
-                <p className="p-4 text-sm text-gray-500 dark:text-gray-400">
-                  Задачи в этой подкатегории пока не добавлены.
-                </p>
-              ) : (
-                <div className="grid gap-3 p-4 sm:p-5">
-                  {subcategoryProblems.map((problem, idx) => (
-                    <Link
-                      key={problem.id}
-                      to={`/problems/${problem.id}`}
-                      className="group block rounded-2xl border border-gray-200 bg-white p-4 transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-950/30 dark:hover:border-gray-700 dark:hover:bg-gray-900"
-                    >
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                            Вариант {idx + 1}
-                          </span>
-                          {difficultyBadge(problem.difficulty)}
-                        </div>
-                        <span className="text-sm font-semibold text-gray-400 transition group-hover:text-gray-900 dark:text-gray-500 dark:group-hover:text-gray-100">
-                          Открыть
-                        </span>
-                      </div>
-                      <div className="line-clamp-4 text-base leading-relaxed text-gray-700 dark:text-gray-300">
-                        <ProblemContent
-                          text={problem.problem_text}
-                          images={problem.problem_images}
-                          imageClassName="h-7 w-auto rounded bg-white p-0.5 dark:invert"
-                        />
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
+              </Link>
+            ))}
           </div>
         </section>
       )}

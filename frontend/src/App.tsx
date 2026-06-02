@@ -8,6 +8,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Topics from './pages/Topics'
 import TopicDetail from './pages/TopicDetail'
+import TopicSubcategory from './pages/TopicSubcategory'
 import TopicPractice from './pages/TopicPractice'
 import ProblemSolve from './pages/ProblemSolve'
 import Practice from './pages/Practice'
@@ -40,6 +41,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/topics" element={<Topics />} />
               <Route path="/topics/:id" element={<TopicDetail />} />
+              <Route path="/topics/:id/subcategory" element={<TopicSubcategory />} />
               <Route path="/topics/:id/practice" element={<TopicPractice />} />
               <Route path="/problems/:id" element={<ProblemSolve />} />
               <Route path="/practice" element={<Practice />} />

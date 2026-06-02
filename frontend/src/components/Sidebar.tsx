@@ -1,13 +1,73 @@
 import { NavLink } from 'react-router-dom'
 
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: '\u{1F4CA}' },
-  { to: '/plan', label: '\u041C\u043E\u0439 \u043F\u043B\u0430\u043D', icon: '\u{1F4C5}' },
-  { to: '/topics', label: '\u0422\u0435\u043C\u044B', icon: '\u{1F4DA}' },
-  { to: '/practice', label: '\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430', icon: '\u{1F3AF}' },
-  { to: '/progress', label: '\u041F\u0440\u043E\u0433\u0440\u0435\u0441\u0441', icon: '\u{1F4C8}' },
-  { to: '/profile', label: '\u041F\u0440\u043E\u0444\u0438\u043B\u044C', icon: '\u{1F464}' },
+type IconName = 'dashboard' | 'plan' | 'tasks' | 'practice' | 'progress' | 'profile'
+
+const navItems: { to: string; label: string; icon: IconName }[] = [
+  { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { to: '/plan', label: 'Мой план', icon: 'plan' },
+  { to: '/topics', label: 'Задания', icon: 'tasks' },
+  { to: '/practice', label: 'Тренировка', icon: 'practice' },
+  { to: '/progress', label: 'Прогресс', icon: 'progress' },
+  { to: '/profile', label: 'Профиль', icon: 'profile' },
 ]
+
+function SidebarIcon({ name }: { name: IconName }) {
+  const common = {
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    strokeWidth: 1.8,
+  }
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
+      {name === 'dashboard' && (
+        <>
+          <path {...common} d="M4 13.5h6.5V20H4z" />
+          <path {...common} d="M13.5 4H20v16h-6.5z" />
+          <path {...common} d="M4 4h6.5v6.5H4z" />
+        </>
+      )}
+      {name === 'plan' && (
+        <>
+          <path {...common} d="M5 5.5h14v14H5z" />
+          <path {...common} d="M8 3.5v4" />
+          <path {...common} d="M16 3.5v4" />
+          <path {...common} d="M5 9.5h14" />
+        </>
+      )}
+      {name === 'tasks' && (
+        <>
+          <path {...common} d="M5 5h14v14H5z" />
+          <path {...common} d="M8 9h8" />
+          <path {...common} d="M8 13h8" />
+          <path {...common} d="M8 17h4" />
+        </>
+      )}
+      {name === 'practice' && (
+        <>
+          <circle {...common} cx="12" cy="12" r="7" />
+          <circle {...common} cx="12" cy="12" r="3" />
+          <path {...common} d="M12 5V3" />
+          <path {...common} d="M19 12h2" />
+        </>
+      )}
+      {name === 'progress' && (
+        <>
+          <path {...common} d="M4 19h16" />
+          <path {...common} d="M6 16l4-5 3 3 5-8" />
+        </>
+      )}
+      {name === 'profile' && (
+        <>
+          <circle {...common} cx="12" cy="8" r="3.5" />
+          <path {...common} d="M5 20c1.2-3.5 3.6-5 7-5s5.8 1.5 7 5" />
+        </>
+      )}
+    </svg>
+  )
+}
 
 export default function Sidebar() {
   return (
@@ -25,7 +85,7 @@ export default function Sidebar() {
               }`
             }
           >
-            <span className="text-base">{item.icon}</span>
+            <SidebarIcon name={item.icon} />
             {item.label}
           </NavLink>
         ))}
