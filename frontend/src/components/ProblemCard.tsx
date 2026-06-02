@@ -204,7 +204,6 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
   }, [isPart2, selectedAssessment, result])
 
   const checked = result !== null
-  const originLabel = problem.subcategory || problem.category || problem.source
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
@@ -223,21 +222,6 @@ export default function ProblemCard({ problem, onComplete, showTimer = false, on
             >
               {problem.prototype_code}
             </Link>
-          )}
-          {originLabel && (
-            <span className="max-w-60 truncate text-xs text-gray-400 dark:text-gray-500" title={originLabel}>
-              {originLabel}
-            </span>
-          )}
-          {problem.source_url && (
-            <a
-              href={problem.source_url}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-blue-500 hover:underline dark:text-blue-400"
-            >
-              Источник{problem.source_id ? ` #${problem.source_id}` : ''}
-            </a>
           )}
         </div>
         <div className="flex items-center gap-2">

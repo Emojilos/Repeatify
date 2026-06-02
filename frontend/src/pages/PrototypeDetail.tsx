@@ -334,9 +334,6 @@ export default function PrototypeDetail() {
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${difficultyStyles[problem.difficulty] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
                     {difficultyLabels[problem.difficulty] || problem.difficulty}
                   </span>
-                  {problem.source && (
-                    <span className="text-xs text-gray-400 dark:text-gray-500">{problem.source}</span>
-                  )}
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   <ProblemContent text={problem.problem_text} images={problem.problem_images} imageClassName="h-5 w-auto dark:invert" />

@@ -336,9 +336,6 @@ export default function TopicDetailPage() {
                     <div className="mb-1 flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Задание {idx + 1}</span>
                       {difficultyBadge(problem.difficulty)}
-                      {problem.source && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500">{problem.source}</span>
-                      )}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       <ProblemContent
