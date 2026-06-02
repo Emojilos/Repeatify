@@ -11,6 +11,8 @@ from app.models.problems import (
     ProblemDetail,
     ProblemListItem,
     ProblemListResponse,
+    ProblemSubcategoryItem,
+    ProblemSubcategoryListResponse,
 )
 from app.services.fsrs_service import create_card as fsrs_create_card
 from app.services.fsrs_service import review_card as fsrs_review_card
@@ -115,6 +117,7 @@ async def list_problems(
     topic_id: str | None = Query(None),
     difficulty: Difficulty | None = Query(None),
     task_number: int | None = Query(None, ge=1, le=19),
+    subcategory: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     _user: dict = Depends(get_current_user),
@@ -130,6 +133,8 @@ async def list_problems(
         query = query.eq("difficulty", difficulty.value)
     if task_number is not None:
         query = query.eq("task_number", task_number)
+    if subcategory is not None:
+        query = query.eq("subcategory", subcategory)
 
     offset = (page - 1) * page_size
     query = query.order("task_number").range(offset, offset + page_size - 1)
@@ -162,6 +167,47 @@ async def list_problems(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/subcategories", response_model=ProblemSubcategoryListResponse)
+async def list_problem_subcategories(
+    topic_id: str | None = Query(None),
+    task_number: int | None = Query(None, ge=1, le=19),
+    _user: dict = Depends(get_current_user),
+) -> ProblemSubcategoryListResponse:
+    """Return real problem subcategories for a topic or task."""
+    client = get_supabase_client()
+
+    query = client.table("problems").select(
+        "id,task_number,subcategory,problem_text,problem_images",
+    )
+
+    if topic_id is not None:
+        query = query.eq("topic_id", topic_id)
+    if task_number is not None:
+        query = query.eq("task_number", task_number)
+
+    result = (
+        query
+        .order("subcategory")
+        .order("id")
+        .execute()
+    )
+
+    grouped: dict[str, dict] = {}
+    for row in result.data or []:
+        name = (row.get("subcategory") or "").strip() or "Без подкатегории"
+        if name not in grouped:
+            grouped[name] = {
+                "name": name,
+                "count": 0,
+                "sample_problem_text": row.get("problem_text"),
+                "sample_problem_images": row.get("problem_images"),
+            }
+        grouped[name]["count"] += 1
+
+    items = [ProblemSubcategoryItem(**item) for item in grouped.values()]
+    return ProblemSubcategoryListResponse(items=items, total=len(items))
 
 
 @router.get("/{problem_id}", response_model=ProblemDetail)

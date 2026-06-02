@@ -152,6 +152,52 @@ def test_list_problems_with_filters(client):
     assert data["total"] == 1
 
 
+def test_list_problem_subcategories(client):
+    token = _make_token()
+    rows = [
+        {
+            **_mock_problem_row("prob-1", task_number=18),
+            "subcategory": "Графика. Окружность",
+            "problem_images": ["circle.png"],
+        },
+        {
+            **_mock_problem_row("prob-2", task_number=18),
+            "subcategory": "Графика. Окружность",
+            "problem_images": None,
+        },
+        {
+            **_mock_problem_row("prob-3", task_number=18),
+            "subcategory": "Алгебра. Теорема Виета",
+            "problem_images": None,
+        },
+    ]
+
+    mock_client = MagicMock()
+    (
+        mock_client.table.return_value
+        .select.return_value
+        .eq.return_value
+        .order.return_value
+        .order.return_value
+        .execute.return_value
+    ) = MagicMock(data=rows)
+
+    with patch("app.routers.problems.get_supabase_client", return_value=mock_client):
+        resp = client.get(
+            "/api/problems/subcategories?task_number=18",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] == 2
+    assert data["items"][0]["name"] == "Графика. Окружность"
+    assert data["items"][0]["count"] == 2
+    assert data["items"][0]["sample_problem_images"] == ["circle.png"]
+    assert data["items"][1]["name"] == "Алгебра. Теорема Виета"
+    assert data["items"][1]["count"] == 1
+
+
 # --- GET /api/problems/{id} ---
 
 

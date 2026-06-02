@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import ProblemCard from '../components/ProblemCard'
 import { useFormulaStore } from '../stores/formulaStore'
@@ -17,6 +17,7 @@ interface Problem {
   prototype_id?: string | null
   prototype_code?: string | null
   prototype_title?: string | null
+  subcategory?: string | null
 }
 
 interface ProblemListResponse {
@@ -34,6 +35,8 @@ interface TopicInfo {
 
 export default function TopicPractice() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
+  const selectedSubcategory = searchParams.get('subcategory')
   const [topic, setTopic] = useState<TopicInfo | null>(null)
   const [problems, setProblems] = useState<Problem[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -57,9 +60,13 @@ export default function TopicPractice() {
     setLoading(true)
     setError(null)
 
+    const subcategoryParam = selectedSubcategory
+      ? `&subcategory=${encodeURIComponent(selectedSubcategory)}`
+      : ''
+
     Promise.all([
       api<TopicInfo>(`/api/topics/${id}`),
-      api<ProblemListResponse>(`/api/problems?topic_id=${id}&page_size=50`),
+      api<ProblemListResponse>(`/api/problems?topic_id=${id}&page_size=100${subcategoryParam}`),
     ])
       .then(([topicData, problemsData]) => {
         setTopic(topicData)
@@ -67,7 +74,7 @@ export default function TopicPractice() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, selectedSubcategory])
 
   const currentProblem = problems[currentIndex] ?? null
 
@@ -112,7 +119,11 @@ export default function TopicPractice() {
           &larr; Назад к теме
         </Link>
         <div className="mt-8 text-center">
-          <p className="text-lg text-gray-500 dark:text-gray-400">Задания по этой теме пока не добавлены.</p>
+          <p className="text-lg text-gray-500 dark:text-gray-400">
+            {selectedSubcategory
+              ? 'Задания по этой подкатегории пока не добавлены.'
+              : 'Задания по этой теме пока не добавлены.'}
+          </p>
         </div>
       </div>
     )
@@ -125,7 +136,9 @@ export default function TopicPractice() {
         <div className="mx-auto max-w-lg text-center">
           <div className="mb-6 text-5xl">🎉</div>
           <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Все задания решены!</h1>
-          <p className="mb-8 text-gray-500 dark:text-gray-400">Тема: {topic.title}</p>
+          <p className="mb-8 text-gray-500 dark:text-gray-400">
+            Тема: {selectedSubcategory ? `${topic.title} / ${selectedSubcategory}` : topic.title}
+          </p>
 
           <div className="mb-8 grid grid-cols-3 gap-4">
             <div className="rounded-lg border border-gray-200 bg-white p-4 text-center dark:border-gray-700 dark:bg-gray-800">
@@ -169,7 +182,7 @@ export default function TopicPractice() {
           &larr; Назад к теме
         </Link>
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          {topic.title}
+          {selectedSubcategory ? `${topic.title} / ${selectedSubcategory}` : topic.title}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import MathRenderer from '../components/MathRenderer'
@@ -35,6 +35,7 @@ interface Problem {
   problem_images?: string[] | null
   source: string | null
   max_points: number | null
+  subcategory?: string | null
 }
 
 interface ProblemListResponse {
@@ -44,19 +45,15 @@ interface ProblemListResponse {
   page_size: number
 }
 
-interface Prototype {
-  id: string
-  task_number: number
-  prototype_code: string
-  title: string
-  description: string | null
-  difficulty_within_task: string
-  estimated_study_minutes: number | null
-  order_index: number | null
+interface ProblemSubcategory {
+  name: string
+  count: number
+  sample_problem_text: string | null
+  sample_problem_images?: string[] | null
 }
 
-interface PrototypeListResponse {
-  items: Prototype[]
+interface ProblemSubcategoryListResponse {
+  items: ProblemSubcategory[]
   total: number
 }
 
@@ -110,7 +107,7 @@ export default function TopicDetailPage() {
   const [topic, setTopic] = useState<TopicDetail | null>(null)
   const [problems, setProblems] = useState<Problem[]>([])
   const [relationships, setRelationships] = useState<TopicRelationship[]>([])
-  const [prototypes, setPrototypes] = useState<Prototype[]>([])
+  const [subcategories, setSubcategories] = useState<ProblemSubcategory[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -124,20 +121,26 @@ export default function TopicDetailPage() {
       api<TopicDetail>(`/api/topics/${id}`),
       api<ProblemListResponse>(`/api/problems?topic_id=${id}&page_size=50`),
       api<TopicRelationship[]>(`/api/topics/${id}/relationships`),
+      api<ProblemSubcategoryListResponse>(`/api/problems/subcategories?topic_id=${id}`),
     ])
-      .then(([topicData, problemsData, relData]) => {
+      .then(([topicData, problemsData, relData, subcategoryData]) => {
         setTopic(topicData)
         setProblems(problemsData.items)
         setRelationships(relData)
-        // Fetch prototypes for this topic's task_number
-        return api<PrototypeListResponse>(`/api/prototypes?task_number=${topicData.task_number}`)
-      })
-      .then((protoData) => {
-        setPrototypes(protoData.items)
+        setSubcategories(subcategoryData.items)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [id])
+
+  const problemGroups = useMemo(() => {
+    const groups = new Map<string, Problem[]>()
+    for (const problem of problems) {
+      const name = problem.subcategory?.trim() || 'Без подкатегории'
+      groups.set(name, [...(groups.get(name) ?? []), problem])
+    }
+    return Array.from(groups, ([name, items]) => ({ name, items }))
+  }, [problems])
 
   if (loading) {
     return (
@@ -248,41 +251,39 @@ export default function TopicDetailPage() {
         </section>
       )}
 
-      {/* Prototypes section */}
-      {prototypes.length > 0 && (
+      {/* Subcategories section */}
+      {subcategories.length > 0 && (
         <section className="mb-8">
           <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-gray-200">
-            Прототипы <span className="text-sm font-normal text-gray-400 dark:text-gray-500">({prototypes.length})</span>
+            Подкатегории <span className="text-sm font-normal text-gray-400 dark:text-gray-500">({subcategories.length})</span>
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            {prototypes.map((proto) => (
+            {subcategories.map((subcategory) => (
               <div
-                key={proto.id}
+                key={subcategory.name}
                 className="rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-800"
               >
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{proto.prototype_code}</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{proto.title}</span>
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <h3 className="min-w-0 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {subcategory.name}
+                  </h3>
+                  <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                    {subcategory.count}
+                  </span>
                 </div>
-                <div className="mb-3 flex flex-wrap items-center gap-2">
-                  {difficultyBadge(proto.difficulty_within_task)}
-                  {proto.estimated_study_minutes && (
-                    <span className="text-xs text-gray-400 dark:text-gray-500">~{proto.estimated_study_minutes} мин</span>
-                  )}
-                </div>
-                {proto.description && (
-                  <p className="mb-3 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{proto.description}</p>
+                {subcategory.sample_problem_text && (
+                  <div className="mb-3 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
+                    <ProblemContent
+                      text={subcategory.sample_problem_text}
+                      images={subcategory.sample_problem_images}
+                      imageClassName="h-5 w-auto dark:invert"
+                    />
+                  </div>
                 )}
                 <div className="flex gap-2">
                   <Link
-                    to={`/prototypes/${proto.id}`}
+                    to={`/topics/${topic.id}/practice?subcategory=${encodeURIComponent(subcategory.name)}`}
                     className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
-                  >
-                    Теория
-                  </Link>
-                  <Link
-                    to={`/topics/${id}/practice`}
-                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                   >
                     Практика
                   </Link>
@@ -325,26 +326,38 @@ export default function TopicDetailPage() {
         {problems.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">Задания по этой теме пока не добавлены.</p>
         ) : (
-          <div className="space-y-3">
-            {problems.map((problem, idx) => (
-              <div
-                key={problem.id}
-                className="rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-800"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Задание {idx + 1}</span>
-                      {difficultyBadge(problem.difficulty)}
+          <div className="space-y-5">
+            {problemGroups.map((group) => (
+              <div key={group.name}>
+                <div className="mb-2 flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{group.name}</h3>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">({group.items.length})</span>
+                </div>
+                <div className="space-y-3">
+                  {group.items.map((problem) => (
+                    <div
+                      key={problem.id}
+                      className="rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-800"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Задание {problems.indexOf(problem) + 1}
+                            </span>
+                            {difficultyBadge(problem.difficulty)}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            <ProblemContent
+                              text={problem.problem_text.slice(0, 200) + (problem.problem_text.length > 200 ? '...' : '')}
+                              images={problem.problem_images}
+                              imageClassName="h-5 w-auto dark:invert"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      <ProblemContent
-                        text={problem.problem_text.slice(0, 200) + (problem.problem_text.length > 200 ? '...' : '')}
-                        images={problem.problem_images}
-                        imageClassName="h-5 w-auto dark:invert"
-                      />
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             ))}

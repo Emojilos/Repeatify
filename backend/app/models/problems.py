@@ -83,3 +83,15 @@ class ProblemListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class ProblemSubcategoryItem(BaseModel):
+    name: str
+    count: int
+    sample_problem_text: str | None = None
+    sample_problem_images: list[str] | None = None
+
+
+class ProblemSubcategoryListResponse(BaseModel):
+    items: list[ProblemSubcategoryItem]
+    total: int
