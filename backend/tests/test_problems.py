@@ -112,6 +112,39 @@ def test_list_problems_no_auth(client):
     assert resp.status_code in (401, 403)
 
 
+def test_list_problems_hidden_returns_empty(client, monkeypatch):
+    token = _make_token()
+    from app.routers import problems as problems_router
+
+    monkeypatch.setattr(problems_router.settings, "SHOW_PROBLEMS", False)
+
+    with patch("app.routers.problems.get_supabase_client") as mock_get_client:
+        resp = client.get(
+            "/api/problems?task_number=1",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.json() == {"items": [], "total": 0, "page": 1, "page_size": 20}
+    mock_get_client.assert_not_called()
+
+
+def test_get_problem_hidden_returns_404(client, monkeypatch):
+    token = _make_token()
+    from app.routers import problems as problems_router
+
+    monkeypatch.setattr(problems_router.settings, "SHOW_PROBLEMS", False)
+
+    with patch("app.routers.problems.get_supabase_client") as mock_get_client:
+        resp = client.get(
+            "/api/problems/prob-1",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert resp.status_code == 404
+    mock_get_client.assert_not_called()
+
+
 def test_list_problems_with_filters(client):
     token = _make_token()
     problems = [_mock_problem_row("prob-1", task_number=5, difficulty="hard")]

@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.auth import get_current_user
+from app.core.config import settings
 from app.db.supabase_client import get_supabase_client
 from app.models.problems import ProblemListItem, ProblemListResponse
 from app.models.prototype import (
@@ -263,6 +264,9 @@ async def get_prototype_problems(
 ) -> ProblemListResponse:
     """Return problems linked to a prototype with pagination."""
     _validate_uuid(prototype_id)
+    if not settings.SHOW_PROBLEMS:
+        return ProblemListResponse(items=[], total=0, page=page, page_size=page_size)
+
     client = get_supabase_client()
 
     # Verify prototype exists

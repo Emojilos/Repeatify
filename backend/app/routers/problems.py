@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.auth import get_current_user
+from app.core.config import settings
 from app.db.supabase_client import get_supabase_client
 from app.models.problems import (
     AttemptRequest,
@@ -123,6 +124,9 @@ async def list_problems(
     _user: dict = Depends(get_current_user),
 ) -> ProblemListResponse:
     """List problems with optional filters and pagination."""
+    if not settings.SHOW_PROBLEMS:
+        return ProblemListResponse(items=[], total=0, page=page, page_size=page_size)
+
     client = get_supabase_client()
 
     query = client.table("problems").select("*", count="exact")
@@ -176,6 +180,9 @@ async def list_problem_subcategories(
     _user: dict = Depends(get_current_user),
 ) -> ProblemSubcategoryListResponse:
     """Return real problem subcategories for a topic or task."""
+    if not settings.SHOW_PROBLEMS:
+        return ProblemSubcategoryListResponse(items=[], total=0)
+
     client = get_supabase_client()
 
     query = client.table("problems").select(
@@ -216,6 +223,12 @@ async def get_problem(
     _user: dict = Depends(get_current_user),
 ) -> ProblemDetail:
     """Return a single problem WITHOUT correct_answer."""
+    if not settings.SHOW_PROBLEMS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Problem not found",
+        )
+
     client = get_supabase_client()
 
     result = (
@@ -239,6 +252,12 @@ async def get_solution(
     _user: dict = Depends(get_current_user),
 ) -> dict:
     """Return solution_markdown and correct_answer for a problem."""
+    if not settings.SHOW_PROBLEMS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Problem not found",
+        )
+
     client = get_supabase_client()
     result = (
         client.table("problems")
@@ -266,6 +285,12 @@ async def submit_attempt(
     user: dict = Depends(get_current_user),
 ) -> AttemptResponse:
     """Submit an answer attempt. Returns correctness and XP."""
+    if not settings.SHOW_PROBLEMS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Problem not found",
+        )
+
     client = get_supabase_client()
 
     # Fetch problem with correct_answer

@@ -12,6 +12,8 @@ from datetime import date, datetime, timezone
 from fsrs import Card as FSRSCard
 from fsrs import Rating, Scheduler, State
 
+from app.core.config import settings
+
 
 def _map_state_to_db(state: State) -> str:
     """Map py-fsrs State enum to DB string."""
@@ -234,6 +236,9 @@ def get_session(
     Applies interleaving so no more than 2 consecutive cards share the
     same task_number.
     """
+    if not settings.SHOW_PROBLEMS:
+        return []
+
     now = datetime.now(timezone.utc).isoformat()
 
     result = (

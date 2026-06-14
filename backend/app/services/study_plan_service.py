@@ -10,6 +10,9 @@ import uuid
 from datetime import datetime, timezone
 from random import sample
 
+from app.core.config import settings
+
+
 def check_answer(
     user_answer: str | None,
     correct_answer: str | None,
@@ -191,6 +194,9 @@ def start_assessment(client, user_id: str, task_number: int, prototype_id: str |
     Returns list of problem dicts (without correct_answer).
     Optionally filter by prototype_id.
     """
+    if not settings.SHOW_PROBLEMS:
+        return []
+
     query = (
         client.table("problems")
         .select("id,task_number,difficulty,problem_text,problem_images,hints")
@@ -253,6 +259,15 @@ def submit_assessment(
     answers: list of {problem_id, answer}
     Returns assessment result with per-problem details.
     """
+    if not settings.SHOW_PROBLEMS:
+        return {
+            "task_number": task_number,
+            "correct_count": 0,
+            "total_count": 0,
+            "status": "not_tested",
+            "details": [],
+        }
+
     problem_ids = [a["problem_id"] for a in answers]
 
     # Fetch correct answers

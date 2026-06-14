@@ -118,6 +118,12 @@ async def start_task_assessment(
     prototype_id: str | None = Query(None, description="Filter by prototype UUID"),
 ) -> AssessmentStartResponse:
     """Start an assessment test for a specific task. Returns 10 problems."""
+    if not settings.SHOW_PROBLEMS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No problems found for task {task_number}",
+        )
+
     if task_number < 1 or task_number > 19:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -149,6 +155,12 @@ async def submit_task_assessment(
     user: dict = Depends(get_current_user),
 ) -> AssessmentResultResponse:
     """Submit assessment answers and get results. Updates mastery level."""
+    if not settings.SHOW_PROBLEMS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No problems found for task {task_number}",
+        )
+
     if task_number < 1 or task_number > 19:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

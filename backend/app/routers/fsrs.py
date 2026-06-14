@@ -11,6 +11,7 @@ from datetime import date, datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.auth import get_current_user
+from app.core.config import settings
 from app.db.supabase_client import get_supabase_client
 from app.models.fsrs_card import (
     FSRSCardResponse,
@@ -44,6 +45,9 @@ async def get_fsrs_session(
     Cards are sorted by retrievability (lowest first) and interleaved
     so no more than 2 consecutive cards share the same task_number.
     """
+    if not settings.SHOW_PROBLEMS:
+        return FSRSSessionResponse(cards=[], total_due=0)
+
     client = get_supabase_client()
 
     # Fetch user's exam_date for retention tuning
@@ -101,6 +105,12 @@ async def submit_fsrs_review(
     user: dict = Depends(get_current_user),
 ) -> FSRSReviewResponse:
     """Record an FSRS review result and update the card schedule."""
+    if not settings.SHOW_PROBLEMS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="FSRS card not found",
+        )
+
     client = get_supabase_client()
 
     # Fetch user's exam_date

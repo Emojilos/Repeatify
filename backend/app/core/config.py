@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     API_RATE_LIMIT: str = "100/minute"
     STUDY_PLAN_GENERATE_RATE_LIMIT: str = "5/minute"
 
+    # Temporarily hide all problem content. Set SHOW_PROBLEMS=true to restore.
+    SHOW_PROBLEMS: bool = False
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
